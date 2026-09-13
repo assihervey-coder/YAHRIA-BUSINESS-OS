@@ -50,9 +50,10 @@ export default function Home() {
   const active = NAV.find((n) => n.id === view)!
 
   return (
-    <div className="dark min-h-screen flex bg-background text-foreground" style={{ colorScheme: 'dark' }}>
-      {/* ── SIDEBAR ── */}
-      <aside className={cn('hidden md:flex flex-col border-r bg-sidebar transition-all duration-200 shrink-0', collapsed ? 'w-[68px]' : 'w-60')}>
+    <div className="dark h-dvh overflow-hidden flex bg-background text-foreground" style={{ colorScheme: 'dark' }}>
+      {/* Shell verrouillé à la hauteur de l'écran : chaque bande gère son propre scroll */}
+      {/* ── SIDEBAR (bande de gauche — scroll indépendant) ── */}
+      <aside className={cn('hidden md:flex h-full min-h-0 flex-col overflow-hidden border-r bg-sidebar transition-all duration-200 shrink-0', collapsed ? 'w-[68px]' : 'w-60')}>
         <div className="flex items-center gap-2.5 px-4 h-16 border-b shrink-0">
           <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[oklch(0.8_0.12_220)] to-[oklch(0.6_0.14_240)] flex items-center justify-center font-black text-[13px] text-[oklch(0.16_0.04_255)] shrink-0">Y</div>
           {!collapsed && (
@@ -63,7 +64,7 @@ export default function Home() {
           )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain os-scroll py-3 px-2 space-y-0.5">
           {NAV.map((n) => {
             const Icon = n.icon
             const isActive = view === n.id
@@ -104,8 +105,8 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* ── MAIN ── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* ── MAIN (grande bande de droite — scroll indépendant) ── */}
+      <div className="flex-1 flex flex-col min-w-0 h-full min-h-0 overflow-y-auto overscroll-contain os-scroll">
         <header className="h-16 border-b bg-background/80 backdrop-blur flex items-center gap-3 px-4 md:px-6 sticky top-0 z-20 shrink-0">
           <div className="md:hidden h-8 w-8 rounded-lg bg-gradient-to-br from-[oklch(0.8_0.12_220)] to-[oklch(0.6_0.14_240)] flex items-center justify-center font-black text-xs text-[oklch(0.16_0.04_255)]">Y</div>
           <div className="min-w-0 hidden sm:block">

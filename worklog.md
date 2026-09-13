@@ -53,3 +53,21 @@ Stage Summary:
 - Application livrée : YAHRIA BUSINESS OS V1 fonctionnelle sur le shell OS (route /), données seed réalistes, invariants vérifiés en continu
 - Boucle de contrôle complète prouvée de bout en bout : Intent → Policy → Risque → Approbation humaine → Exécution → Écriture comptable → Evidence → Audit
 - Scripts : prisma/schema.prisma, src/lib/yahria/{core,ledger,policy,audit,graph,seed,payments,agents}.ts, src/app/api/v1/**, src/components/yahria/{ui,cockpit,core,money,finance,graph,copilot,agents,pays,governance}.tsx, src/app/page.tsx
+
+---
+Task ID: 3
+Agent: main (Super Z)
+Task: Découplage du scroll — bande de gauche (nav Cockpit/...) et grande bande de droite doivent défiler indépendamment
+
+Work Log:
+- Diagnostic : shell racine en min-h-screen -> la page entière défilait d'un bloc, sidebar emportée avec le contenu
+- Correctif page.tsx : racine h-dvh + overflow-hidden (page non défilable) ; aside h-full min-h-0 overflow-hidden ; nav flex-1 min-h-0 overflow-y-auto overscroll-contain ; colonne droite h-full min-h-0 overflow-y-auto overscroll-contain (header sticky top-0 conservé dans le conteneur de scroll)
+- globals.css : utilitaire .os-scroll (barres fines 6px, thumb oklch translucide, hover) appliqué aux deux bandes
+- Correction en cours d'édition : duplication accidentelle du bloc logo sidebar supprimée
+- Test Playwright (événements wheel réels, viewport 1440x620) : 4/4 OK — roue à droite -> droite bouge/gauche immobile ; roue à gauche -> gauche bouge/droite immobile ; overscroll fin de course gauche -> aucun chaînage ; retour roue droite -> gauche toujours immobile ; pageScrollY reste 0
+- Capture scroll_test_final.png : preuve visuelle (nav décalée jusqu'à "Core", contenu droit sur le graphique trésorerie, header épinglé)
+
+Stage Summary:
+- Les deux bandes sont des conteneurs de scroll totalement indépendants (overscroll-contain, page verrouillée h-dvh)
+- Scripts : scripts/test_scroll_independant.js (réexécutable), scripts/scroll_test_final.png
+- Fichiers modifiés : src/app/page.tsx, src/app/globals.css
