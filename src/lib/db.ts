@@ -56,6 +56,33 @@ const TENANT_MODELS = new Set(['user'])
 // Modèles globaux (countryPack, sectorEngine, policy*, session) : pas d'injection.
 // policy porte un orgId nullable (policies globales) → filtrage explicite dans les routes.
 
+// ── INV-007 : EVENT IMMUTABILITY PAR CONSTRUCTION ────────────────────────────
+// Les modèles porteurs d'événements publiés (audit, preuves signées, écritures
+// comptables) sont APPEND-ONLY : toute opération mutative est refusée par la
+// couche d'accès elle-même, AVANT d'atteindre la base. Ni le code métier, ni
+// une route API, ni le client non scopé (dbUnscoped) ne peut contourner ce
+// refus : la couche est la plus basse de la pile Prisma (elle enveloppe aussi
+// l'extension RLS). La correction d'une erreur comptable passe donc par une
+// écriture inverse (contre-passation), jamais par une modification.
+const IMMUTABLE_MODELS = new Set(['auditrecord', 'evidence', 'journalentry', 'ledgerline'])
+const MUTATING_OPS = new Set(['update', 'updateMany', 'delete', 'deleteMany', 'upsert'])
+
+const baseWithImmutability = prisma.$extends({
+  query: {
+    $allModels: {
+      $allOperations({ model, operation, args, query }) {
+        const m = (model ?? '').toLowerCase()
+        if (IMMUTABLE_MODELS.has(m) && MUTATING_OPS.has(operation)) {
+          throw new Error(
+            `INV-007_VIOLATION : ${m} est append-only — un événement publié ne peut être modifié ni supprimé (opération « ${operation} » refusée par construction)`
+          )
+        }
+        return query(args)
+      },
+    },
+  },
+})
+
  
 /** Périmètre injecté pour un modèle donné. L'organisation se scope par son propre id. */
 function scopeFor(model: string, ctx: RlsContext): Record<string, string> {
@@ -69,7 +96,7 @@ function injectReadFilter(model: string, args: any, ctx: RlsContext) {
   args.where = args.where ? { AND: [args.where, scope] } : scope
 }
 
-export const db = prisma.$extends({
+export const db = baseWithImmutability.$extends({
   query: {
     $allModels: {
       async $allOperations({ model, operation, args, query }) {
@@ -152,5 +179,9 @@ export const db = prisma.$extends({
   },
 }) as unknown as PrismaClient
 
-/** Client brut, sans RLS — réservé à l'authentification (login) et au seed. */
-export const dbUnscoped = prisma
+/**
+ * Client sans RLS mais SOUMIS à l'immutabilité (INV-007) — réservé au login,
+ * au seed et aux probes d'invariants. Aucun chemin d'accès ne contourne
+ * l'append-only : c'est la couche la plus basse de la pile.
+ */
+export const dbUnscoped = baseWithImmutability as unknown as PrismaClient

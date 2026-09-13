@@ -7,6 +7,14 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const PUBLIC_PATHS = ['/login', '/api/v1/auth']
 
+// INV-013 : TOUTE réponse API porte la version du contrat public — y compris
+// celles du middleware (401 avant l'entrée dans la route).
+function contractHeaders(res: NextResponse): NextResponse {
+  res.headers.set('X-API-Version', '1.1.0') // synchronisé avec src/lib/yahria/contracts.ts (API_CONTRACT)
+  res.headers.set('X-Contract-Id', 'YBOS-API')
+  return res
+}
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
@@ -17,7 +25,7 @@ export function middleware(req: NextRequest) {
   const hasSession = req.cookies.has('yahria_session')
   if (!hasSession) {
     if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Authentification requise' }, { status: 401 })
+      return contractHeaders(NextResponse.json({ error: 'Authentification requise' }, { status: 401 }))
     }
     const url = req.nextUrl.clone()
     url.pathname = '/login'

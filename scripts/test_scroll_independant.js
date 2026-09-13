@@ -1,5 +1,5 @@
 // Test roue réelle : indépendance de scroll des deux bandes YAHRIA OS
-const { chromium } = require('/home/z/.npm-global/lib/node_modules/playwright');
+const { chromium } = require('/home/z/.npm-global/lib/node_modules/playwright'); // eslint-disable-line @typescript-eslint/no-require-imports
 
 (async () => {
   const browser = await chromium.launch();

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { withAuth } from '@/lib/yahria/auth'
 import { jparse } from '@/lib/yahria/core'
+import { registryIntegrity, getSector } from '@/lib/yahria/sectors/registry'
+import { PACK_MANIFEST_SPEC, API_CONTRACT } from '@/lib/yahria/contracts'
 
 export async function GET(req: NextRequest) {
   return withAuth(req, null, async (s) => {
@@ -11,7 +13,9 @@ export async function GET(req: NextRequest) {
       db.countryPack.findMany({ orderBy: { code: 'asc' } }),
       db.sectorEngine.findMany({ orderBy: { code: 'asc' } }),
     ])
+    const reg = registryIntegrity()
     return {
+      contract: { apiVersion: API_CONTRACT.version, packManifest: PACK_MANIFEST_SPEC.version, sectorContract: reg.contractVersion },
       org: org && {
         id: org.id, name: org.name, legalName: org.legalName, city: org.city, countryCode: org.countryCode,
         currencyCode: org.currencyCode, sectorCode: org.sectorCode, taxId: org.taxId, rccm: org.rccm,
@@ -20,18 +24,25 @@ export async function GET(req: NextRequest) {
       user: { name: s.name, email: s.email, role: s.role, permissions: s.permissions },
       countryPacks: packs.map((p) => ({
         ...p,
+        manifestSchema: PACK_MANIFEST_SPEC.version, // INV-013 : schéma de manifest versionné
         mobileMoney: jparse(p.mobileMoneyJson, []),
         banks: jparse(p.banksJson, []),
         payroll: jparse(p.payrollJson, {}),
         compliance: jparse(p.complianceJson, {}),
         invoicing: jparse(p.invoicingJson, {}),
       })),
-      sectorEngines: sectors.map((sec) => ({
-        ...sec,
-        entities: jparse<string[]>(sec.entitiesJson, []),
-        kpis: jparse<string[]>(sec.kpisJson, []),
-        workflows: jparse<string[]>(sec.workflowsJson, []),
-      })),
+      sectorEngines: sectors.map((sec) => {
+        const ext = getSector(sec.code)
+        return {
+          ...sec,
+          entities: jparse<string[]>(sec.entitiesJson, []),
+          kpis: jparse<string[]>(sec.kpisJson, []),
+          workflows: jparse<string[]>(sec.workflowsJson, []),
+          // INV-012 : l'engine est chargé via le registre (jamais importé directement)
+          registry: { registered: !!ext, extensionVersion: ext?.version ?? null, contractVersion: ext?.contractVersion ?? null },
+        }
+      }),
+      sectorRegistry: { total: reg.total, contractVersion: reg.contractVersion, versionsOk: reg.versionsOk },
     }
   })
 }

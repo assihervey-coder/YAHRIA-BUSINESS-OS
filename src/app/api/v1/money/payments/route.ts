@@ -4,6 +4,7 @@ import { withAuth, can } from '@/lib/yahria/auth'
 import { orchestratePayment } from '@/lib/yahria/payments'
 import { resolveAgentApproval } from '@/lib/yahria/agents'
 import { audit } from '@/lib/yahria/audit'
+import { evaluateSectorPayment } from '@/lib/yahria/sectors/registry'
 
 export async function GET(req: NextRequest) {
   return withAuth(req, 'money.read', async (s) => {
@@ -84,11 +85,38 @@ export async function POST(req: NextRequest) {
       initiatedByType: 'HUMAN',
       initiatedByName: s.name,
     })
+
+    // INV-012 : constats sectoriels calculés PAR LE REGISTRE à la couche
+    // composition — le Core (payments.ts) n'importe jamais d'extension. Une
+    // extension ne peut que commenter, jamais décider (Policy Engine seul
+    // décisionnaire). Les constats sont tracés dans l'audit.
+    const payment = out.payment
+    const org = await db.organization.findUnique({ where: { id: orgId } })
+    const sectorFindings = payment && org
+      ? evaluateSectorPayment(org.sectorCode ?? 'enterprise', {
+          countryCode: org.countryCode,
+          amount: payment.amount,
+          currency: payment.currency,
+          provider: payment.provider,
+          direction: payment.direction as 'IN' | 'OUT' | 'INTERNAL',
+          counterpartyType: payment.counterpartyType,
+        })
+      : []
+    if (payment && sectorFindings.length > 0) {
+      await audit({
+        orgId, actorType: 'SYSTEM', action: 'SECTOR_FINDINGS',
+        resourceType: 'PAYMENT', resourceId: payment.id,
+        summary: `Constats sectoriels (${org?.sectorCode}) sur ${payment.reference} : ${sectorFindings.map((f) => f.code).join(', ')}`,
+        meta: { invariant: 'INV-012', sectorCode: org?.sectorCode, findings: sectorFindings },
+      })
+    }
+
     return NextResponse.json({
       payment: out.payment,
       replayed: out.replayed,
       traceId: out.traceId,
       decision: 'decision' in out ? out.decision : null,
+      sectorFindings, // INV-012 : constats consultatifs attachés à la réponse
     }, { status: out.replayed ? 200 : 201 })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })

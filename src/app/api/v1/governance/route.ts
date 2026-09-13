@@ -5,6 +5,8 @@ import { jparse } from '@/lib/yahria/core'
 import { rebuildGraphProjection } from '@/lib/yahria/graph'
 import { audit, verifyEvidenceChain } from '@/lib/yahria/audit'
 import { checkPackIsolation } from '@/lib/yahria/packs'
+import { runConstructionProofs } from '@/lib/yahria/invariants'
+import { API_CONTRACT, EVIDENCE_LEDGER_SPEC, PACK_MANIFEST_SPEC, SECTOR_CONTRACT, contractsOverview } from '@/lib/yahria/contracts'
 
 // 15 invariants (spec §16) — V1 acceptance panel with live checks where computable
 const INVARIANTS = [
@@ -14,13 +16,13 @@ const INVARIANTS = [
   { id: 'INV-004', name: 'Financial Integrity', desc: 'Tout mouvement financier est traçable.', check: 'live' },
   { id: 'INV-005', name: 'Accounting Integrity', desc: 'SUM(DÉBIT) = SUM(CRÉDIT) sur chaque écriture.', check: 'live' },
   { id: 'INV-006', name: 'Idempotency', desc: 'Les opérations financières critiques sont idempotentes.', check: 'live' },
-  { id: 'INV-007', name: 'Event Immutability', desc: 'Un événement publié ne peut être modifié.', check: 'by-construction' },
+  { id: 'INV-007', name: 'Event Immutability', desc: 'Un événement publié ne peut être modifié.', check: 'par-construction' },
   { id: 'INV-008', name: 'Evidence', desc: 'Toute décision IA à impact métier produit une preuve signée.', check: 'live' },
   { id: 'INV-009', name: 'Human Oversight', desc: 'Les actions au-delà des seuils exigent une validation humaine.', check: 'live' },
   { id: 'INV-010', name: 'Agent Least Privilege', desc: 'Un agent ne possède que les permissions nécessaires.', check: 'live' },
   { id: 'INV-011', name: 'Country Isolation', desc: 'Les rails de paiement proviennent exclusivement du Country Pack national.', check: 'live' },
-  { id: 'INV-012', name: 'Sector Isolation', desc: 'Les extensions sectorielles ne contaminent pas le Core.', check: 'by-construction' },
-  { id: 'INV-013', name: 'Versioning', desc: 'Les contrats publics sont versionnés.', check: 'by-construction' },
+  { id: 'INV-012', name: 'Sector Isolation', desc: 'Les extensions sectorielles ne contaminent pas le Core.', check: 'par-construction' },
+  { id: 'INV-013', name: 'Versioning', desc: 'Les contrats publics sont versionnés.', check: 'par-construction' },
   { id: 'INV-014', name: 'Auditability', desc: 'Toute action critique est auditable.', check: 'live' },
   { id: 'INV-015', name: 'Explainability', desc: 'Les décisions IA critiques sont explicables.', check: 'live' },
 ]
@@ -77,6 +79,9 @@ export async function GET(req: NextRequest) {
 
     const chain = await verifyEvidenceChain(orgId)
 
+    // ── Invariants PAR CONSTRUCTION : sondes runtime (INV-001/002/007/011/012/013) ──
+    const construction = await runConstructionProofs(orgId)
+
     const checks: Record<string, { status: 'PASS' | 'FAIL' | 'INFO'; detail: string }> = {
       'INV-001': { status: rlsActive ? 'PASS' : 'INFO', detail: `RLS applicatif actif — ${tenantCount} tenants / ${orgCount} organisations cloisonnés ; session limitée à ${org?.legalName ?? 'org courante'}` },
       'INV-002': { status: 'PASS', detail: `RBAC actif — rôle ${s.role}, ${s.permissions.length} permissions ; toutes les routes API derrière withAuth + RLS` },
@@ -102,6 +107,12 @@ export async function GET(req: NextRequest) {
       })),
       evidence: evidence.map((e) => ({ id: e.id, ref: e.ref, kind: e.kind, title: e.title, hash: e.hash, signature: e.signature, prevHash: e.prevHash, seq: e.seq, algo: e.algo, createdAt: e.createdAt, payload: jparse<Record<string, unknown>>(e.payloadJson, {}) })),
       evidenceChain: { total: chain.total, valid: chain.valid, invalid: chain.invalid, chainIntact: chain.chainIntact, brokenAtSeq: chain.brokenAtSeq, algo: chain.algo, brokenRefs: chain.brokenRefs, checkedAt: chain.checkedAt },
+      construction: {
+        allPass: construction.allPass,
+        proofs: construction.proofs,
+        contracts: contractsOverview(),
+        contractMeta: { api: API_CONTRACT, evidenceLedger: EVIDENCE_LEDGER_SPEC, packManifest: PACK_MANIFEST_SPEC, sector: SECTOR_CONTRACT },
+      },
       rls: {
         mode: 'RLS applicatif (SQLite) — politiques Postgres fournies pour production',
         tenantCount, orgCount,
@@ -143,6 +154,15 @@ export async function POST(req: NextRequest) {
       const chain = await verifyEvidenceChain(orgId)
       await audit({ orgId, actorType: 'HUMAN', actorId: s.userId, actorName: s.name, action: 'EVIDENCE_CHAIN_VERIFIED', resourceType: 'EVIDENCE', summary: `Vérification de la chaîne de preuves : ${chain.valid}/${chain.total} valides — ${chain.chainIntact ? 'INTACTE' : 'ROMPUE à la séquence ' + chain.brokenAtSeq}` })
       return NextResponse.json({ chain })
+    }
+
+    if (body.action === 'RUN_INVARIANT_PROOFS') {
+      if (!can(s.role, 'governance.read')) return NextResponse.json({ error: 'Permission governance.read requise' }, { status: 403 })
+      const construction = await runConstructionProofs(orgId)
+      const passed = construction.proofs.filter((p) => p.status === 'PASS').map((p) => p.id)
+      const failed = construction.proofs.filter((p) => p.status === 'FAIL').map((p) => p.id)
+      await audit({ orgId, actorType: 'HUMAN', actorId: s.userId, actorName: s.name, action: 'INVARIANT_PROOFS_RUN', resourceType: 'GOVERNANCE', summary: `Preuves de construction exécutées : ${passed.length}/6 PASS (${passed.join(', ')})${failed.length ? ` — ÉCHEC : ${failed.join(', ')}` : ''}`, meta: { invariant: 'INV-CONSTRUCTION', allPass: construction.allPass } })
+      return NextResponse.json({ ok: true, ...construction })
     }
 
     if (body.action === 'TEST_PACK_ISOLATION') {

@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { StatusBadge, SectionTitle, fmtDateTime } from './ui'
 import { useToast } from '@/hooks/use-toast'
-import { ShieldCheck, ScrollText, Fingerprint, Scale, Lock, KeyRound, Globe2, PlayCircle } from 'lucide-react'
+import { ShieldCheck, ScrollText, Fingerprint, Scale, Lock, KeyRound, Globe2, PlayCircle, Braces, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface Policy { id: string; code: string; name: string; category: string; description: string; active: boolean; version: number; rule: Record<string, unknown> }
@@ -20,11 +20,16 @@ interface EvidenceRow { id: string; ref: string; kind: string; title: string; ha
 interface ChainInfo { total: number; valid: number; invalid: number; chainIntact: boolean; brokenAtSeq: number | null; algo: string; brokenRefs: string[]; checkedAt: string }
 interface RlsInfo { mode: string; tenantCount: number; orgCount: number; scope: { tenantId: string; orgId: string; role: string }; enforcement: string[] }
 interface PermsInfo { role: string; canManagePolicies: boolean; canRebuildGraph: boolean; canTestIsolation: boolean }
+interface ProofCheck { label: string; ok: boolean; detail: string }
+interface ConstructionProof { id: string; name: string; mode: string; status: string; proof: string; checks: ProofCheck[]; checkedAt: string }
+interface ContractInfo { contractId: string; name: string; version: string; semver: boolean; scope: string }
+interface ConstructionInfo { allPass: boolean; proofs: ConstructionProof[]; contracts: ContractInfo[] }
 
 export function GovernanceView() {
   const { toast } = useToast()
-  const [data, setData] = useState<{ policies: Policy[]; invariants: Invariant[]; audit: AuditRow[]; evidence: EvidenceRow[]; evidenceChain: ChainInfo; rls: RlsInfo; permissions: PermsInfo; stats: { auditCount: number; evidenceCount: number; policyCount: number } } | null>(null)
+  const [data, setData] = useState<{ policies: Policy[]; invariants: Invariant[]; audit: AuditRow[]; evidence: EvidenceRow[]; evidenceChain: ChainInfo; rls: RlsInfo; permissions: PermsInfo; construction: ConstructionInfo; stats: { auditCount: number; evidenceCount: number; policyCount: number } } | null>(null)
   const [testing, setTesting] = useState(false)
+  const [runningProofs, setRunningProofs] = useState(false)
   const [isoResult, setIsoResult] = useState<{ orgCountry: string; foreignPack: string; results: { rail: string; railLabel: string; allowed: boolean; detail: string }[] } | null>(null)
 
   const load = useCallback(() => {
@@ -65,7 +70,25 @@ export function GovernanceView() {
     load()
   }
 
+  async function runProofs() {
+    setRunningProofs(true)
+    const res = await fetch('/api/v1/governance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'RUN_INVARIANT_PROOFS' }) })
+    const d = await res.json()
+    setRunningProofs(false)
+    if (!res.ok) { toast({ title: 'Exécution refusée', description: d.error }); return }
+    const passed = (d.proofs ?? []).filter((p: ConstructionProof) => p.status === 'PASS').length
+    toast({
+      title: d.allPass ? 'Preuves de construction : 6/6 PASS' : `Preuves exécutées : ${passed}/6 PASS`,
+      description: d.allPass
+        ? 'INV-001 · INV-002 · INV-007 · INV-011 · INV-012 · INV-013 garantis par construction — attaque réelle exécutée et bloquée à chaque sonde.'
+        : 'Au moins une sonde a échoué — consulter l’onglet Par construction.',
+    })
+    load()
+  }
+
   if (!data) return <div className="space-y-3"><Skeleton className="h-64" /><Skeleton className="h-64" /></div>
+
+  const proofOf = (id: string) => data.construction?.proofs?.find((p) => p.id === id) ?? null
 
   return (
     <div className="space-y-5">
@@ -77,6 +100,7 @@ export function GovernanceView() {
       <Tabs defaultValue="invariants">
         <TabsList className="flex-wrap">
           <TabsTrigger value="invariants">Invariants</TabsTrigger>
+          <TabsTrigger value="construction">Par construction</TabsTrigger>
           <TabsTrigger value="policies">Policies ({data.stats.policyCount})</TabsTrigger>
           <TabsTrigger value="security">Sécurité — RLS & Signatures</TabsTrigger>
           <TabsTrigger value="audit">Audit ({data.stats.auditCount})</TabsTrigger>
@@ -86,20 +110,108 @@ export function GovernanceView() {
         {/* ── INVARIANTS ── */}
         <TabsContent value="invariants" className="mt-4">
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {data.invariants.map((inv) => (
-              <Card key={inv.id} className={inv.checkResult?.status === 'FAIL' ? 'border-red-500/60' : ''}>
+            {data.invariants.map((inv) => {
+              const proof = inv.check === 'par-construction' ? proofOf(inv.id) : null
+              return (
+              <Card key={inv.id} className={inv.checkResult?.status === 'FAIL' || proof?.status === 'FAIL' ? 'border-red-500/60' : ''}>
                 <CardContent className="pt-4 space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-mono text-xs font-bold text-primary">{inv.id}</span>
-                    {inv.checkResult ? <StatusBadge status={inv.checkResult.status} /> : <Badge variant="outline" className="text-[10px] text-muted-foreground">PAR CONSTRUCTION</Badge>}
+                    {inv.checkResult ? <StatusBadge status={inv.checkResult.status} /> : proof ? (
+                      proof.status === 'PASS'
+                        ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/40 text-[10px]">PAR CONSTRUCTION · VÉRIFIÉ</Badge>
+                        : <Badge className="bg-red-500/15 text-red-400 border-red-500/40 text-[10px]">CONSTRUCTION · ÉCHEC</Badge>
+                    ) : <Badge variant="outline" className="text-[10px] text-muted-foreground">PAR CONSTRUCTION</Badge>}
                   </div>
                   <p className="text-sm font-semibold">{inv.name}</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">{inv.desc}</p>
+                  {proof && <p className="text-[11px] leading-snug pt-1 border-t border-border/60 text-muted-foreground">{proof.proof}</p>}
                   {inv.checkResult && <p className="text-[11px] leading-snug pt-1 border-t border-border/60 text-muted-foreground">{inv.checkResult.detail}</p>}
                 </CardContent>
               </Card>
-            ))}
+              )
+            })}
           </div>
+        </TabsContent>
+
+        {/* ── PAR CONSTRUCTION (preuves exécutables) ── */}
+        <TabsContent value="construction" className="mt-4 space-y-4">
+          <Card className={data.construction?.allPass ? 'border-emerald-500/40' : 'border-amber-500/40'}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Braces className="h-4 w-4 text-primary" /> Invariants garantis par construction
+                {data.construction?.allPass
+                  ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/40 text-[10px]">6/6 PASS</Badge>
+                  : <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/40 text-[10px]">À RE-EXÉCUTER</Badge>}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Ces 6 invariants ne reposent pas sur une vérification périodique mais sur la STRUCTURE du système :
+                chaque sonde ci-dessous exécute une attaque réelle (falsification, lecture cross-tenant, rail étranger…)
+                ou scanne les frontières du code, et prouve qu’elle échoue. Ré-exécutable à tout moment — chaque exécution est audité.
+              </p>
+              <Button size="sm" variant="outline" className="gap-1.5 h-8 text-[11px]" onClick={runProofs} disabled={runningProofs}>
+                {runningProofs ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PlayCircle className="h-3.5 w-3.5" />}
+                {runningProofs ? 'Exécution des sondes…' : 'Exécuter les preuves de construction'}
+              </Button>
+              <div className="grid md:grid-cols-2 gap-3">
+                {(data.construction?.proofs ?? []).map((p) => (
+                  <Card key={p.id} className={p.status === 'PASS' ? 'border-emerald-500/30' : 'border-red-500/60'}>
+                    <CardContent className="pt-4 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-xs font-bold text-primary">{p.id} — {p.name}</span>
+                        {p.status === 'PASS'
+                          ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/40 text-[10px]">PASS</Badge>
+                          : <Badge className="bg-red-500/15 text-red-400 border-red-500/40 text-[10px]">FAIL</Badge>}
+                      </div>
+                      <p className="text-[11px] leading-snug text-muted-foreground">{p.proof}</p>
+                      <div className="space-y-1.5 pt-1 border-t border-border/60">
+                        {p.checks.map((c) => (
+                          <div key={c.label} className="flex items-start gap-1.5">
+                            {c.ok ? <CheckCircle2 className="h-3 w-3 text-emerald-400 mt-0.5 shrink-0" /> : <XCircle className="h-3 w-3 text-red-400 mt-0.5 shrink-0" />}
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-medium leading-tight">{c.label}</p>
+                              <p className="text-[10px] text-muted-foreground leading-snug">{c.detail}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Braces className="h-4 w-4 text-primary" /> Contrats publics versionnés (INV-013)</CardTitle></CardHeader>
+            <CardContent>
+              <div className="rounded-lg border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-32">Contrat</TableHead><TableHead>Nom</TableHead><TableHead className="w-24">Version</TableHead><TableHead className="w-20">Semver</TableHead><TableHead>Périmètre</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(data.construction?.contracts ?? []).map((c) => (
+                      <TableRow key={c.contractId}>
+                        <TableCell className="font-mono text-xs">{c.contractId}</TableCell>
+                        <TableCell className="text-sm">{c.name}</TableCell>
+                        <TableCell className="font-mono text-xs">v{c.version}</TableCell>
+                        <TableCell>{c.semver ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <XCircle className="h-3.5 w-3.5 text-red-400" />}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{c.scope}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                Chaque réponse API porte <span className="font-mono">X-API-Version</span> et <span className="font-mono">X-Contract-Id</span> — un consommateur peut détecter un mismatch de contrat.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ── POLICIES ── */}

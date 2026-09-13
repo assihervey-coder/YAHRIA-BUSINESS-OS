@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { dbUnscoped, db, runWithRls } from '@/lib/db'
 import { ensureSeeded } from './seed'
 import { hashPassword, verifyPassword } from './passwords'
+import { API_CONTRACT } from './contracts'
 
 export { hashPassword, verifyPassword }
 
@@ -122,6 +123,13 @@ export class ApiError extends Error {
   }
 }
 
+// ── INV-013 : chaque réponse API porte la version du contrat public ─────────
+function withContractHeaders(res: NextResponse): NextResponse {
+  res.headers.set('X-API-Version', API_CONTRACT.version)
+  res.headers.set('X-Contract-Id', API_CONTRACT.contractId)
+  return res
+}
+
 /**
  * Garde-fou standard des routes API :
  * 1. session valide (401)  2. permission requise (403)
@@ -134,11 +142,13 @@ export async function withAuth<T>(
 ): Promise<NextResponse> {
   await ensureSeeded()
   const s = await sessionFromRequest(req)
-  if (!s) return NextResponse.json({ error: 'Authentification requise' }, { status: 401 })
+  if (!s) return withContractHeaders(NextResponse.json({ error: 'Authentification requise' }, { status: 401 }))
   if (capability && !can(s.role, capability)) {
-    return NextResponse.json(
-      { error: `Accès refusé — permission « ${capability} » requise (rôle : ${ROLE_LABELS[s.role]})` },
-      { status: 403 }
+    return withContractHeaders(
+      NextResponse.json(
+        { error: `Accès refusé — permission « ${capability} » requise (rôle : ${ROLE_LABELS[s.role]})` },
+        { status: 403 }
+      )
     )
   }
   try {
@@ -146,14 +156,17 @@ export async function withAuth<T>(
       { tenantId: s.tenantId, orgId: s.orgId, userId: s.userId, role: s.role },
       () => handler(s)
     )
-    if (out instanceof NextResponse) return out
-    return NextResponse.json(out)
+    if (out instanceof NextResponse) return withContractHeaders(out)
+    return withContractHeaders(NextResponse.json(out))
   } catch (e) {
     const err = e as Error
     if (err.message.startsWith('RLS_VIOLATION')) {
-      return NextResponse.json({ error: err.message }, { status: 403 })
+      return withContractHeaders(NextResponse.json({ error: err.message }, { status: 403 }))
     }
-    return NextResponse.json({ error: err.message || 'Erreur interne' }, { status: 400 })
+    if (err.message.startsWith('INV-007_VIOLATION')) {
+      return withContractHeaders(NextResponse.json({ error: err.message }, { status: 409 }))
+    }
+    return withContractHeaders(NextResponse.json({ error: err.message || 'Erreur interne' }, { status: 400 }))
   }
 }
 

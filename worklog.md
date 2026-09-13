@@ -95,3 +95,24 @@ Stage Summary:
 - 10 comptes démo / 3 tenants (CI/SN/BJ) / 6 rôles ; baseline passée à 1.1.0
 - Scripts réutilisables : scripts/test_api_multi_tenant.sh, scripts/test_rls_direct.ts, prisma/rls-postgres.sql
 - Fichiers clés : src/lib/db.ts (RLS), src/lib/yahria/{auth,passwords,packs}.ts, src/lib/yahria/audit.ts (signatures), src/middleware.ts, src/app/login/page.tsx, src/components/yahria/users.tsx
+
+---
+Task ID: 5
+Agent: main (Super Z)
+Task: Élévation de 6 invariants au statut PAR CONSTRUCTION (INV-001/002/007/011/012/013) — garanties structurelles + preuves runtime exécutables
+
+Work Log:
+- INV-007 : couche d'immutabilité en BASE de pile Prisma (db.ts) — baseWithImmutability enveloppe le client brut ET l'extension RLS ; IMMUTABLE_MODELS {auditrecord, evidence, journalentry, ledgerline} ; update/updateMany/delete/deleteMany/upsert → INV-007_VIOLATION avant toute requête SQL ; dbUnscoped (login/seed/probes) également soumis
+- INV-013 : src/lib/yahria/contracts.ts (API_CONTRACT YBOS-API 1.1.0 + changelog, EVIDENCE_LEDGER_SPEC 2.0.0, PACK_MANIFEST_SPEC 1.0.0, SECTOR_CONTRACT 1.0.0, isSemver, contractsOverview) ; withAuth pose X-API-Version + X-Contract-Id sur TOUTES réponses (401/403/2xx/4xx) ; middleware.ts également patché (401 edge) ; IN-007_VIOLATION propagée en HTTP 409
+- INV-012 : src/lib/yahria/sectors/{contract,extensions,registry}.ts — contrat sectoriel versionné, 13 extensions auto-contenues (fonctions pures, imports limités au contrat), registre = surface publique unique (getSector/listSectors/evaluateSectorPayment/registryIntegrity, casse normalisée) ; branché à la COUCHE ROUTE (money/payments POST + meta) — le Core n'importe jamais une extension ; sectorFindings consultatifs attachés à la réponse + audit SECTOR_FINDINGS
+- src/lib/yahria/invariants.ts : runConstructionProofs(orgId) — 6 sondes : INV-001 lecture cross-tenant scopée vs non-scopée ; INV-002 scan fs de toutes les routes API (withAuth obligatoire hors whitelist login/demo/logout) + middleware ; INV-007 4 attaques réelles de falsification refusées ; INV-011 rail étranger DENY / national ALLOW ; INV-012 scan frontières d'imports bidirectionnel ; INV-013 semver des 4 contrats + packs en base
+- API governance : INVARIANTS INV-007/012/013 → check 'par-construction' ; GET embarque construction {allPass, proofs, contracts} ; POST action RUN_INVARIANT_PROOFS (audité INVARIANT_PROOFS_RUN)
+- UI governance.tsx : onglet « Par construction » (badge 6/6 PASS, bouton exécution, 6 cartes preuves avec checks détaillés ✓/✗, table contrats versionnés) ; onglet Invariants : badge « PAR CONSTRUCTION · VÉRIFIÉ » + texte de preuve sur les cartes INV-007/012/013
+- Correctifs en cours de route : readdir async (fs/promises), typage SectorFinding[], regex scanner frontières, casse sectorCode (ENTERPRISE→enterprise normalisée côté registre), test #4 → sourceAccountId + dashboard (route /money racine inexistante), sélecteur nav Gouvernance (sub « 99 — policy… » pour éviter le match « sous gouvernance »)
+- Tests : scripts/test_invariants_construction.sh 9/9 PASS (headers 401, sondes 6/6, 4 attaques refusées, finding BTP_SITUATION réel via scripts/rotate_sector_demo.ts, décision non contaminée, audit tracé) ; scripts/test_ui_construction.js 15/15 PASS, 0 erreur JS (redirection, login, badge 6/6, 6 cartes, table contrats, toast ré-exécution, badge invariants) ; tsc src 0 erreur ; lint 0 ; dev.log propre ; screenshot scripts/construction_tab_final.png
+
+Stage Summary:
+- Les 6 invariants autorisés (INV-001/002/007/011/012/013) sont désormais PAR CONSTRUCTION : garantis par la structure du code et prouvés par sondes runtime exécutables (attaques réelles bloquées + scans de frontières)
+- Scripts réutilisables : test_invariants_construction.sh, test_ui_construction.js, rotate_sector_demo.ts
+- Fichiers clés : src/lib/db.ts, src/lib/yahria/{contracts,invariants}.ts, src/lib/yahria/sectors/{contract,extensions,registry}.ts, src/lib/yahria/auth.ts, src/middleware.ts, src/app/api/v1/{governance,meta,money/payments}/route.ts, src/components/yahria/governance.tsx
+- Prochaines étapes proposées à l'utilisateur : 2FA OTP, expiration/rotation des sessions, export SYSCOHADA des états financiers
