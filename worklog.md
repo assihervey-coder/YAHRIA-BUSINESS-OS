@@ -116,3 +116,23 @@ Stage Summary:
 - Scripts réutilisables : test_invariants_construction.sh, test_ui_construction.js, rotate_sector_demo.ts
 - Fichiers clés : src/lib/db.ts, src/lib/yahria/{contracts,invariants}.ts, src/lib/yahria/sectors/{contract,extensions,registry}.ts, src/lib/yahria/auth.ts, src/middleware.ts, src/app/api/v1/{governance,meta,money/payments}/route.ts, src/components/yahria/governance.tsx
 - Prochaines étapes proposées à l'utilisateur : 2FA OTP, expiration/rotation des sessions, export SYSCOHADA des états financiers
+
+---
+Task ID: 4
+Agent: main (Super Z)
+Task: Commit complet du projet et push vers github.com/assihervey-coder/YAHRIA-BUSINESS-OS
+
+Work Log:
+- Audit sécurité pré-push : .env (EVIDENCE_SIGNING_KEY + DATABASE_URL) détecté comme tracké dans l'historique git (commits dcaf57d et 385ba01)
+- Purge complète de .env de tout l'historique via git filter-branch --index-filter + reflog expire + gc --prune=now (vérifié : git rev-list --all | ls-tree ne contient plus .env)
+- Restauration de .env sur disque (runtime requis : DATABASE_URL SQLite + clé de signature Evidence INV-007), désormais ignoré par .gitignore
+- Création de .env.example (template documenté : DATABASE_URL, EVIDENCE_SIGNING_KEY avec openssl rand -hex 32) et whitelist !.env.example dans .gitignore
+- Commit 012eaf8 "chore: add .env.example template, whitelist it in .gitignore" (2 fichiers, 10 insertions)
+- Push main -> origin réussi (token utilisé à la volée, JAMAIS persisté dans .git/config ni aucun fichier)
+- Vérification post-push via API GitHub : arborescence complète présente, .env absent du remote (404 = PASS)
+
+Stage Summary:
+- Repo distant : https://github.com/assihervey-coder/YAHRIA-BUSINESS-OS (branche main, 7 commits)
+- origin configuré en local sans token
+- Aucun secret poussé sur GitHub (EVIDENCE_SIGNING_KEY jamais exposé)
+- Recommandation émise à l'utilisateur : révoquer/rotater le token PAT posté en clair dans le chat
