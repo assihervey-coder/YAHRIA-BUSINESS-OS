@@ -3,27 +3,41 @@
 // YAHRIA BUSINESS OS V1 — OS Shell
 // YAHRIA PLATFORM (Identity/Tenant/Policy/Audit/Evidence) ───── YAHRIA BUSINESS OS (10 domaines)
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   LayoutDashboard, Building2, Wallet, BookOpenCheck, Network, BrainCircuit,
-  Bot, Globe2, Scale, ShieldAlert, ChevronLeft, ChevronRight
+  Bot, Globe2, Scale, ShieldAlert, ChevronLeft, ChevronRight, Users, LogOut
 } from 'lucide-react'
 
 const NAV = [
-  { id: 'cockpit', label: 'Cockpit', sub: 'Executive Intelligence', icon: LayoutDashboard },
-  { id: 'core', label: 'Core', sub: '00 — noyau métier', icon: Building2 },
-  { id: 'money', label: 'Money', sub: '01 — paiements & trésorerie', icon: Wallet },
-  { id: 'finance', label: 'Finance', sub: '02 — OHADA SYSCOHADA', icon: BookOpenCheck },
-  { id: 'graph', label: 'Business Graph', sub: '03 — contexte de l\'IA', icon: Network },
-  { id: 'copilot', label: 'Copilot IA', sub: '04 — intelligence exécutive', icon: BrainCircuit },
-  { id: 'agents', label: 'Agents', sub: '05 — sous gouvernance', icon: Bot },
-  { id: 'pays', label: 'Pays & Secteurs', sub: '06/07 — packs & engines', icon: Globe2 },
-  { id: 'governance', label: 'Gouvernance', sub: '99 — policy · audit · evidence', icon: Scale },
+  { id: 'cockpit', label: 'Cockpit', sub: 'Executive Intelligence', icon: LayoutDashboard, perm: null },
+  { id: 'core', label: 'Core', sub: '00 — noyau métier', icon: Building2, perm: 'core.read' },
+  { id: 'money', label: 'Money', sub: '01 — paiements & trésorerie', icon: Wallet, perm: 'money.read' },
+  { id: 'finance', label: 'Finance', sub: '02 — OHADA SYSCOHADA', icon: BookOpenCheck, perm: 'finance.read' },
+  { id: 'graph', label: 'Business Graph', sub: '03 — contexte de l\'IA', icon: Network, perm: null },
+  { id: 'copilot', label: 'Copilot IA', sub: '04 — intelligence exécutive', icon: BrainCircuit, perm: 'copilot.use' },
+  { id: 'agents', label: 'Agents', sub: '05 — sous gouvernance', icon: Bot, perm: null },
+  { id: 'pays', label: 'Pays & Secteurs', sub: '06/07 — packs & engines', icon: Globe2, perm: null },
+  { id: 'governance', label: 'Gouvernance', sub: '99 — policy · audit · evidence', icon: Scale, perm: 'governance.read' },
+  { id: 'users', label: 'Utilisateurs', sub: 'RBAC — comptes & rôles', icon: Users, perm: 'users.read' },
 ] as const
 
 type ViewId = (typeof NAV)[number]['id']
+
+interface Me {
+  name: string
+  email: string
+  role: string
+  permissions: string[]
+}
+
+function navAllowed(perm: string | null, permissions: string[]): boolean {
+  if (!perm) return true
+  return permissions.some((p) => p === '*' || p === perm || (p.endsWith('.*') && perm.startsWith(p.slice(0, -1))) || (p.startsWith('*.') && perm.endsWith(p.slice(1))))
+}
 
 interface Meta {
   org: { name: string; legalName: string; city: string; countryCode: string; currencyCode: string; sectorCode: string; taxId: string } | null
@@ -31,14 +45,20 @@ interface Meta {
 }
 
 export default function Home() {
+  const router = useRouter()
   const [view, setView] = useState<ViewId>('cockpit')
   const [collapsed, setCollapsed] = useState(false)
   const [meta, setMeta] = useState<Meta | null>(null)
   const [approvals, setApprovals] = useState(0)
+  const [me, setMe] = useState<Me | null>(null)
 
   useEffect(() => {
+    fetch('/api/v1/auth/me').then((r) => {
+      if (r.status === 401) { router.push('/login'); return null }
+      return r.json()
+    }).then((d) => d?.user && setMe(d.user)).catch(() => {})
     fetch('/api/v1/meta').then((r) => r.json()).then(setMeta).catch(() => {})
-  }, [])
+  }, [router])
   useEffect(() => {
     const t = setInterval(() => {
       fetch('/api/v1/agents/approvals').then((r) => r.json()).then((d) => setApprovals((d.items ?? []).filter((a: { status: string }) => a.status === 'PENDING').length)).catch(() => {})
@@ -48,6 +68,16 @@ export default function Home() {
   }, [])
 
   const active = NAV.find((n) => n.id === view)!
+  const perms = me?.permissions ?? []
+  const visibleNav = NAV.filter((n) => navAllowed(n.perm as string | null, perms))
+  const viewAllowed = (id: ViewId) => { const n = NAV.find((x) => x.id === id); return n ? navAllowed(n.perm as string | null, perms) : false }
+  const effectiveView: ViewId = viewAllowed(view) ? view : 'cockpit'
+
+  async function logout() {
+    await fetch('/api/v1/auth/logout', { method: 'POST' }).catch(() => {})
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <div className="dark h-dvh overflow-hidden flex bg-background text-foreground" style={{ colorScheme: 'dark' }}>
@@ -65,7 +95,7 @@ export default function Home() {
         </div>
 
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain os-scroll py-3 px-2 space-y-0.5">
-          {NAV.map((n) => {
+          {visibleNav.map((n) => {
             const Icon = n.icon
             const isActive = view === n.id
             return (
@@ -129,13 +159,20 @@ export default function Home() {
                 tenant : {meta.tenant.name} · {meta.tenant.plan}
               </Badge>
             )}
-            <div className="h-8 w-8 rounded-full bg-accent border border-border flex items-center justify-center text-xs font-bold">AK</div>
+            {me && (
+              <Badge variant="outline" className="text-[10px] gap-1.5 border-primary/30 text-primary">
+                {me.name.split(' ').map((w) => w[0]).slice(0, 2).join('')} · {me.role}
+              </Badge>
+            )}
+            <Button size="sm" variant="ghost" onClick={logout} className="h-8 px-2 text-muted-foreground hover:text-foreground" title="Déconnexion">
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </header>
 
         {/* mobile nav */}
         <div className="md:hidden border-b px-3 py-2 flex gap-1.5 overflow-x-auto">
-          {NAV.map((n) => (
+          {visibleNav.map((n) => (
             <button key={n.id} onClick={() => setView(n.id)}
               className={cn('text-xs px-3 py-1.5 rounded-full border whitespace-nowrap', view === n.id ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border text-muted-foreground')}>
               {n.label}
@@ -144,20 +181,21 @@ export default function Home() {
         </div>
 
         <main className="flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto">
-          {view === 'cockpit' && <CockpitLazy />}
-          {view === 'core' && <CoreLazy />}
-          {view === 'money' && <MoneyLazy />}
-          {view === 'finance' && <FinanceLazy />}
-          {view === 'graph' && <GraphLazy />}
-          {view === 'copilot' && <CopilotLazy />}
-          {view === 'agents' && <AgentsLazy />}
-          {view === 'pays' && <PaysLazy />}
-          {view === 'governance' && <GovernanceLazy />}
+          {effectiveView === 'cockpit' && <CockpitLazy />}
+          {effectiveView === 'core' && <CoreLazy />}
+          {effectiveView === 'money' && <MoneyLazy />}
+          {effectiveView === 'finance' && <FinanceLazy />}
+          {effectiveView === 'graph' && <GraphLazy />}
+          {effectiveView === 'copilot' && <CopilotLazy />}
+          {effectiveView === 'agents' && <AgentsLazy />}
+          {effectiveView === 'pays' && <PaysLazy />}
+          {effectiveView === 'governance' && <GovernanceLazy />}
+          {effectiveView === 'users' && <UsersLazy />}
         </main>
 
         <footer className="mt-auto border-t py-3 px-6 text-[11px] text-muted-foreground flex flex-wrap items-center justify-between gap-2">
           <span>YAHRIA BUSINESS OS V1 — The Intelligent Operating System for African Business</span>
-          <span className="font-mono">YBOS-ARCH-V1 · baseline 1.0.0 · policy-controlled · AI-governed · financially-consistent</span>
+          <span className="font-mono">YBOS-ARCH-V1 · baseline 1.1.0 · multi-tenant · policy-controlled · AI-governed · financially-consistent</span>
         </footer>
       </div>
     </div>
@@ -174,6 +212,7 @@ import { CopilotView } from '@/components/yahria/copilot'
 import { AgentsView } from '@/components/yahria/agents'
 import { PaysSecteursView } from '@/components/yahria/pays'
 import { GovernanceView } from '@/components/yahria/governance'
+import { UsersView } from '@/components/yahria/users'
 
 function CockpitLazy() { return <Cockpit /> }
 function CoreLazy() { return <CoreView /> }
@@ -184,3 +223,4 @@ function CopilotLazy() { return <CopilotView /> }
 function AgentsLazy() { return <AgentsView /> }
 function PaysLazy() { return <PaysSecteursView /> }
 function GovernanceLazy() { return <GovernanceView /> }
+function UsersLazy() { return <UsersView /> }

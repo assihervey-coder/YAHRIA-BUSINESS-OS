@@ -6,6 +6,7 @@ import { ref, traceId, xof } from './core'
 import { evaluatePayment, scorePaymentRisk } from './policy'
 import { audit, recordEvidence, pushTimeline } from './audit'
 import { applyAccountDelta, postEntry } from './ledger'
+import { checkPackIsolation } from './packs'
 
 export interface CreatePaymentInput {
   orgId: string
@@ -27,7 +28,7 @@ export interface CreatePaymentInput {
 
 function treasuryCode(provider?: string | null): string {
   if (!provider) return '571'
-  if (provider === 'SGCI' || provider === 'BICICI' || provider === 'SGSN' || provider === 'BOA_SN') return '521'
+  if (['SGCI', 'BICICI', 'SGSN', 'BOA_SN', 'BOA_BJ', 'SBCE', 'NSIA_BJ'].includes(provider)) return '521'
   if (provider === 'WAVE') return '5212'
   if (provider === 'CAISSE') return '571'
   return '522'
@@ -258,6 +259,42 @@ export async function orchestratePayment(input: CreatePaymentInput) {
     customerId: input.customerId,
   })
 
+  // ── INV-011 : ISOLATION COUNTRY PACK ──
+  const providerUsed = input.provider ?? (input.type === 'COLLECTION' ? await providerOf(input.destAccountId) : await providerOf(input.sourceAccountId))
+  const isolation = await checkPackIsolation(input.orgId, providerUsed)
+  timeline = pushTimeline(payment.timeline, 'RISK_CHECK', `Score ${risk.score}/100 (${risk.factors.join(' ; ') || 'aucun facteur aggravant'})`)
+
+  if (!isolation.ok) {
+    timeline = pushTimeline(timeline, 'POLICY_CHECK', `DENY — ${isolation.detail}`)
+    timeline = pushTimeline(timeline, 'REJECTED', 'Bloqué par isolation Country Pack — aucun mouvement de fonds')
+    const ev = await recordEvidence({
+      orgId: input.orgId, kind: 'POLICY',
+      title: `Paiement bloqué (INV-011) — ${payment.reference}`,
+      payload: { decision: 'DENY', invariant: 'INV-011', reason: isolation.detail, provider: providerUsed, orgCountry: isolation.countryCode, allowedProviders: isolation.allowedProviders },
+      relatedId: payment.id,
+    })
+    const rejected = await db.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'REJECTED',
+        riskScore: risk.score, riskLevel: 'HIGH',
+        policyDecisionId: ref('PDC'), policyDecision: 'DENY', policyReason: isolation.detail,
+        evidenceId: ev.ref, timeline,
+      },
+    })
+    await audit({
+      orgId: input.orgId, actorType: 'SYSTEM', action: 'PAYMENT_DENIED',
+      resourceType: 'PAYMENT', resourceId: payment.id,
+      summary: `Paiement ${payment.reference} bloqué — ${isolation.detail}`,
+      meta: { traceId: trc, invariant: 'INV-011' },
+    })
+    return {
+      payment: rejected, replayed: false, traceId: trc,
+      decision: { decisionId: ref('PDC'), decision: 'DENY' as const, reason: isolation.detail, rules: ['INV-011'], riskScore: risk.score, riskLevel: 'HIGH' },
+      risk,
+    }
+  }
+
   // ── POLICY CHECK ──
   const decision = await evaluatePayment({
     orgId: input.orgId,
@@ -266,7 +303,7 @@ export async function orchestratePayment(input: CreatePaymentInput) {
     actorType: input.initiatedByType ?? 'HUMAN',
   })
 
-  timeline = pushTimeline(payment.timeline, 'RISK_CHECK', `Score ${risk.score}/100 (${risk.factors.join(' ; ') || 'aucun facteur aggravant'})`)
+  timeline = pushTimeline(timeline, 'PACK_CHECK', isolation.detail)
   timeline = pushTimeline(timeline, 'POLICY_CHECK', `${decision.decision} — ${decision.reason}`)
 
   if (decision.decision === 'DENY') {

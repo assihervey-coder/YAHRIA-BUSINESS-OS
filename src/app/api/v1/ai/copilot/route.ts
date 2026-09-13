@@ -2,14 +2,15 @@
 // QUESTION → BUSINESS CONTEXT (graph + finance + money) → REASONING → ANSWER → EVIDENCE
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getPrimaryOrgId } from '@/lib/yahria/seed'
+import { withAuth } from '@/lib/yahria/auth'
 import { audit, recordEvidence } from '@/lib/yahria/audit'
 import { xof } from '@/lib/yahria/core'
 
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
-  const orgId = await getPrimaryOrgId()
+  return withAuth(req, 'copilot.use', async (s) => {
+  const orgId = s.orgId
   const { question, history } = await req.json().catch(() => ({ question: '', history: [] }))
   if (!question || typeof question !== 'string') {
     return NextResponse.json({ error: 'Question requise' }, { status: 400 })
@@ -110,6 +111,8 @@ ${context}`
     answer,
     model,
     evidenceRef: ev.ref,
+    evidenceSignature: ev.signature,
     sources: ['Business Graph', 'FINANCE.kpi', 'MONEY.accounts', 'AGENTS.registry'],
+  })
   })
 }

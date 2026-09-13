@@ -3,23 +3,29 @@
 // YAHRIA BUSINESS OS V1 — 99_GOVERNANCE view (policies, invariants, audit, evidence)
 import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { StatusBadge, SectionTitle, fmtDateTime } from './ui'
 import { useToast } from '@/hooks/use-toast'
-import { ShieldCheck, ScrollText, Fingerprint, Scale } from 'lucide-react'
+import { ShieldCheck, ScrollText, Fingerprint, Scale, Lock, KeyRound, Globe2, PlayCircle } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface Policy { id: string; code: string; name: string; category: string; description: string; active: boolean; version: number; rule: Record<string, unknown> }
 interface Invariant { id: string; name: string; desc: string; check: string; checkResult: { status: string; detail: string } | null }
 interface AuditRow { id: string; ts: string; traceId: string; actorType: string; actorName: string; action: string; resourceType: string; summary: string }
-interface EvidenceRow { id: string; ref: string; kind: string; title: string; hash: string; createdAt: string; payload: Record<string, unknown> }
+interface EvidenceRow { id: string; ref: string; kind: string; title: string; hash: string; signature: string; prevHash: string; seq: number; algo: string; createdAt: string; payload: Record<string, unknown> }
+interface ChainInfo { total: number; valid: number; invalid: number; chainIntact: boolean; brokenAtSeq: number | null; algo: string; brokenRefs: string[]; checkedAt: string }
+interface RlsInfo { mode: string; tenantCount: number; orgCount: number; scope: { tenantId: string; orgId: string; role: string }; enforcement: string[] }
+interface PermsInfo { role: string; canManagePolicies: boolean; canRebuildGraph: boolean; canTestIsolation: boolean }
 
 export function GovernanceView() {
   const { toast } = useToast()
-  const [data, setData] = useState<{ policies: Policy[]; invariants: Invariant[]; audit: AuditRow[]; evidence: EvidenceRow[]; stats: { auditCount: number; evidenceCount: number; policyCount: number } } | null>(null)
+  const [data, setData] = useState<{ policies: Policy[]; invariants: Invariant[]; audit: AuditRow[]; evidence: EvidenceRow[]; evidenceChain: ChainInfo; rls: RlsInfo; permissions: PermsInfo; stats: { auditCount: number; evidenceCount: number; policyCount: number } } | null>(null)
+  const [testing, setTesting] = useState(false)
+  const [isoResult, setIsoResult] = useState<{ orgCountry: string; foreignPack: string; results: { rail: string; railLabel: string; allowed: boolean; detail: string }[] } | null>(null)
 
   const load = useCallback(() => {
     fetch('/api/v1/governance').then((r) => r.json()).then(setData)
@@ -27,8 +33,35 @@ export function GovernanceView() {
   useEffect(load, [load])
 
   async function togglePolicy(code: string) {
-    await fetch('/api/v1/governance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'TOGGLE_POLICY', code }) })
+    const res = await fetch('/api/v1/governance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'TOGGLE_POLICY', code }) })
+    if (!res.ok) {
+      const d = await res.json()
+      toast({ title: 'Action refusée', description: d.error })
+      return
+    }
     toast({ title: 'Politique modifiée', description: 'Changement versionné — les décisions déjà exécutées ne sont pas rétroactivement modifiées (INV-POL-004).' })
+    load()
+  }
+
+  async function verifyChain() {
+    const res = await fetch('/api/v1/governance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'VERIFY_EVIDENCE' }) })
+    const d = await res.json()
+    if (!res.ok) { toast({ title: 'Vérification refusée', description: d.error }); return }
+    toast({
+      title: d.chain.chainIntact ? 'Chaîne de preuves INTACTE' : 'CHAÎNE ROMPUE',
+      description: `${d.chain.valid}/${d.chain.total} signatures HMAC-SHA256 valides${d.chain.brokenAtSeq ? ' — rupture à la séquence ' + d.chain.brokenAtSeq : ''}`,
+    })
+    load()
+  }
+
+  async function testIsolation() {
+    setTesting(true)
+    const res = await fetch('/api/v1/governance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'TEST_PACK_ISOLATION' }) })
+    const d = await res.json()
+    setTesting(false)
+    if (!res.ok) { toast({ title: 'Test refusé', description: d.error }); return }
+    setIsoResult(d)
+    toast({ title: 'Test INV-011 exécuté', description: 'Rail étranger → DENY · rail national → ALLOW (audit enregistré).' })
     load()
   }
 
@@ -45,6 +78,7 @@ export function GovernanceView() {
         <TabsList className="flex-wrap">
           <TabsTrigger value="invariants">Invariants</TabsTrigger>
           <TabsTrigger value="policies">Policies ({data.stats.policyCount})</TabsTrigger>
+          <TabsTrigger value="security">Sécurité — RLS & Signatures</TabsTrigger>
           <TabsTrigger value="audit">Audit ({data.stats.auditCount})</TabsTrigger>
           <TabsTrigger value="evidence">Evidence ({data.stats.evidenceCount})</TabsTrigger>
         </TabsList>
@@ -129,6 +163,71 @@ export function GovernanceView() {
           </Card>
         </TabsContent>
 
+        {/* ── SÉCURITÉ : RLS + SIGNATURES + INV-011 ── */}
+        <TabsContent value="security" className="mt-4 space-y-4">
+          <div className="grid md:grid-cols-2 gap-3">
+            <Card className="border-emerald-500/40">
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Lock className="h-4 w-4 text-emerald-400" /> RLS applicatif — INV-001</CardTitle></CardHeader>
+              <CardContent className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+                <p className="text-foreground font-medium">{data.rls.mode}</p>
+                <p>{data.rls.tenantCount} tenants · {data.rls.orgCount} organisations cloisonnés en base. Périmètre de la session : rôle <span className="font-mono text-primary">{data.rls.scope.role}</span>.</p>
+                <ul className="list-disc pl-4 space-y-1">
+                  {data.rls.enforcement.map((r) => <li key={r}>{r}</li>)}
+                </ul>
+                <p className="pt-1 border-t border-border/60">Chemin production : politiques <span className="font-mono">CREATE POLICY</span> PostgreSQL fournies (<span className="font-mono">prisma/rls-postgres.sql</span>) — la garantie passe alors au niveau base.</p>
+              </CardContent>
+            </Card>
+
+            <Card className={data.evidenceChain.chainIntact ? 'border-emerald-500/40' : 'border-red-500/60'}>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><KeyRound className="h-4 w-4 text-primary" /> Chaîne de signatures Evidence — HMAC-SHA256</CardTitle></CardHeader>
+              <CardContent className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+                <div className="flex items-center gap-2">
+                  {data.evidenceChain.chainIntact
+                    ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/40 text-[10px]">CHAÎNE INTACTE</Badge>
+                    : <Badge className="bg-red-500/15 text-red-400 border-red-500/40 text-[10px]">ROMPUE — séquence {data.evidenceChain.brokenAtSeq}</Badge>}
+                  <span>{data.evidenceChain.valid}/{data.evidenceChain.total} signatures valides</span>
+                </div>
+                <p>Algorithme : <span className="font-mono text-foreground">{data.evidenceChain.algo}</span>. Chaque preuve signe le hash de la précédente : toute altération casse toute la chaîne aval.</p>
+                <Button size="sm" variant="outline" className="gap-1.5 h-7 text-[11px]" onClick={verifyChain}>
+                  <ShieldCheck className="h-3 w-3" /> Vérifier toute la chaîne maintenant
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border-primary/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2"><Globe2 className="h-4 w-4 text-primary" /> Isolation Country Pack — INV-011 (live)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Une organisation ne peut exécuter un paiement que via les rails de SON pack national. Test : tenter un rail d&apos;un pays voisin depuis {data.rls.scope.orgId.slice(0, 8)}… — résultat tracé et audité.
+              </p>
+              {data.permissions.canTestIsolation ? (
+                <Button size="sm" variant="outline" className="gap-1.5 h-7 text-[11px]" onClick={testIsolation} disabled={testing}>
+                  <PlayCircle className="h-3 w-3" /> {testing ? 'Exécution…' : 'Lancer le test d\'isolation'}
+                </Button>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">Test réservé aux rôles OWNER / ADMIN (permission governance.admin).</p>
+              )}
+              {isoResult && (
+                <div className="rounded-lg border border-border divide-y divide-border overflow-hidden">
+                  {isoResult.results.map((r) => (
+                    <div key={r.rail} className="flex items-center gap-2 px-3 py-2 text-xs">
+                      {r.allowed
+                        ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/40 text-[10px]">ALLOW</Badge>
+                        : <Badge className="bg-red-500/15 text-red-400 border-red-500/40 text-[10px]">DENY</Badge>}
+                      <span className="font-mono">{r.rail}</span>
+                      <span className="text-muted-foreground">({r.railLabel})</span>
+                      <span className="ml-auto text-muted-foreground text-right text-[11px]">{r.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* ── EVIDENCE ── */}
         <TabsContent value="evidence" className="mt-4">
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -140,7 +239,8 @@ export function GovernanceView() {
                     <Badge variant="outline" className="text-[10px]">{e.kind}</Badge>
                   </div>
                   <p className="text-sm font-medium leading-snug">{e.title}</p>
-                  <p className="text-[10px] font-mono text-muted-foreground flex items-center gap-1"><Fingerprint className="h-3 w-3" />hash {e.hash} · {fmtDateTime(e.createdAt)}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground flex items-center gap-1"><Fingerprint className="h-3 w-3" />hash {e.hash.slice(0, 16)}… · {fmtDateTime(e.createdAt)}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground flex items-center gap-1"><Lock className="h-3 w-3 text-emerald-400" />sig {e.signature?.slice(0, 20)}… · seq {e.seq}</p>
                   <details className="text-xs group">
                     <summary className="cursor-pointer text-muted-foreground hover:text-foreground flex items-center gap-1"><ShieldCheck className="h-3 w-3" />Payload & provenance</summary>
                     <pre className="mt-1.5 rounded-md border bg-accent/20 p-2 text-[10px] overflow-x-auto whitespace-pre-wrap">{JSON.stringify(e.payload, null, 1)}</pre>

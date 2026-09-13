@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getPrimaryOrgId } from '@/lib/yahria/seed'
+import { withAuth } from '@/lib/yahria/auth'
 import { audit } from '@/lib/yahria/audit'
 import { ref } from '@/lib/yahria/core'
 
@@ -16,23 +16,33 @@ function modelFor(entity: string) {
   }
 }
 
-export async function GET(_req: NextRequest, ctx: { params: Promise<{ entity: string }> }) {
+async function findRows(entity: string, orgId: string): Promise<unknown[]> {
+  switch (entity) {
+    case 'customers': return db.customer.findMany({ where: { orgId }, orderBy: { id: 'asc' } })
+    case 'suppliers': return db.supplier.findMany({ where: { orgId }, orderBy: { id: 'asc' } })
+    case 'employees': return db.employee.findMany({ where: { orgId }, orderBy: { id: 'asc' } })
+    case 'products': return db.product.findMany({ where: { orgId }, orderBy: { id: 'asc' } })
+    default: return []
+  }
+}
+
+export async function GET(req: NextRequest, ctx: { params: Promise<{ entity: string }> }) {
   const { entity } = await ctx.params
-  const model = modelFor(entity)
-  if (!model) return NextResponse.json({ error: 'Entité inconnue' }, { status: 404 })
-  void 0
-  const orgId = await getPrimaryOrgId()
-  const rows = await (model as Record<string, { findMany: (args: unknown) => Promise<unknown[]> }>).findMany({ where: { orgId }, orderBy: { id: 'asc' } })
-  return NextResponse.json({ items: rows })
+  return withAuth(req, 'core.read', async (s) => {
+    if (!modelFor(entity)) return NextResponse.json({ error: 'Entité inconnue' }, { status: 404 })
+    const rows = await findRows(entity, s.orgId)
+    return NextResponse.json({ items: rows })
+  })
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ entity: string }> }) {
   const { entity } = await ctx.params
-  const model = modelFor(entity)
-  if (!model) return NextResponse.json({ error: 'Entité inconnue' }, { status: 404 })
-  void model
-  const orgId = await getPrimaryOrgId()
-  const body = await req.json()
+  return withAuth(req, 'core.manage', async (s) => {
+    const model = modelFor(entity)
+    if (!model) return NextResponse.json({ error: 'Entité inconnue' }, { status: 404 })
+    void model
+    const orgId = s.orgId
+    const body = await req.json()
 
   let created
   if (entity === 'customers') {
@@ -71,10 +81,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ entity: st
   }
 
   await audit({
-    orgId, actorType: 'HUMAN', action: 'CORE_ENTITY_CREATED',
+    orgId, actorType: 'HUMAN', actorId: s.userId, actorName: s.name, action: 'CORE_ENTITY_CREATED',
     resourceType: entity.toUpperCase(), resourceId: created.id,
-    summary: `${entity}: ${'name' in created ? created.name : created.code} créé(e)`,
+    summary: `${entity}: ${'name' in created ? created.name : created.code} créé(e) par ${s.name}`,
   })
 
   return NextResponse.json({ item: created }, { status: 201 })
+  })
 }

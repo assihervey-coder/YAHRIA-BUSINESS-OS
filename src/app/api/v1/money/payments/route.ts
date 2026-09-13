@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getPrimaryOrgId } from '@/lib/yahria/seed'
+import { withAuth, can } from '@/lib/yahria/auth'
 import { orchestratePayment } from '@/lib/yahria/payments'
 import { resolveAgentApproval } from '@/lib/yahria/agents'
 import { audit } from '@/lib/yahria/audit'
 
-export async function GET() {
-  const orgId = await getPrimaryOrgId()
+export async function GET(req: NextRequest) {
+  return withAuth(req, 'money.read', async (s) => {
+    const orgId = s.orgId
   const [accounts, payments] = await Promise.all([
     db.paymentAccount.findMany({ where: { orgId }, orderBy: { createdAt: 'asc' } }),
     db.payment.findMany({ where: { orgId }, orderBy: { createdAt: 'desc' }, take: 60, include: { invoice: { select: { number: true } } } }),
@@ -20,11 +21,13 @@ export async function GET() {
     payments: payments.map((p) => ({ ...p, invoiceNumber: p.invoice?.number ?? null, invoice: undefined })),
     reconciliations,
   })
+  })
 }
 
 export async function PATCH(req: NextRequest) {
-  const orgId = await getPrimaryOrgId()
-  const body = await req.json()
+  return withAuth(req, 'money.reconcile', async (s) => {
+    const orgId = s.orgId
+    const body = await req.json()
   if (body.action === 'RECONCILE' && body.paymentId) {
     const payment = await db.payment.findUnique({ where: { id: body.paymentId } })
     if (!payment || payment.orgId !== orgId) return NextResponse.json({ error: 'Paiement introuvable' }, { status: 404 })
@@ -39,24 +42,29 @@ export async function PATCH(req: NextRequest) {
     })
     await db.payment.update({ where: { id: payment.id }, data: { status: 'RECONCILED' } })
     await audit({
-      orgId, actorType: 'HUMAN', action: 'PAYMENT_RECONCILED',
+      orgId, actorType: 'HUMAN', actorId: s.userId, actorName: s.name, action: 'PAYMENT_RECONCILED',
       resourceType: 'PAYMENT', resourceId: payment.id,
-      summary: `Rapprochement ${payment.reference} — ${body.externalRef ?? 'manuel'}`,
+      summary: `Rapprochement ${payment.reference} — ${body.externalRef ?? 'manuel'} par ${s.name}`,
     })
     return NextResponse.json({ ok: true })
   }
   return NextResponse.json({ error: 'Action inconnue' }, { status: 400 })
+  })
 }
 
 export async function POST(req: NextRequest) {
-  const orgId = await getPrimaryOrgId()
-  const body = await req.json()
+  return withAuth(req, 'money.pay.create', async (s) => {
+    const orgId = s.orgId
+    const body = await req.json()
 
-  // Approvals inbox actions are handled on /agents/approvals — passthrough here for convenience
-  if (body.action === 'APPROVE_PAYMENT' && body.approvalId) {
-    const result = await resolveAgentApproval(body.approvalId, true, body.decidedBy || 'Awa Koné (DG)', body.note)
-    return NextResponse.json({ approval: result })
-  }
+    // Approvals inbox actions are handled on /agents/approvals — passthrough here for convenience
+    if (body.action === 'APPROVE_PAYMENT' && body.approvalId) {
+      if (!can(s.role, 'approvals.decide')) {
+        return NextResponse.json({ error: `Approbation réservée aux rôles CFO/ADMIN/OWNER — rôle courant : ${s.role}` }, { status: 403 })
+      }
+      const result = await resolveAgentApproval(body.approvalId, true, s.name, body.note)
+      return NextResponse.json({ approval: result })
+    }
 
   try {
     const out = await orchestratePayment({
@@ -66,6 +74,7 @@ export async function POST(req: NextRequest) {
       counterpartyName: body.counterpartyName,
       counterpartyType: body.counterpartyType ?? 'OTHER',
       method: body.method ?? 'BANK_TRANSFER',
+      provider: body.provider ?? null,
       sourceAccountId: body.sourceAccountId ?? null,
       destAccountId: body.destAccountId ?? null,
       invoiceId: body.invoiceId ?? null,
@@ -73,7 +82,7 @@ export async function POST(req: NextRequest) {
       reason: body.reason,
       idempotencyKey: body.idempotencyKey,
       initiatedByType: 'HUMAN',
-      initiatedByName: body.initiatedByName ?? 'Awa Koné',
+      initiatedByName: s.name,
     })
     return NextResponse.json({
       payment: out.payment,
@@ -84,4 +93,5 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })
   }
+  })
 }

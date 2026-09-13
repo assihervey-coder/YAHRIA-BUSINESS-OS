@@ -20,6 +20,7 @@ model Tenant {
   status       String         @default("ACTIVE")
   createdAt    DateTime       @default(now())
   organizations Organization[]
+  users        User[]
 }
 
 model Organization {
@@ -28,15 +29,16 @@ model Organization {
   tenant       Tenant  @relation(fields: [tenantId], references: [id])
   name         String
   legalName    String
-  countryCode  String // CI | SN
+  countryCode  String // CI | SN | BJ
   city         String
   currencyCode String // XOF
   sectorCode   String // ENTERPRISE
-  taxId        String // NCC / NINEA
+  taxId        String // NCC / NINEA / IFU
   rccm         String
   status       String  @default("ACTIVE")
   createdAt    DateTime @default(now())
 
+  users      User[]
   customers  Customer[]
   suppliers  Supplier[]
   employees  Employee[]
@@ -55,6 +57,37 @@ model Organization {
   evidence   Evidence[]
   nodes      GraphNode[]
   edges      GraphEdge[]
+}
+
+// ─────────────────────────────── IDENTITY / RBAC ───────────────────────────────
+
+// Rôles : OWNER (dirigeant) | ADMIN (admin système) | CFO (DFC — approuve) |
+//         ACCOUNTANT (comptable — écrit mais n'approuve pas) | OPS (opérations) |
+//         AUDITOR (lecture seule + audit/evidence)
+model User {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id])
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         String    @default("OPS") // OWNER | ADMIN | CFO | ACCOUNTANT | OPS | AUDITOR
+  status       String    @default("ACTIVE") // ACTIVE | SUSPENDED
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 // ─────────────────────────────── 00_CORE ───────────────────────────────
@@ -310,7 +343,7 @@ model Agent {
   id             String  @id @default(cuid())
   orgId          String
   org            Organization @relation(fields: [orgId], references: [id])
-  code           String  @unique // FinanceAgent
+  code           String  // unique par organisation (@@unique orgId+code)
   name           String
   domain         String // FINANCE | TREASURY | ACCOUNTING | PAYMENT | PROCUREMENT | SALES | COMPLIANCE | RISK | TAX | OPS | REPORTING | EXECUTIVE
   status         String  @default("READONLY") // ACTIVE | READONLY | SUSPENDED | QUARANTINE
@@ -324,6 +357,8 @@ model Agent {
   version        String  @default("1.0.0")
   createdAt      DateTime @default(now())
   runs           AgentRun[]
+
+  @@unique([orgId, code])
 }
 
 model AgentRun {
@@ -377,7 +412,7 @@ model Policy {
   id          String   @id @default(cuid())
   orgId       String?
   org         Organization? @relation(fields: [orgId], references: [id])
-  code        String   @unique
+  code        String
   name        String
   category    String // PAYMENT | AGENT | AI | SECURITY | FINANCE | DATA | APPROVAL
   description String
@@ -385,6 +420,8 @@ model Policy {
   active      Boolean  @default(true)
   version     Int      @default(1)
   updatedAt   DateTime @updatedAt
+
+  @@unique([orgId, code])
 }
 
 model AuditRecord {
@@ -411,7 +448,11 @@ model Evidence {
   kind       String // PAYMENT | AGENT_DECISION | AI_ANSWER | POLICY | ACCOUNTING | APPROVAL
   title      String
   payloadJson String
-  hash       String
+  hash       String // SHA-256(payload|ref) — empreinte d'intégrité
+  algo       String   @default("SHA-256")
+  signature  String   @default("") // HMAC-SHA256(ref|hash|prevHash|prevSignature, key) — chaîne signée
+  prevHash   String   @default("") // hash de l'evidence précédente de l'org (chaîne)
+  seq        Int      @default(0) // numéro de séquence dans la chaîne de l'org
   provenanceJson String @default("{}")
   relatedId  String?
   createdAt  DateTime @default(now())
@@ -421,7 +462,7 @@ model Evidence {
 
 model CountryPack {
   id            String  @id @default(cuid())
-  code          String  @unique // CI | SN
+  code          String  @unique // CI | SN | BJ
   name          String
   currency      String
   vatRate       Float

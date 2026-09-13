@@ -88,7 +88,10 @@ export async function evaluatePayment(input: {
   riskScore: number
   actorType: string
 }): Promise<PolicyEvaluation> {
-  const pol = await db.policy.findUnique({ where: { code: 'PAY-001' } })
+  const pol = await db.policy.findFirst({
+    where: { code: 'PAY-001', OR: [{ orgId: input.orgId }, { orgId: null }] },
+    orderBy: { orgId: 'desc' }, // version propre à l'org prioritaire sur la version globale
+  })
   const rules: PaymentPolicyRules = pol?.ruleJson
     ? { ...DEFAULT_PAYMENT_RULES, ...JSON.parse(pol.ruleJson) }
     : DEFAULT_PAYMENT_RULES

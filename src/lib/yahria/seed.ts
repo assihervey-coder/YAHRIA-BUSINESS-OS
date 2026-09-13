@@ -1,10 +1,14 @@
-// YAHRIA BUSINESS OS V1 — Bootstrap seed (idempotent)
-// Seeds: tenant/org, SYSCOHADA chart, Core entities, Money, Finance (balanced entries),
-// 15 agents (spec §5.6), policies, country packs CI/SN, 13 sector engines, graph projection.
+// YAHRIA BUSINESS OS V1 — Bootstrap seed (idempotent, multi-tenant)
+// Seeds : 3 tenants (CI / SN / BJ) + utilisateurs RBAC, plan SYSCOHADA, Core, Money,
+// Finance (écritures équilibrées), agents, policies par org, packs CI/SN/BJ,
+// 13 engines sectoriels, projection graphe, chaîne de preuves signée.
 import { db } from '@/lib/db'
 import { rebuildGraphProjection } from './graph'
 import { postEntry } from './ledger'
 import { recordEvidence, audit } from './audit'
+import { hashPassword } from './passwords'
+
+export const DEMO_PASSWORD = 'Demo2026!'
 
 const DAY = 24 * 60 * 60 * 1000
 const ago = (days: number) => new Date(Date.now() - days * DAY)
@@ -102,6 +106,26 @@ async function seedCountryPacks() {
     },
   })
   await db.countryPack.upsert({
+    where: { code: 'BJ' },
+    update: {},
+    create: {
+      code: 'BJ', name: 'Bénin', currency: 'XOF', vatRate: 0.18,
+      mobileMoneyJson: JSON.stringify([
+        { provider: 'MTN_BJ', label: 'MTN MoMo Bénin', feePct: 0.017, maxTx: 1500000, active: true },
+        { provider: 'MOOV_BJ', label: 'Moov Africa Bénin', feePct: 0.016, maxTx: 1000000, active: true },
+        { provider: 'CELTIIS', label: 'Celtiis Cash', feePct: 0.015, maxTx: 500000, active: false },
+      ]),
+      banksJson: JSON.stringify([
+        { provider: 'BOA_BJ', label: 'Bank Of Africa Bénin', transferFee: 3500, active: true },
+        { provider: 'SBCE', label: 'Société Béninoise de Crédit', transferFee: 4000, active: true },
+        { provider: 'NSIA_BJ', label: 'NSIA Banque Bénin', transferFee: 3200, active: true },
+      ]),
+      payrollJson: JSON.stringify({ cnpsBeninEmployer: 0.154, cnpsBeninEmployee: 0.036, its: 'barème progressif BJ', minWage: 52000 }),
+      complianceJson: JSON.stringify({ dgi: 'DGI Bénin — télédéclaration e-fiscalité', ohada: 'SYSCOHADA révisé', cnps: 'CNPS Bénin mensuelle' }),
+      invoicingJson: JSON.stringify({ vatLabel: 'TVA 18%', mentions: ['IFU', 'RCCM'], currencyLabel: 'FCFA (XOF)' }),
+    },
+  })
+  await db.countryPack.upsert({
     where: { code: 'SN' },
     update: {},
     create: {
@@ -138,10 +162,8 @@ async function seedSectorEngines() {
   }
 }
 
-export async function ensureSeeded(): Promise<string> {
-  const existing = await db.tenant.findFirst()
-  if (existing) return existing.id
-
+/** Seed complet du tenant historique — Ivoire Distribution SA (Abidjan, pack CI). */
+async function seedTenantIvoire(): Promise<{ tenantId: string; orgId: string }> {
   const tenant = await db.tenant.create({ data: { slug: 'yahria-demo', name: 'YAHRIA Demo Tenant', plan: 'ENTERPRISE' } })
   const org = await db.organization.create({
     data: {
@@ -469,7 +491,7 @@ export async function ensureSeeded(): Promise<string> {
   // Policies
   for (const [code, name, category, description, rule] of POLICIES) {
     await db.policy.upsert({
-      where: { code },
+      where: { orgId_code: { orgId, code } },
       update: {},
       create: { orgId, code, name, category, description, ruleJson: JSON.stringify(rule) },
     })
@@ -480,10 +502,10 @@ export async function ensureSeeded(): Promise<string> {
   await seedSectorEngines()
 
   // Completed agent runs (history)
-  const paymentAgent = await db.agent.findUnique({ where: { code: 'PaymentAgent' } })
-  const reportingAgent = await db.agent.findUnique({ where: { code: 'ReportingAgent' } })
-  const riskAgent = await db.agent.findUnique({ where: { code: 'RiskAgent' } })
-  const treasuryAgent = await db.agent.findUnique({ where: { code: 'TreasuryAgent' } })
+  const paymentAgent = await db.agent.findFirst({ where: { orgId, code: 'PaymentAgent' } })
+  const reportingAgent = await db.agent.findFirst({ where: { orgId, code: 'ReportingAgent' } })
+  const riskAgent = await db.agent.findFirst({ where: { orgId, code: 'RiskAgent' } })
+  const treasuryAgent = await db.agent.findFirst({ where: { orgId, code: 'TreasuryAgent' } })
 
   if (reportingAgent) {
     const ev1 = await recordEvidence({
@@ -615,15 +637,278 @@ export async function ensureSeeded(): Promise<string> {
   await rebuildGraphProjection(orgId)
 
   // Initial audit records
-  await audit({ orgId, actorType: 'SYSTEM', action: 'SYSTEM_BOOTSTRAP', resourceType: 'TENANT', summary: 'Initialisation du tenant YAHRIA Demo + organisation Ivoire Distribution SA', meta: { seed: 'v1' } })
+  await audit({ orgId, actorType: 'SYSTEM', action: 'SYSTEM_BOOTSTRAP', resourceType: 'TENANT', summary: 'Initialisation du tenant YAHRIA Demo + organisation Ivoire Distribution SA', meta: { seed: 'v2-multi-tenant' } })
   await audit({ orgId, actorType: 'SYSTEM', action: 'GRAPH_REBUILT', resourceType: 'BUSINESS_GRAPH', summary: 'Projection Business Graph reconstruite (INV-GRAPH-004)' })
 
-  return tenant.id
+  return { tenantId: tenant.id, orgId }
 }
 
-export async function getPrimaryOrgId(): Promise<string> {
-  await ensureSeeded()
-  const org = await db.organization.findFirst()
-  if (!org) throw new Error('No organization found')
-  return org.id
+// ────────────────────────── UTILISATEURS RBAC ──────────────────────────
+
+/** Comptes du tenant Ivoire Distribution — couvre les 6 rôles RBAC. */
+async function seedIvoireUsers(tenantId: string, orgId: string) {
+  const accounts: [string, string, string, string][] = [
+    ['Awa Koné', 'akone@ivoire-distribution.ci', 'OWNER', 'Directrice Générale'],
+    ['Adama Bamba', 'admin@yahria.africa', 'ADMIN', 'Administrateur système'],
+    ['Ibrahim Coulibaly', 'icoulibaly@ivoire-distribution.ci', 'CFO', 'Responsable Financier'],
+    ['Fatou Diomandé', 'fdiomande@ivoire-distribution.ci', 'ACCOUNTANT', 'Comptable'],
+    ['Yao Kouassi', 'ykouassi@ivoire-distribution.ci', 'OPS', 'Chef d\u2019entrepôt'],
+    ['Serge Traoré', 'auditeur@yahria.africa', 'AUDITOR', 'Commissaire aux comptes'],
+  ]
+  for (const [name, email, role] of accounts) {
+    await db.user.create({
+      data: { tenantId, orgId, email, name, role, passwordHash: hashPassword(DEMO_PASSWORD) },
+    })
+  }
+}
+
+// ────────────────────────── TENANTS LÉGERS (SN / BJ) ──────────────────────────
+
+interface LiteSpec {
+  slug: string
+  tenantName: string
+  plan: string
+  org: { name: string; legalName: string; countryCode: string; city: string; taxId: string; rccm: string }
+  users: [string, string, string][] // name, email, role
+  bank: { name: string; provider: string; balance: number }
+  momo: { name: string; provider: string; balance: number }
+  customers: [string, string, string, string, number][]
+  invoices: { cust: number; days: number; dueIn: number; status: string; desc: string; qty: number; unitPrice: number }[]
+  collection: { invIdx: number; provider: string; account: 'bank' | 'momo'; reconciled: boolean }
+  /** Paiement rejeté INV-011 : rail étranger tenté par cette org (démo d'isolation). */
+  rejectedVia?: { provider: string; counterparty: string; amount: number }
+}
+
+const LITE_AGENTS = ['FinanceAgent', 'TreasuryAgent', 'PaymentAgent', 'ComplianceAgent', 'RiskAgent']
+
+async function seedTenantLite(spec: LiteSpec) {
+  const tenant = await db.tenant.create({ data: { slug: spec.slug, name: spec.tenantName, plan: spec.plan } })
+  const org = await db.organization.create({
+    data: {
+      tenantId: tenant.id, name: spec.org.name, legalName: spec.org.legalName,
+      countryCode: spec.org.countryCode, city: spec.org.city, currencyCode: 'XOF',
+      sectorCode: 'ENTERPRISE', taxId: spec.org.taxId, rccm: spec.org.rccm,
+    },
+  })
+  const orgId = org.id
+
+  for (const [name, email, role] of spec.users) {
+    await db.user.create({ data: { tenantId: tenant.id, orgId, email, name, role, passwordHash: hashPassword(DEMO_PASSWORD) } })
+  }
+
+  // Plan comptable SYSCOHADA complet (20 comptes)
+  await db.account.createMany({ data: SYSCOHADA.map(([code, name, cls, type]) => ({ orgId, code, name, class: cls as number, type: type as string })) })
+
+  // Comptes de trésorerie du pack national
+  const accBank = await db.paymentAccount.create({ data: { orgId, name: spec.bank.name, type: 'BANK', provider: spec.bank.provider, balance: spec.bank.balance, isDefault: true } })
+  const accMomo = await db.paymentAccount.create({ data: { orgId, name: spec.momo.name, type: 'MOBILE_MONEY', provider: spec.momo.provider, balance: spec.momo.balance } })
+  const accCash = await db.paymentAccount.create({ data: { orgId, name: `Caisse ${spec.org.city}`, type: 'CASH', provider: 'CAISSE', balance: 450000 } })
+
+  // Clients / fournisseurs / produits
+  const customers: { id: string; name: string }[] = []
+  for (const [code, name, segment, city, risk] of spec.customers) {
+    customers.push(await db.customer.create({ data: { orgId, code, name, segment, city, countryCode: spec.org.countryCode, riskScore: risk } }))
+  }
+  const sup1 = await db.supplier.create({ data: { orgId, code: 'FRN-001', name: 'Logistique ' + spec.org.city, category: 'LOGISTICS', city: spec.org.city, performance: 82 } })
+  await db.supplier.create({ data: { orgId, code: 'FRN-002', name: 'Fournitures Générales ' + spec.org.countryCode, category: 'SUPPLIES', city: spec.org.city, performance: 74 } })
+  const prd = await db.product.create({ data: { orgId, code: 'PRD-001', name: 'Produit distribution (unité)', type: 'PRODUCT', unit: 'unité', unitPrice: 12500, stock: 400 } })
+  await db.product.create({ data: { orgId, code: 'SRV-001', name: 'Prestation logistique', type: 'SERVICE', unit: 'course', unitPrice: 40000 } })
+
+  // Factures + écritures équilibrées
+  let invNo = 1
+  const created: { id: string; number: string; total: number; customerId: string; status: string }[] = []
+  for (const s of spec.invoices) {
+    const subtotal = s.qty * s.unitPrice
+    const vatAmount = Math.round(subtotal * 0.18)
+    const total = subtotal + vatAmount
+    const inv = await db.invoice.create({
+      data: {
+        orgId, number: `FAC-2026-${spec.org.countryCode}${String(invNo).padStart(3, '0')}`,
+        customerId: customers[s.cust].id, status: s.status,
+        issueDate: ago(s.days), dueDate: s.status === 'OVERDUE' ? ago(-s.dueIn) : ahead(s.dueIn),
+        subtotal, vatAmount, total, paidAmount: s.status === 'PAID' ? total : 0,
+        notes: `Facture conforme SYSCOHADA — pack ${spec.org.countryCode}`,
+        lines: { create: [{ description: s.desc, quantity: s.qty, unitPrice: s.unitPrice, vatRate: 0.18, lineTotal: total }] },
+      },
+    })
+    created.push({ id: inv.id, number: inv.number, total, customerId: inv.customerId, status: inv.status })
+    if (s.status !== 'DRAFT') {
+      await postEntry({
+        orgId, entryDate: ago(s.days), reference: `FAC/${inv.number}`,
+        description: `Facture ${inv.number} — ${customers[s.cust].name}`, source: 'INVOICE', sourceId: inv.id,
+        lines: [{ accountCode: '411', debit: total }, { accountCode: '701', credit: subtotal }, { accountCode: '4431', credit: vatAmount }],
+      })
+    }
+    invNo++
+  }
+
+  // Dépense payée (écriture équilibrée) + dépense en attente
+  const exp1 = await db.expense.create({ data: { orgId, reference: `DEP-${spec.org.countryCode}-001`, category: 'RENT', description: `Loyer dépôt ${spec.org.city}`, amount: 850000, vatAmount: 153000, supplierId: sup1.id, status: 'PAID', expenseDate: ago(9) } })
+  await postEntry({
+    orgId, entryDate: ago(9), reference: `DEP/${exp1.reference}`, description: `Loyer dépôt ${spec.org.city}`, source: 'EXPENSE', sourceId: exp1.id,
+    lines: [{ accountCode: '622', debit: 850000 }, { accountCode: '4452', debit: 153000 }, { accountCode: '521', credit: 1003000 }],
+  })
+  await db.expense.create({ data: { orgId, reference: `DEP-${spec.org.countryCode}-002`, category: 'UTILITIES', description: 'Électricité et eau', amount: 145000, vatAmount: 26100, status: 'PENDING', expenseDate: ago(2) } })
+
+  // Encaissement exécuté via un rail du pack national (INV-011 OK)
+  const cInv = created[spec.collection.invIdx]
+  const cAcc = spec.collection.account === 'bank' ? accBank : accMomo
+  const cCust = customers.find((c) => c.id === cInv.customerId)!
+  const collection = await db.payment.create({
+    data: {
+      orgId, reference: `ENC-2026-${spec.org.countryCode}01`, idempotencyKey: `seed-coll-${spec.slug}`,
+      type: 'COLLECTION', direction: 'IN', amount: cInv.total, currency: 'XOF',
+      counterpartyName: cCust.name, counterpartyType: 'CUSTOMER', method: cAcc.type === 'BANK' ? 'BANK_TRANSFER' : 'MOBILE_MONEY',
+      provider: spec.collection.provider, destAccountId: cAcc.id, invoiceId: cInv.id,
+      status: spec.collection.reconciled ? 'RECONCILED' : 'EXECUTED',
+      policyDecisionId: `PDC-${spec.slug}-1`, policyDecision: 'ALLOW', policyReason: `PAY-001 : encaissement standard (pack ${spec.org.countryCode})`,
+      riskScore: 10, riskLevel: 'LOW', initiatedByType: 'HUMAN', initiatedByName: spec.users[0][0],
+      reason: 'Encaissement facture ' + cInv.number,
+      timeline: JSON.stringify([
+        { ts: ago(3).toISOString(), state: 'RISK_CHECK', note: 'Score 10/100 — LOW' },
+        { ts: ago(3).toISOString(), state: 'PACK_CHECK', note: `Rail ${spec.collection.provider} ∈ pack ${spec.org.countryCode} (INV-011 OK)` },
+        { ts: ago(3).toISOString(), state: 'POLICY_CHECK', note: 'ALLOW — PAY-001' },
+        { ts: ago(3).toISOString(), state: 'EXECUTED', note: `Exécuté via ${spec.collection.provider}` },
+      ]),
+      executedAt: ago(3), createdAt: ago(4),
+    },
+  })
+  const ev = await recordEvidence({
+    orgId, kind: 'PAYMENT', title: `Encaissement ${collection.reference}`, relatedId: collection.id,
+    payload: { payment: collection.reference, invoice: cInv.number, amount: cInv.total, provider: spec.collection.provider },
+  })
+  await db.payment.update({ where: { id: collection.id }, data: { evidenceId: ev.ref } })
+  await db.paymentAccount.update({ where: { id: cAcc.id }, data: { balance: { increment: cInv.total } } })
+  if (spec.collection.reconciled) {
+    await db.reconciliation.create({ data: { orgId, paymentId: collection.id, externalRef: `${spec.collection.provider}-1001`, provider: spec.collection.provider, amount: cInv.total, matched: true, variance: 0, note: 'Rapprochement automatique flux provider' } })
+  }
+  const tAcc = cAcc.type === 'BANK' ? '521' : '522'
+  await postEntry({
+    orgId, entryDate: ago(3), reference: `ENC/${collection.reference}`, description: `Encaissement ${cInv.number} — ${cCust.name}`, source: 'PAYMENT', sourceId: collection.id,
+    lines: [{ accountCode: tAcc, debit: cInv.total }, { accountCode: '411', credit: cInv.total }],
+  })
+
+  // Démo INV-011 : tentative via un rail étranger → REJETÉE (preuve d'isolation)
+  if (spec.rejectedVia) {
+    const rejected = await db.payment.create({
+      data: {
+        orgId, reference: `DEC-2026-${spec.org.countryCode}02`, idempotencyKey: `seed-rej-${spec.slug}`,
+        type: 'DISBURSEMENT', direction: 'OUT', amount: spec.rejectedVia.amount, currency: 'XOF',
+        counterpartyName: spec.rejectedVia.counterparty, counterpartyType: 'SUPPLIER',
+        method: 'MOBILE_MONEY', provider: spec.rejectedVia.provider, sourceAccountId: accMomo.id,
+        status: 'REJECTED', policyDecisionId: `PDC-${spec.slug}-INV011`, policyDecision: 'DENY',
+        policyReason: `INV-011 : rail « ${spec.rejectedVia.provider} » hors du Country Pack ${spec.org.countryCode} — rails autorisés : ${spec.momo.provider}, CAISSE, ${spec.bank.provider}`,
+        riskScore: 62, riskLevel: 'HIGH', initiatedByType: 'HUMAN', initiatedByName: spec.users[0][0],
+        reason: 'Tentative via un rail hors pack national — bloquée par l\u2019isolation INV-011',
+        timeline: JSON.stringify([
+          { ts: ago(1).toISOString(), state: 'RISK_CHECK', note: 'Score 62/100 — HIGH' },
+          { ts: ago(1).toISOString(), state: 'POLICY_CHECK', note: `DENY — INV-011 : rail ${spec.rejectedVia.provider} hors pack ${spec.org.countryCode}` },
+          { ts: ago(1).toISOString(), state: 'REJECTED', note: 'Bloqué par isolation Country Pack — aucun mouvement de fonds' },
+        ]),
+        createdAt: ago(1),
+      },
+    })
+    const evR = await recordEvidence({
+      orgId, kind: 'POLICY', title: `Paiement bloqué (INV-011) — ${rejected.reference}`, relatedId: rejected.id,
+      payload: { decision: 'DENY', invariant: 'INV-011', provider: spec.rejectedVia.provider, orgCountry: spec.org.countryCode, allowedProviders: [spec.momo.provider, 'CAISSE', spec.bank.provider] },
+    })
+    await db.payment.update({ where: { id: rejected.id }, data: { evidenceId: evR.ref } })
+    await audit({ orgId, actorType: 'SYSTEM', action: 'PAYMENT_DENIED', resourceType: 'PAYMENT', resourceId: rejected.id, summary: `Paiement ${rejected.reference} bloqué — INV-011 rail ${spec.rejectedVia.provider} hors pack ${spec.org.countryCode}`, meta: { invariant: 'INV-011' } })
+  }
+
+  // Agents (sous-ensemble lecture seule + PaymentAgent actif)
+  for (const a of AGENTS) {
+    if (!LITE_AGENTS.includes(a[0])) continue
+    const [code, name, domain, status, autonomyLevel, description, capabilities, tools, maxAmount, approvalAbove] = a
+    await db.agent.create({
+      data: { orgId, code, name, domain, status, autonomyLevel, description, capabilities: JSON.stringify(capabilities), tools: JSON.stringify(tools), maxAmount: maxAmount as number, approvalAbove: approvalAbove as number, readOnly: status === 'READONLY' },
+    })
+  }
+
+  // Policies propres à l'org
+  for (const [code, name, category, description, rule] of POLICIES) {
+    await db.policy.create({ data: { orgId, code, name, category, description, ruleJson: JSON.stringify(rule) } })
+  }
+
+  await rebuildGraphProjection(orgId)
+  await audit({ orgId, actorType: 'SYSTEM', action: 'SYSTEM_BOOTSTRAP', resourceType: 'TENANT', summary: `Initialisation du tenant ${spec.tenantName} + organisation ${spec.org.legalName} (pack ${spec.org.countryCode})`, meta: { seed: 'v2-multi-tenant' } })
+  return { tenantId: tenant.id, orgId }
+}
+
+// ────────────────────────── ORCHESTRATEUR ──────────────────────────
+
+let seedPromise: Promise<void> | null = null
+
+/** Idempotent : amorce les 3 tenants de démonstration + tous les utilisateurs RBAC. */
+export async function ensureSeeded(): Promise<void> {
+  if (seedPromise) return seedPromise
+  seedPromise = (async () => {
+    const [tenant, user] = await Promise.all([db.tenant.findFirst(), db.user.findFirst()])
+    if (tenant && user) return
+
+    // Packs + engines partagés
+    await seedCountryPacks()
+    await seedSectorEngines()
+
+    // Tenant 1 — Côte d'Ivoire (complet)
+    const t1 = await seedTenantIvoire()
+    await seedIvoireUsers(t1.tenantId, t1.orgId)
+
+    // Tenant 2 — Sénégal (léger)
+    await seedTenantLite({
+      slug: 'sahel-agro',
+      tenantName: 'Sahel Agro Tenant',
+      plan: 'GROWTH',
+      org: { name: 'Sahel Agro Industries', legalName: 'SAHEL AGRO INDUSTRIES SA', countryCode: 'SN', city: 'Dakar', taxId: '00451287 B', rccm: 'SN-DKR-2016-B-9876' },
+      users: [
+        ['Moussa Fall', 'mfall@sahelagro.sn', 'OWNER'],
+        ['Aminata Sow', 'asow@sahelagro.sn', 'CFO'],
+      ],
+      bank: { name: 'Société Générale Sénégal — compte pro', provider: 'SGSN', balance: 21500000 },
+      momo: { name: 'Wave Business SN', provider: 'WAVE', balance: 1850000 },
+      customers: [
+        ['CLI-SN-001', 'Terres du Fleuve SARL', 'SME', 'Saint-Louis', 22],
+        ['CLI-SN-002', 'Casamance Fruits SA', 'CORP', 'Ziguinchor', 12],
+        ['CLI-SN-003', 'Marché Sandaga Distribution', 'RETAIL', 'Dakar', 41],
+      ],
+      invoices: [
+        { cust: 0, days: 30, dueIn: -8, status: 'OVERDUE', desc: 'Livraison céréales (120 sacs)', qty: 120, unitPrice: 12500 },
+        { cust: 1, days: 12, dueIn: 18, status: 'SENT', desc: 'Prestation logistique régionale', qty: 14, unitPrice: 40000 },
+        { cust: 2, days: 25, dueIn: 5, status: 'PAID', desc: 'Commande engrais (60 unités)', qty: 60, unitPrice: 12500 },
+      ],
+      collection: { invIdx: 2, provider: 'WAVE', account: 'momo', reconciled: true },
+    })
+
+    // Tenant 3 — Bénin (léger, avec démonstration d'isolation INV-011)
+    await seedTenantLite({
+      slug: 'golfe-trading',
+      tenantName: 'Golfe Trading Tenant',
+      plan: 'GROWTH',
+      org: { name: 'Golfe Trading & Services', legalName: 'GOLFE TRADING & SERVICES SARL', countryCode: 'BJ', city: 'Cotonou', taxId: '3202411456789', rccm: 'RB/COT/23 A 14567' },
+      users: [
+        ['Gildas Nagbé', 'gnagbe@golfetrading.bj', 'OWNER'],
+        ['Larisse Adjovi', 'ladjovi@golfetrading.bj', 'ACCOUNTANT'],
+      ],
+      bank: { name: 'Société Béninoise de Crédit — compte pro', provider: 'SBCE', balance: 12750000 },
+      momo: { name: 'MTN MoMo Business Bénin', provider: 'MTN_BJ', balance: 940000 },
+      customers: [
+        ['CLI-BJ-001', 'Djègan Distribution', 'SME', 'Porto-Novo', 28],
+        ['CLI-BJ-002', 'Sèmè Fresh SARL', 'SME', 'Sèmè-Podji', 18],
+        ['CLI-BJ-003', 'Mercato Dantokpa SA', 'RETAIL', 'Cotonou', 47],
+      ],
+      invoices: [
+        { cust: 0, days: 40, dueIn: -12, status: 'OVERDUE', desc: 'Livraison produits secs (80 sacs)', qty: 80, unitPrice: 12500 },
+        { cust: 1, days: 10, dueIn: 20, status: 'SENT', desc: 'Transport fluvial Sèmè', qty: 9, unitPrice: 40000 },
+        { cust: 2, days: 18, dueIn: 12, status: 'PAID', desc: 'Commande marchandise générale', qty: 55, unitPrice: 12500 },
+      ],
+      collection: { invIdx: 2, provider: 'MTN_BJ', account: 'momo', reconciled: false },
+      rejectedVia: { provider: 'ORANGE_MONEY', counterparty: 'Fournisseur Abidjan Transbordement', amount: 480000 },
+    })
+  })()
+  try {
+    await seedPromise
+  } catch (e) {
+    seedPromise = null
+    throw e
+  }
 }

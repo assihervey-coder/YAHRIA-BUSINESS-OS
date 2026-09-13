@@ -108,7 +108,7 @@ async function computeResult(agentCode: string, orgId: string, intent: string): 
 }
 
 export async function runAgent(opts: { orgId: string; agentCode: string; intent: string; inputJson?: string; initiatedBy?: string }) {
-  const agent = await db.agent.findUnique({ where: { code: opts.agentCode } })
+  const agent = await db.agent.findFirst({ where: { orgId: opts.orgId, code: opts.agentCode } })
   if (!agent) throw new Error('Agent introuvable')
   if (agent.status === 'SUSPENDED' || agent.status === 'QUARANTINE') {
     throw new Error(`Agent ${agent.code} — statut ${agent.status} : exécution interdite`)

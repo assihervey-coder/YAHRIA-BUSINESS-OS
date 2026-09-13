@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getPrimaryOrgId } from '@/lib/yahria/seed'
+import { withAuth } from '@/lib/yahria/auth'
 import { audit } from '@/lib/yahria/audit'
 import { postEntry } from '@/lib/yahria/ledger'
 import { ref } from '@/lib/yahria/core'
 
-export async function GET() {
-  const orgId = await getPrimaryOrgId()
-  const invoices = await db.invoice.findMany({ where: { orgId }, orderBy: { issueDate: 'desc' }, include: { customer: { select: { name: true, segment: true } }, lines: true } })
-  return NextResponse.json({ items: invoices })
+export async function GET(req: NextRequest) {
+  return withAuth(req, 'finance.read', async (s) => {
+    const invoices = await db.invoice.findMany({ where: { orgId: s.orgId }, orderBy: { issueDate: 'desc' }, include: { customer: { select: { name: true, segment: true } }, lines: true } })
+    return NextResponse.json({ items: invoices })
+  })
 }
 
 export async function POST(req: NextRequest) {
-  const orgId = await getPrimaryOrgId()
-  const body = await req.json()
+  return withAuth(req, 'finance.write', async (s) => {
+    const orgId = s.orgId
+    const body = await req.json()
 
   const customer = await db.customer.findUnique({ where: { id: body.customerId } })
   if (!customer) return NextResponse.json({ error: 'Client introuvable' }, { status: 400 })
@@ -64,10 +66,11 @@ export async function POST(req: NextRequest) {
   }
 
   await audit({
-    orgId, actorType: 'HUMAN', action: 'INVOICE_CREATED',
+    orgId, actorType: 'HUMAN', actorId: s.userId, actorName: s.name, action: 'INVOICE_CREATED',
     resourceType: 'INVOICE', resourceId: invoice.id,
-    summary: `Facture ${number} — ${customer.name} — ${total.toLocaleString('fr-FR')} FCFA (${invoice.status})`,
+    summary: `Facture ${number} — ${customer.name} — ${total.toLocaleString('fr-FR')} FCFA (${invoice.status}) — par ${s.name}`,
   })
 
   return NextResponse.json({ item: invoice }, { status: 201 })
+  })
 }

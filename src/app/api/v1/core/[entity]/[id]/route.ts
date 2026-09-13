@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getPrimaryOrgId } from '@/lib/yahria/seed'
+import { withAuth } from '@/lib/yahria/auth'
 import { audit } from '@/lib/yahria/audit'
 
 type Entity = 'customers' | 'suppliers' | 'employees' | 'products'
@@ -15,11 +15,12 @@ function modelFor(entity: string) {
   }
 }
 
-export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ entity: string; id: string }> }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ entity: string; id: string }> }) {
   const { entity, id } = await ctx.params
-  const model = modelFor(entity)
-  if (!model) return NextResponse.json({ error: 'Entité inconnue' }, { status: 404 })
-  const orgId = await getPrimaryOrgId()
+  return withAuth(req, 'core.manage', async (s) => {
+    const model = modelFor(entity)
+    if (!model) return NextResponse.json({ error: 'Entité inconnue' }, { status: 404 })
+    const orgId = s.orgId
 
   // Business guard: a customer with open invoices cannot be archived hard
   if (entity === 'customers') {
@@ -33,9 +34,10 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ entity:
   }
 
   await audit({
-    orgId, actorType: 'HUMAN', action: 'CORE_ENTITY_ARCHIVED',
+    orgId, actorType: 'HUMAN', actorId: s.userId, actorName: s.name, action: 'CORE_ENTITY_ARCHIVED',
     resourceType: entity.toUpperCase(), resourceId: id,
-    summary: `${entity}: ${id} archivé(e) — suppression physique interdite (INV-DB-003)`,
+    summary: `${entity}: ${id} archivé(e) par ${s.name} — suppression physique interdite (INV-DB-003)`,
   })
   return NextResponse.json({ ok: true })
+  })
 }

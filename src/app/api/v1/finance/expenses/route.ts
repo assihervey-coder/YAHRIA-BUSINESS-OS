@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getPrimaryOrgId } from '@/lib/yahria/seed'
+import { withAuth } from '@/lib/yahria/auth'
 import { audit } from '@/lib/yahria/audit'
 import { postEntry } from '@/lib/yahria/ledger'
 import { ref } from '@/lib/yahria/core'
 
-export async function GET() {
-  const orgId = await getPrimaryOrgId()
-  const items = await db.expense.findMany({ where: { orgId }, orderBy: { expenseDate: 'desc' } })
-  return NextResponse.json({ items })
+export async function GET(req: NextRequest) {
+  return withAuth(req, 'finance.read', async (s) => {
+    const items = await db.expense.findMany({ where: { orgId: s.orgId }, orderBy: { expenseDate: 'desc' } })
+    return NextResponse.json({ items })
+  })
 }
 
 export async function POST(req: NextRequest) {
-  const orgId = await getPrimaryOrgId()
-  const body = await req.json()
+  return withAuth(req, 'finance.write', async (s) => {
+    const orgId = s.orgId
+    const body = await req.json()
   const amount = Number(body.amount) || 0
   if (amount <= 0) return NextResponse.json({ error: 'Montant invalide' }, { status: 400 })
   const vatRate = typeof body.vatRate === 'number' ? body.vatRate : 0.18
@@ -31,20 +33,22 @@ export async function POST(req: NextRequest) {
   })
 
   await audit({
-    orgId, actorType: 'HUMAN', action: 'EXPENSE_RECORDED',
+    orgId, actorType: 'HUMAN', actorId: s.userId, actorName: s.name, action: 'EXPENSE_RECORDED',
     resourceType: 'EXPENSE', resourceId: expense.id,
-    summary: `Dépense ${expense.reference} — ${expense.description} — ${amount.toLocaleString('fr-FR')} FCFA`,
+    summary: `Dépense ${expense.reference} — ${expense.description} — ${amount.toLocaleString('fr-FR')} FCFA — par ${s.name}`,
   })
 
   return NextResponse.json({ item: expense }, { status: 201 })
+  })
 }
 
 // Approve + pay an expense (goes through the payment orchestration)
 export async function PATCH(req: NextRequest) {
-  const orgId = await getPrimaryOrgId()
-  const body = await req.json()
-  const expense = await db.expense.findUnique({ where: { id: body.id } })
-  if (!expense || expense.orgId !== orgId) return NextResponse.json({ error: 'Dépense introuvable' }, { status: 404 })
+  return withAuth(req, 'finance.write', async (s) => {
+    const orgId = s.orgId
+    const body = await req.json()
+    const expense = await db.expense.findUnique({ where: { id: body.id } })
+    if (!expense || expense.orgId !== orgId) return NextResponse.json({ error: 'Dépense introuvable' }, { status: 404 })
 
   if (body.action === 'APPROVE') {
     await db.expense.update({ where: { id: expense.id }, data: { status: 'APPROVED' } })
@@ -75,4 +79,5 @@ export async function PATCH(req: NextRequest) {
   }
 
   return NextResponse.json({ error: 'Action inconnue' }, { status: 400 })
+  })
 }

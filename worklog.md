@@ -71,3 +71,27 @@ Stage Summary:
 - Les deux bandes sont des conteneurs de scroll totalement indépendants (overscroll-contain, page verrouillée h-dvh)
 - Scripts : scripts/test_scroll_independant.js (réexécutable), scripts/scroll_test_final.png
 - Fichiers modifiés : src/app/page.tsx, src/app/globals.css
+
+---
+Task ID: 4
+Agent: main (Super Z)
+Task: Itérations sécurité V1.1 — RBAC multi-utilisateurs, signatures Evidence, pack Bénin (INV-011), RLS applicatif, multi-tenancy
+
+Work Log:
+- Schéma : +User (rôles OWNER/ADMIN/CFO/ACCOUNTANT/OPS/AUDITOR) +Session (cookie httpOnly 7j), Evidence enrichie (algo/signature/prevHash/seq), Policy @@unique([orgId,code]), Agent @@unique([orgId,code])
+- auth.ts : scrypt+sel, sessions opaques, matrice de permissions avec wildcards ('*', 'x.*', '*.read'), séparation des pouvoirs (comptable écrit, CFO approuve), withAuth() = session→RBAC→runWithRls→handler
+- RLS applicatif (db.ts) : AsyncLocalStorage + $extends Prisma ; injection orgId/tenantId sur lectures, forçage sur créations, pré-vérification update/delete/upsert (RLS_VIOLATION) ; findUnique post-check ; organisation scopée par id ; BUG CORRIGÉ : noms Prisma en PascalCase ('PaymentAccount'.toLowerCase() ≠ 'paymentAccount') → sets normalisés en minuscules
+- Evidence v2 : hash SHA-256(payload|ref) + signature HMAC-SHA256(ref|hash|prevHash|prevSig) chaînée par org, clé EVIDENCE_SIGNING_KEY (.env), verifyEvidenceChain() constant-time ; prisma/rls-postgres.sql fourni pour production (CREATE POLICY ... USING)
+- packs.ts INV-011 : rails autorisés = pack national de l'org ; câblé dans orchestratePayment (étape PACK_CHECK → DENY + Evidence POLICY + audit)
+- 15 routes API refactorées withAuth + permissions ; meta/dashboard enrichis (user, session) ; +routes auth/login|logout|me|demo, users (GET/POST/PATCH users.manage)
+- Middleware : redirection /login + 401 API hors /api/v1/auth
+- Seed v2 multi-tenant : 3 tenants — Ivoire Distribution (CI, complet, 6 comptes tous rôles), Sahel Agro (SN, léger, 2 comptes), Golfe Trading (BJ, léger + paiement REJECTED INV-011 en historique, 2 comptes) ; mot de passe démo uniforme Demo2026!
+- UI : page /login (2 panneaux, chips comptes démo drapeaux), topbar (badge initiales·rôle + logout), nav conditionnelle par permissions, vue Utilisateurs (rôles, créer/suspendre/changer rôle), Gouvernance onglet « Sécurité — RLS & Signatures » (statut RLS, chaîne Evidence + vérif live, test INV-011 UI)
+- Debug : traçage RLS env-gaté YAHRIA_RLS_DEBUG=1
+- Tests : scripts/test_api_multi_tenant.sh 14 scénarios (login, 401, RLS cross-tenant → RLS_VIOLATION 400, INV-011 runtime ORANGE_MONEY depuis BJ → REJECTED/DENY, RBAC comptable/auditeur 403, chaînes CI 7/7 + BJ 9/9 intactes, users cloisonnés) ; navigateur : redirection, login chips, cockpit OWNER + badge rôle, onglet Sécurité, test INV-011 UI (DENY MTN_BJ / ALLOW WAVE, audit 14→15), vue Utilisateurs (6 comptes tenant CI), isolation visuelle BJ (Golfe Trading seulement) ; tsc 0 erreur src, lint 0, logs propres
+
+Stage Summary:
+- App multi-tenant sécurisée de bout en bout : Identity → Session → RBAC → RLS → Policy → Packs → Evidence signée → Audit
+- 10 comptes démo / 3 tenants (CI/SN/BJ) / 6 rôles ; baseline passée à 1.1.0
+- Scripts réutilisables : scripts/test_api_multi_tenant.sh, scripts/test_rls_direct.ts, prisma/rls-postgres.sql
+- Fichiers clés : src/lib/db.ts (RLS), src/lib/yahria/{auth,passwords,packs}.ts, src/lib/yahria/audit.ts (signatures), src/middleware.ts, src/app/login/page.tsx, src/components/yahria/users.tsx
