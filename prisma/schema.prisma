@@ -65,29 +65,45 @@ model Organization {
 //         ACCOUNTANT (comptable — écrit mais n'approuve pas) | OPS (opérations) |
 //         AUDITOR (lecture seule + audit/evidence)
 model User {
-  id           String    @id @default(cuid())
-  tenantId     String
-  tenant       Tenant    @relation(fields: [tenantId], references: [id])
-  orgId        String
-  org          Organization @relation(fields: [orgId], references: [id])
-  email        String    @unique
-  passwordHash String
-  name         String
-  role         String    @default("OPS") // OWNER | ADMIN | CFO | ACCOUNTANT | OPS | AUDITOR
-  status       String    @default("ACTIVE") // ACTIVE | SUSPENDED
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  sessions     Session[]
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  orgId          String
+  org            Organization @relation(fields: [orgId], references: [id])
+  email          String    @unique
+  passwordHash   String
+  name           String
+  role           String    @default("OPS") // OWNER | ADMIN | CFO | ACCOUNTANT | OPS | AUDITOR
+  status         String    @default("ACTIVE") // ACTIVE | SUSPENDED
+  // 2FA TOTP (RFC 6238) — totpSecret présent sans totpEnabledAt = enrôlement en cours
+  totpSecret     String?
+  totpEnabledAt  DateTime?
+  recoveryCodes  String?   // JSON [{hash, usedAt|null}] — codes de secours à usage unique
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  sessions       Session[]
 }
 
+// Session rotative (INV-002 durci) :
+//  · TTL glissant  : expiresAt repoussé à chaque activité (fenêtre SLIDING_TTL)
+//  · Plafond absolu : absoluteExpiresAt borné — le glissement ne prolonge jamais au-delà
+//  · Rotation       : un token remplacé devient rotatedAt + rotatedToToken (famille tokenFamily)
+//  · Réutilisation  : rejouer un token déjà rotaté → révocation de TOUTE la famille
 model Session {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userAgent String?
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id                String    @id @default(cuid())
+  token             String    @unique
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenFamily       String?   // null = session héritée (pré-rotation) — famille d'elle-même
+  userAgent         String?
+  createdAt         DateTime  @default(now())
+  lastSeenAt        DateTime  @default(now())
+  expiresAt         DateTime  // TTL glissant (session inactivity timeout)
+  absoluteExpiresAt DateTime  @default(now()) // plafond absolu — jamais repoussé (toujours fixé explicitement à la création)
+  rotatedAt         DateTime?
+  rotatedToToken    String?
+  revokedAt         DateTime?
+  revokedReason     String?   // LOGOUT | ROTATION_REPLAY | ADMIN_REVOKE | BULK_REVOKE
 }
 
 // ─────────────────────────────── 00_CORE ───────────────────────────────

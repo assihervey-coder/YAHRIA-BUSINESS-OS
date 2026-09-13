@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge, SectionTitle, fcfa, fmtDate, fmt } from './ui'
 import { useToast } from '@/hooks/use-toast'
-import { Plus, Send, Ban, BellRing, CheckCircle2, Scale } from 'lucide-react'
+import { Plus, Send, Ban, BellRing, CheckCircle2, Scale, FileDown, FileSpreadsheet } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface InvLine { description: string; quantity: number; unitPrice: number; vatRate: number; lineTotal: number }
@@ -110,6 +110,101 @@ function NewInvoiceDialog({ onDone }: { onDone: () => void }) {
   )
 }
 
+// YAHRIA BUSINESS OS V1 — Export SYSCOHADA (SEC-004)
+// Balance générale / grand livre lettré / journaux en PDF ou Excel.
+function ExportPanel() {
+  const { toast } = useToast()
+  const year = new Date().getFullYear()
+  const [doc, setDoc] = useState('balance')
+  const [from, setFrom] = useState(`${year}-01-01`)
+  const [to, setTo] = useState(new Date().toISOString().slice(0, 10))
+  const [busy, setBusy] = useState(false)
+
+  const DOC_LABEL: Record<string, string> = {
+    balance: 'Balance générale (comptes, mouvements, soldes D/C)',
+    grandlivre: 'Grand livre (chronologique par compte, lettrage, report à nouveau)',
+    journal: 'Journaux (VTE ventes · ACH achats · TRE trésorerie · PAIE · OD)',
+  }
+
+  async function download(format: 'pdf' | 'xlsx') {
+    setBusy(true)
+    try {
+      const url = `/api/v1/finance/export?type=${doc}&format=${format}&from=${from}&to=${to}`
+      const res = await fetch(url)
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        toast({ title: 'Export refusé', description: d.error ?? `Erreur ${res.status}`, variant: 'destructive' })
+        setBusy(false)
+        return
+      }
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `SYSCOHADA_${doc}_${from}_${to}.${format}`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(a.href)
+      toast({ title: 'Export généré', description: `${DOC_LABEL[doc].split(' (')[0]} · ${format.toUpperCase()} · ${from} → ${to}` })
+    } catch {
+      toast({ title: 'Export impossible', description: 'Serveur injoignable', variant: 'destructive' })
+    }
+    setBusy(false)
+  }
+
+  return (
+    <div className="grid lg:grid-cols-[1fr_320px] gap-4 items-start">
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2"><FileDown className="h-4 w-4 text-primary" /> États financiers SYSCOHADA — système normal</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Du</Label>
+              <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            </div>
+            <div className="grid gap-1.5">
+              <Label className="text-xs">Au</Label>
+              <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid gap-1.5">
+            <Label className="text-xs">Document</Label>
+            <Select value={doc} onValueChange={setDoc}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="balance">Balance générale</SelectItem>
+                <SelectItem value="grandlivre">Grand livre lettré</SelectItem>
+                <SelectItem value="journal">Journaux comptables</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">{DOC_LABEL[doc]}</p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button size="sm" onClick={() => download('pdf')} disabled={busy} className="gap-1.5">
+              <FileDown className="h-3.5 w-3.5" /> Télécharger PDF
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => download('xlsx')} disabled={busy} className="gap-1.5">
+              <FileSpreadsheet className="h-3.5 w-3.5" /> Télécharger Excel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Conformité de mise en forme</CardTitle></CardHeader>
+        <CardContent className="text-xs text-muted-foreground space-y-2 leading-relaxed">
+          <p>· En-tête entité : raison sociale, NCC, RCCM, pays, monnaie XOF (sans décimales, ISO 4217).</p>
+          <p>· Balance groupée par <span className="text-foreground">classes 1 à 8</span> avec contrôle Σ débits = Σ crédits (INV-ACC-001).</p>
+          <p>· Grand livre : ligne <span className="text-foreground">à nouveau</span> (antériorité), solde progressif, colonne <span className="text-foreground">lettrage</span> — rapprochement facture ↔ règlement (411/401).</p>
+          <p>· Journaux codifiés : chaque écriture est classée dans son journal OHADA d&apos;après sa source.</p>
+          <p>· Périmètre : uniquement l&apos;organisation courante (RLS — INV-001), écritures publiées uniquement.</p>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 export function FinanceView() {
   const { toast } = useToast()
   const [invoices, setInvoices] = useState<Invoice[] | null>(null)
@@ -162,6 +257,7 @@ export function FinanceView() {
           <TabsTrigger value="invoices">Factures</TabsTrigger>
           <TabsTrigger value="expenses">Dépenses</TabsTrigger>
           <TabsTrigger value="accounting">Comptabilité</TabsTrigger>
+          <TabsTrigger value="export">Export SYSCOHADA</TabsTrigger>
         </TabsList>
 
         <TabsContent value="invoices" className="mt-4 space-y-3">
@@ -239,6 +335,10 @@ export function FinanceView() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="export" className="mt-4">
+          <ExportPanel />
         </TabsContent>
 
         <TabsContent value="accounting" className="mt-4 space-y-4">

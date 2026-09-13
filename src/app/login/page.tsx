@@ -1,11 +1,11 @@
 'use client'
 
-// YAHRIA BUSINESS OS V1 — Page de connexion (RBAC multi-tenant)
+// YAHRIA BUSINESS OS V1 — Page de connexion (RBAC multi-tenant + 2FA TOTP en 2 étapes)
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { LogIn, ShieldCheck, Lock } from 'lucide-react'
+import { LogIn, ShieldCheck, Lock, Smartphone, KeyRound } from 'lucide-react'
 
 interface DemoAccount {
   name: string
@@ -27,6 +27,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Étape 2 — défi 2FA émis après validation du mot de passe
+  const [mfaChallenge, setMfaChallenge] = useState<string | null>(null)
+  const [mfaCode, setMfaCode] = useState('')
 
   useEffect(() => {
     fetch('/api/v1/auth/demo').then((r) => r.json()).then((d) => {
@@ -47,6 +50,37 @@ export default function LoginPage() {
       const data = await res.json()
       if (!res.ok) {
         setError(data.error ?? 'Connexion impossible')
+        setBusy(false)
+        return
+      }
+      if (data.mfaRequired) {
+        // Étape 2 : vérification TOTP (le défi relie les deux étapes)
+        setMfaChallenge(data.challenge)
+        setMfaCode('')
+        setBusy(false)
+        return
+      }
+      router.push('/')
+      router.refresh()
+    } catch {
+      setError('Serveur injoignable')
+      setBusy(false)
+    }
+  }
+
+  async function verifyMfa() {
+    if (!mfaChallenge) return
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/v1/auth/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ challenge: mfaChallenge, code: mfaCode }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Code invalide')
         setBusy(false)
         return
       }
@@ -81,9 +115,10 @@ export default function LoginPage() {
             </p>
           </div>
           <div className="space-y-2 text-[11px] text-muted-foreground">
-            <p className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> Session chiffrée · cookie httpOnly · scrypt</p>
+            <p className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> Session chiffrée · rotation · détection de rejeu · scrypt</p>
             <p className="flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-primary" /> Chaque requête bornée à votre tenant (INV-001)</p>
-            <p className="font-mono pt-3 border-t border-border/60">YBOS-ARCH-V1 · baseline 1.1.0 · multi-tenant</p>
+            <p className="flex items-center gap-2"><Smartphone className="h-3.5 w-3.5 text-primary" /> 2FA TOTP obligatoire pour OWNER et CFO</p>
+            <p className="font-mono pt-3 border-t border-border/60">YBOS-ARCH-V1 · baseline 1.2.0 · multi-tenant</p>
           </div>
         </div>
 
@@ -96,6 +131,41 @@ export default function LoginPage() {
           <h2 className="text-lg font-bold">Connexion</h2>
           <p className="text-xs text-muted-foreground mt-1">Accédez à votre espace tenant.</p>
 
+          {mfaChallenge ? (
+            <form
+              className="mt-5 space-y-3"
+              onSubmit={(e) => { e.preventDefault(); verifyMfa() }}
+            >
+              <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2.5 flex items-start gap-2.5">
+                <Smartphone className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                <p className="text-xs leading-relaxed">
+                  Double authentification : saisissez le code à 6 chiffres de votre application
+                  authentificatrice — ou un code de récupération (XXXX-XXXX).
+                </p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Code de vérification</label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value)}
+                  placeholder="123456 ou AB12-CD34"
+                  className="mt-1 w-full h-10 rounded-lg border border-border bg-background px-3 text-sm font-mono tracking-widest text-center outline-none focus:ring-2 focus:ring-ring/50"
+                />
+              </div>
+              {error && (
+                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{error}</p>
+              )}
+              <Button type="submit" disabled={busy || mfaCode.length < 6} className="w-full h-10 gap-2 font-semibold">
+                <KeyRound className="h-4 w-4" /> {busy ? 'Vérification…' : 'Vérifier et se connecter'}
+              </Button>
+              <Button type="button" variant="ghost" className="w-full h-8 text-xs text-muted-foreground" onClick={() => { setMfaChallenge(null); setError(null) }}>
+                Retour à la saisie du mot de passe
+              </Button>
+            </form>
+          ) : (
           <form
             className="mt-5 space-y-3"
             onSubmit={(e) => { e.preventDefault(); login(email, password) }}
@@ -129,6 +199,7 @@ export default function LoginPage() {
               <LogIn className="h-4 w-4" /> {busy ? 'Connexion…' : 'Se connecter'}
             </Button>
           </form>
+          )}
 
           {/* ── Comptes de démonstration ── */}
           <div className="mt-6 border-t border-border pt-4">

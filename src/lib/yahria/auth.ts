@@ -1,18 +1,29 @@
 // YAHRIA BUSINESS OS V1 — Authentification & RBAC (INV-002 Authorization)
-// Sessions opaques en base (cookie httpOnly), mots de passe scrypt,
-// matrice de permissions par rôle alignée sur la matrice de délégation
-// du rapport d'audit (§7.1) : séparation comptable / approbateur.
-import { randomBytes } from 'node:crypto'
+// Sessions OPAQUES ROTATIVES en base (cookie httpOnly) — voir sessions.ts :
+// TTL glissant + plafond absolu + rotation + détection de réutilisation.
+// Mots de passe scrypt, matrice de permissions par rôle alignée sur la matrice
+// de délégation du rapport d'audit (§7.1) : séparation comptable / approbateur.
+// 2FA TOTP : obligatoire PAR CONSTRUCTION pour OWNER et CFO (SEC-003).
 import { NextRequest, NextResponse } from 'next/server'
 import { dbUnscoped, db, runWithRls } from '@/lib/db'
 import { ensureSeeded } from './seed'
 import { hashPassword, verifyPassword } from './passwords'
 import { API_CONTRACT } from './contracts'
+import {
+  createSession as createRotatingSession,
+  resolveLiveSession,
+  revokeSessionById,
+  revokeAllForUser,
+  rotateSession,
+  listActiveSessions,
+} from './sessions'
 
 export { hashPassword, verifyPassword }
 
 export const SESSION_COOKIE = 'yahria_session'
-const SESSION_TTL_MS = 7 * 24 * 3600 * 1000
+
+// Rôles soumis à l'obligation 2FA — sans enrôlement, l'accès est verrouillé.
+export const MFA_REQUIRED_ROLES: ReadonlySet<string> = new Set(['OWNER', 'CFO'])
 
 export type Role = 'OWNER' | 'ADMIN' | 'CFO' | 'ACCOUNTANT' | 'OPS' | 'AUDITOR'
 
@@ -63,7 +74,7 @@ export function can(role: string, capability: string): boolean {
 
 // ── Mots de passe (scrypt + sel aléatoire) — implémentation dans passwords.ts ──
 
-// ── Sessions ─────────────────────────────────────────────────────────────────
+// ── Sessions rotatives — implémentation dans sessions.ts ─────────────────────
 export interface SessionUser {
   userId: string
   name: string
@@ -72,41 +83,44 @@ export interface SessionUser {
   permissions: string[]
   orgId: string
   tenantId: string
+  sessionId: string
+  sessionExpiresAt: Date
+  totpEnabled: boolean
+  mfaRequired: boolean
   org: { name: string; legalName: string; countryCode: string; city: string; currencyCode: string }
   tenant: { name: string; plan: string }
 }
 
-export async function createSession(userId: string, userAgent?: string): Promise<{ token: string; expiresAt: Date }> {
-  const token = randomBytes(32).toString('hex')
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS)
-  await dbUnscoped.session.create({ data: { token, userId, expiresAt, userAgent: userAgent ?? null } })
-  return { token, expiresAt }
+export async function createSession(userId: string, userAgent?: string) {
+  return createRotatingSession(userId, userAgent)
 }
 
 export async function destroySession(token: string) {
-  await dbUnscoped.session.deleteMany({ where: { token } })
+  const live = await resolveLiveSession(token)
+  if (live) await revokeSessionById(live.userId, live.id, 'LOGOUT')
 }
 
 async function resolveSession(token: string | undefined): Promise<SessionUser | null> {
-  if (!token) return null
-  const s = await dbUnscoped.session.findUnique({
-    where: { token },
-    include: { user: { include: { org: true, tenant: true } } },
-  })
-  if (!s || s.expiresAt < new Date() || s.user.status !== 'ACTIVE') return null
+  const live = await resolveLiveSession(token)
+  if (!live || live.user.status !== 'ACTIVE') return null
+  const totpEnabled = live.user.totpEnabledAt != null
   return {
-    userId: s.user.id,
-    name: s.user.name,
-    email: s.user.email,
-    role: s.user.role as Role,
-    permissions: permissionsOf(s.user.role),
-    orgId: s.user.orgId,
-    tenantId: s.user.tenantId,
+    userId: live.user.id,
+    name: live.user.name,
+    email: live.user.email,
+    role: live.user.role as Role,
+    permissions: permissionsOf(live.user.role),
+    orgId: live.user.orgId,
+    tenantId: live.user.tenantId,
+    sessionId: live.id,
+    sessionExpiresAt: live.expiresAt,
+    totpEnabled,
+    mfaRequired: !totpEnabled && MFA_REQUIRED_ROLES.has(live.user.role),
     org: {
-      name: s.user.org.name, legalName: s.user.org.legalName, countryCode: s.user.org.countryCode,
-      city: s.user.org.city, currencyCode: s.user.org.currencyCode,
+      name: live.user.org.name, legalName: live.user.org.legalName, countryCode: live.user.org.countryCode,
+      city: live.user.org.city, currencyCode: live.user.org.currencyCode,
     },
-    tenant: { name: s.user.tenant.name, plan: s.user.tenant.plan },
+    tenant: { name: live.user.tenant.name, plan: live.user.tenant.plan },
   }
 }
 
@@ -133,7 +147,9 @@ function withContractHeaders(res: NextResponse): NextResponse {
 /**
  * Garde-fou standard des routes API :
  * 1. session valide (401)  2. permission requise (403)
- * 3. exécution sous périmètre RLS {tenantId, orgId} — INV-001
+ * 3. obligation d'enrôlement 2FA pour OWNER/CFO — tout ce qui n'est pas
+ *    « auth.* » (setup, verify, sessions, me) est verrouillé (403 MFA_REQUIRED)
+ * 4. exécution sous périmètre RLS {tenantId, orgId} — INV-001
  */
 export async function withAuth<T>(
   req: NextRequest,
@@ -147,6 +163,30 @@ export async function withAuth<T>(
     return withContractHeaders(
       NextResponse.json(
         { error: `Accès refusé — permission « ${capability} » requise (rôle : ${ROLE_LABELS[s.role]})` },
+        { status: 403 }
+      )
+    )
+  }
+  // SEC-003 — 2FA obligatoire pour OWNER/CFO : verrou PAR CONSTRUCTION.
+  // Ce n'est PAS la capability qui décide (les routes « null » existent) :
+  // seule une WHITELIST explicite de chemins d'authentification reste ouverte.
+  const MFA_ALLOWED_PATHS = [
+    '/api/v1/auth/me',
+    '/api/v1/auth/sessions',
+    '/api/v1/auth/session/rotate',
+    '/api/v1/auth/2fa/setup',
+    '/api/v1/auth/2fa/enable',
+    '/api/v1/auth/logout',
+  ]
+  const path = req.nextUrl.pathname
+  const mfaAllowed = MFA_ALLOWED_PATHS.some((p) => path === p || path.startsWith(`${p}/`))
+  if (s.mfaRequired && !mfaAllowed) {
+    return withContractHeaders(
+      NextResponse.json(
+        {
+          error: 'Double authentification requise — enrôlez la 2FA pour continuer',
+          code: 'MFA_ENROLLMENT_REQUIRED',
+        },
         { status: 403 }
       )
     )
@@ -180,4 +220,10 @@ export function setSessionCookie(res: NextResponse, token: string, expiresAt: Da
   return res
 }
 
-export { db }
+export {
+  rotateSession,
+  revokeAllForUser,
+  revokeSessionById,
+  listActiveSessions,
+  resolveLiveSession,
+} from './sessions'

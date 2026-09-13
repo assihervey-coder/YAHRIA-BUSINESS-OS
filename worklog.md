@@ -136,3 +136,25 @@ Stage Summary:
 - origin configuré en local sans token
 - Aucun secret poussé sur GitHub (EVIDENCE_SIGNING_KEY jamais exposé)
 - Recommandation émise à l'utilisateur : révoquer/rotater le token PAT posté en clair dans le chat
+
+---
+Task ID: 5
+Agent: main (Super Z)
+Task: Itération 4 — ① Sessions rotatives ② 2FA TOTP ③ Export SYSCOHADA (PDF/Excel)
+
+Work Log:
+- Schema Prisma : Session rotative (tokenFamily, lastSeenAt, expiresAt glissant, absoluteExpiresAt, rotatedAt/rotatedToToken, revokedAt/reason) + User 2FA (totpSecret, totpEnabledAt, recoveryCodes JSON hashés) ; db:push + backfill des 18 sessions héritées
+- sessions.ts : TTL glissant 7j throttlé 5min, plafond absolu 30j, rotation familiale, DÉTECTION DE RÉUTILISATION (rejeu d'un token rotaté → révocation de toute la famille + audit SESSION_REUSE_DETECTED), révocation ciblée/bulk
+- Routes : GET/DELETE /auth/sessions (ownership strict), POST /auth/session/rotate ; login émet un défi 2FA signé HMAC (5 min, usage unique) quand totpEnabled
+- totp.ts : RFC 6238 autonome (HMAC-SHA1, base32, fenêtre ±1), codes de récupération XXXX-XXXX hashés SHA-256 usage unique, défis MFA single-use
+- Verrou PAR CONSTRUCTION : OWNER/CFO sans 2FA → whitelist stricte de chemins auth (me/sessions/rotate/2fa setup-enable/logout), TOUT le reste 403 MFA_ENROLLMENT_REQUIRED (corrigé : la version capability-null était contournable via routes à capability null)
+- ohada.ts : balance par classes 1-8, grand livre (report à nouveau + solde progressif + LETTRAGE réel via Payment.invoiceId/expenseId), journaux VTE/ACH/TRE/PAIE/OD
+- ohada-xlsx.ts (exceljs) + ohada-pdf.ts (pdf-lib) : en-tête entité NCC/RCCM, zebra, totaux, pagination ; sanitize WinAnsi (U+202F d'Intl fr-FR, Σ, ⚠, ↔) + bornes n+1 colonnes
+- UI : panneau Sécurité (sessions + révocation + rotation + 2FA QR), étape 2 de connexion (TOTP ou code de récupération), bannière verrou OWNER/CFO, onglet Export SYSCOHADA (dates + 3 documents + PDF/Excel)
+- Tests scripts/test_iter4_sessions_2fa_export.ts : 29/29 PASS (rotation, rejeu→famille révoquée, révocation, logout, verrou OWNER, enrôlement, défis single-use, récupération usage unique, 6 exports binaires signés, 401 anonyme)
+- Vérification navigateur Playwright : login 2 étapes, panneau sécurité, QR 2FA, onglet export — zéro erreur console ; PDF vérifiés par extraction texte (colonnes alignées)
+
+Stage Summary:
+- 29/29 tests API + 6/6 étapes navigateur PASS ; lint 0 erreur ; TSC src clean
+- Sécurité : cookie httpOnly inchangé côté client (rotation transparente), aucune route métier accessible sans 2FA pour OWNER/CFO
+- Fichiers clés : src/lib/yahria/{sessions,totp,ohada,ohada-xlsx,ohada-pdf,mfa-key}.ts, api/v1/auth/{sessions,session/rotate,2fa/*}, api/v1/finance/export, components/yahria/security.tsx

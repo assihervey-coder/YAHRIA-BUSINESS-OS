@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dbUnscoped } from '@/lib/db'
 import { verifyPassword, createSession, setSessionCookie, SESSION_COOKIE } from '@/lib/yahria/auth'
+import { issueMfaChallenge } from '@/lib/yahria/totp'
 import { ensureSeeded } from '@/lib/yahria/seed'
 import { audit } from '@/lib/yahria/audit'
 
@@ -22,6 +23,13 @@ export async function POST(req: NextRequest) {
   }
   if (user.status !== 'ACTIVE') {
     return NextResponse.json({ error: 'Compte suspendu — contactez votre administrateur' }, { status: 403 })
+  }
+
+  // Étape 2 (SEC-003) — 2FA activée : pas de session tant que le code TOTP
+  // n'est pas validé. Un défi signé (5 min, usage unique) relie les deux étapes.
+  if (user.totpEnabledAt && user.totpSecret) {
+    const { challenge, expiresIn } = issueMfaChallenge(user.id)
+    return NextResponse.json({ mfaRequired: true, challenge, expiresIn })
   }
 
   const { token, expiresAt } = await createSession(user.id, req.headers.get('user-agent') ?? undefined)

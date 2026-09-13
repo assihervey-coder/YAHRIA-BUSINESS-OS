@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   LayoutDashboard, Building2, Wallet, BookOpenCheck, Network, BrainCircuit,
-  Bot, Globe2, Scale, ShieldAlert, ChevronLeft, ChevronRight, Users, LogOut
+  Bot, Globe2, Scale, ShieldAlert, ChevronLeft, ChevronRight, Users, LogOut,
+  ShieldCheck
 } from 'lucide-react'
 
 const NAV = [
@@ -22,6 +23,7 @@ const NAV = [
   { id: 'agents', label: 'Agents', sub: '05 — sous gouvernance', icon: Bot, perm: null },
   { id: 'pays', label: 'Pays & Secteurs', sub: '06/07 — packs & engines', icon: Globe2, perm: null },
   { id: 'governance', label: 'Gouvernance', sub: '99 — policy · audit · evidence', icon: Scale, perm: 'governance.read' },
+  { id: 'security', label: 'Sécurité', sub: 'sessions & 2FA', icon: ShieldCheck, perm: null },
   { id: 'users', label: 'Utilisateurs', sub: 'RBAC — comptes & rôles', icon: Users, perm: 'users.read' },
 ] as const
 
@@ -32,6 +34,8 @@ interface Me {
   email: string
   role: string
   permissions: string[]
+  totpEnabled?: boolean
+  mfaRequired?: boolean
 }
 
 function navAllowed(perm: string | null, permissions: string[]): boolean {
@@ -181,6 +185,17 @@ export default function Home() {
         </div>
 
         <main className="flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto">
+          {me?.mfaRequired && !me.totpEnabled && effectiveView !== 'security' && (
+            <div className="mb-4 flex items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3">
+              <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0" />
+              <p className="text-xs text-amber-200 flex-1">
+                Accès restreint : votre rôle <span className="font-semibold">{me.role}</span> exige la double authentification.
+              </p>
+              <Button size="sm" variant="outline" className="h-7 text-xs border-amber-500/50 text-amber-200 hover:bg-amber-500/15" onClick={() => setView('security')}>
+                Configurer maintenant
+              </Button>
+            </div>
+          )}
           {effectiveView === 'cockpit' && <CockpitLazy />}
           {effectiveView === 'core' && <CoreLazy />}
           {effectiveView === 'money' && <MoneyLazy />}
@@ -190,6 +205,7 @@ export default function Home() {
           {effectiveView === 'agents' && <AgentsLazy />}
           {effectiveView === 'pays' && <PaysLazy />}
           {effectiveView === 'governance' && <GovernanceLazy />}
+          {effectiveView === 'security' && <SecurityLazy />}
           {effectiveView === 'users' && <UsersLazy />}
         </main>
 
@@ -212,6 +228,7 @@ import { CopilotView } from '@/components/yahria/copilot'
 import { AgentsView } from '@/components/yahria/agents'
 import { PaysSecteursView } from '@/components/yahria/pays'
 import { GovernanceView } from '@/components/yahria/governance'
+import { SecurityView } from '@/components/yahria/security'
 import { UsersView } from '@/components/yahria/users'
 
 function CockpitLazy() { return <Cockpit /> }
@@ -223,4 +240,5 @@ function CopilotLazy() { return <CopilotView /> }
 function AgentsLazy() { return <AgentsView /> }
 function PaysLazy() { return <PaysSecteursView /> }
 function GovernanceLazy() { return <GovernanceView /> }
+function SecurityLazy() { return <SecurityView /> }
 function UsersLazy() { return <UsersView /> }
