@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #ffffff; font-family: 'Inter', 'Segoe UI', sans-serif; color: #142840; }
+  .fig { width: 900px; padding: 18px 20px 16px 20px; background: #ffffff; position: relative; }
+  .layers { position: relative; }
+  .layer {
+    border: 1.5px solid #c0d0e2; border-radius: 10px; background: #f5f8fc;
+    padding: 14px 16px 16px 16px; margin-right: 64px;
+  }
+  .layer.os { background: #edf2f9; }
+  .layer.ext { background: #f5f8fc; }
+  .layer-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; }
+  .layer-name { font-size: 21px; font-weight: 800; letter-spacing: 0.6px; color: #1a4a7a; }
+  .layer-sub { font-size: 14px; font-weight: 500; color: #5a7a96; letter-spacing: 0.3px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; max-width: 100%; }
+  .chip {
+    background: #ffffff; border: 1.2px solid #c0d0e2; border-radius: 7px;
+    padding: 8px 11px; font-size: 14.5px; font-weight: 600; color: #142840;
+    flex: 0 1 auto; min-width: 60px; text-align: center;
+  }
+  .blocks { display: flex; flex-wrap: wrap; gap: 8px; max-width: 100%; }
+  .block {
+    background: #ffffff; border: 1.4px solid #2d7ab3; border-radius: 8px;
+    padding: 9px 10px; flex: 1 1 auto; min-width: 120px; max-width: 100%; text-align: center;
+  }
+  .block .bn { font-size: 15.5px; font-weight: 800; color: #1a4a7a; display: block; }
+  .block .bd { font-size: 12.5px; font-weight: 500; color: #5a7a96; display: block; margin-top: 3px; line-height: 1.35; }
+  .block.key { background: #1a4a7a; }
+  .block.key .bn { color: #ffffff; }
+  .block.key .bd { color: #d7e4f2; }
+  .connector { display: flex; align-items: center; gap: 12px; margin: 10px 0 10px 40px; margin-right: 64px; }
+  .conn-arrow {
+    width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent;
+    border-top: 9px solid #2d7ab3;
+  }
+  .conn-line { flex: 1; height: 0; border-top: 1.6px dashed #c0d0e2; }
+  .conn-label { font-size: 13px; font-weight: 600; color: #5a7a96; letter-spacing: 0.4px; }
+  .gov {
+    position: absolute; right: 20px; top: 18px; bottom: 16px; width: 50px;
+    background: #1a4a7a; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .gov span {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    color: #ffffff; font-size: 14.5px; font-weight: 700; letter-spacing: 3px; white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="fig" id="fig">
+  <div class="layers">
+    <div class="gov"><span>GOUVERNANCE · SÉCURITÉ · EVIDENCE</span></div>
+    <div class="layer">
+      <div class="layer-head"><span class="layer-name">YAHRIA PLATFORM</span><span class="layer-sub">fondations transverses</span></div>
+      <div class="chips">
+        <div class="chip">Identity &amp; Access</div>
+        <div class="chip">Policy Engine</div>
+        <div class="chip">Event Bus</div>
+        <div class="chip">Audit</div>
+        <div class="chip">Evidence</div>
+        <div class="chip">AI Gateway</div>
+        <div class="chip">Agent Runtime</div>
+        <div class="chip">Execution Fabric</div>
+      </div>
+    </div>
+    <div class="connector"><span class="conn-label">s'appuie sur</span><span class="conn-line"></span><span class="conn-arrow"></span></div>
+    <div class="layer os">
+      <div class="layer-head"><span class="layer-name">YAHRIA BUSINESS OS</span><span class="layer-sub">produit autonome</span></div>
+      <div class="blocks">
+        <div class="block"><span class="bn">CORE</span><span class="bd">objets métier, workflows</span></div>
+        <div class="block"><span class="bn">MONEY</span><span class="bd">collections, paiements, risk</span></div>
+        <div class="block"><span class="bn">FINANCE</span><span class="bd">ledger, fiscalité, clôture</span></div>
+        <div class="block key"><span class="bn">BUSINESS GRAPH</span><span class="bd">contexte commun de l'IA</span></div>
+        <div class="block"><span class="bn">AI</span><span class="bd">routage multi-modèles, RAG</span></div>
+        <div class="block"><span class="bn">AGENTS</span><span class="bd">action sous politique</span></div>
+      </div>
+    </div>
+    <div class="connector"><span class="conn-label">étend le périmètre</span><span class="conn-line"></span><span class="conn-arrow"></span></div>
+    <div class="layer ext">
+      <div class="layer-head"><span class="layer-name">EXTENSION &amp; DISTRIBUTION</span><span class="layer-sub">spécialisation marché</span></div>
+      <div class="chips">
+        <div class="chip">Sector Engines (13)</div>
+        <div class="chip">Country Packs (17)</div>
+        <div class="chip">API Platform</div>
+        <div class="chip">Marketplace</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

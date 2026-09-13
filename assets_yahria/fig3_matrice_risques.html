@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #ffffff; font-family: 'Inter', 'Segoe UI', sans-serif; color: #142840; }
+  .fig { width: 900px; padding: 16px 20px 14px 20px; background: #ffffff; }
+  .grid-wrap { display: flex; }
+  .y-title {
+    width: 26px; display: flex; align-items: center; justify-content: center;
+  }
+  .y-title span {
+    writing-mode: vertical-rl; transform: rotate(180deg);
+    font-size: 13.5px; font-weight: 700; letter-spacing: 2px; color: #5a7a96;
+  }
+  .grid-main { flex: 1; }
+  .col-heads { display: flex; margin-bottom: 6px; }
+  .col-head {
+    width: 184px; margin-right: 4px; text-align: center;
+    font-size: 13.5px; font-weight: 700; color: #1a4a7a; letter-spacing: 0.4px;
+  }
+  .row { display: flex; margin-bottom: 4px; }
+  .row-head {
+    width: 96px; flex: 0 0 96px; display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 10px; font-size: 13px; font-weight: 600; color: #1a4a7a; text-align: right;
+  }
+  .cells { display: flex; }
+  .cell {
+    width: 184px; height: 96px; margin-right: 4px; border-radius: 6px;
+    display: flex; flex-wrap: wrap; align-content: flex-start; gap: 5px; padding: 8px;
+  }
+  .lvl0 { background: #f5f8fc; }
+  .lvl1 { background: #e4ecf5; }
+  .lvl2 { background: #cfdff0; }
+  .lvl3 { background: #b3cfe8; }
+  .chip {
+    background: #1a4a7a; border-radius: 6px; color: #ffffff;
+    padding: 5px 9px; display: flex; align-items: center; gap: 6px;
+  }
+  .chip .rid { font-size: 14px; font-weight: 800; }
+  .chip .rname { font-size: 11.5px; font-weight: 600; opacity: 0.92; max-width: 130px; line-height: 1.2; }
+  .x-title {
+    margin-top: 10px; text-align: center; font-size: 13.5px; font-weight: 700;
+    letter-spacing: 2px; color: #5a7a96; margin-left: 100px;
+  }
+  .legend {
+    margin-top: 16px; margin-left: 100px; display: flex; flex-wrap: wrap; gap: 6px 14px;
+  }
+  .lg { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; color: #142840; }
+  .lg .k {
+    width: 26px; height: 18px; border-radius: 4px; background: #1a4a7a;
+    color: #ffffff; font-size: 10.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  }
+</style>
+</head>
+<body>
+<div class="fig" id="fig">
+  <div class="grid-wrap">
+    <div class="y-title"><span>PROBABILITÉ</span></div>
+    <div class="grid-main">
+      <div class="col-heads">
+        <div class="col-head">Faible</div>
+        <div class="col-head">Modéré</div>
+        <div class="col-head">Élevé</div>
+        <div class="col-head">Critique</div>
+      </div>
+      <div class="row">
+        <div class="row-head">Très élevée</div>
+        <div class="cells">
+          <div class="cell lvl0"></div>
+          <div class="cell lvl1">
+            <div class="chip"><span class="rid">R4</span><span class="rname">coûts LLM</span></div>
+            <div class="chip"><span class="rid">R8</span><span class="rname">modèle éco.</span></div>
+          </div>
+          <div class="cell lvl2">
+            <div class="chip"><span class="rid">R6</span><span class="rname">connectivité</span></div>
+          </div>
+          <div class="cell lvl3">
+            <div class="chip"><span class="rid">R1</span><span class="rname">scope vs équipe</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-head">Élevée</div>
+        <div class="cells">
+          <div class="cell lvl0"></div>
+          <div class="cell lvl1"></div>
+          <div class="cell lvl2">
+            <div class="chip"><span class="rid">R3</span><span class="rname">qualité données</span></div>
+          </div>
+          <div class="cell lvl3">
+            <div class="chip"><span class="rid">R2</span><span class="rname">intégrations MM/banques</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-head">Modérée</div>
+        <div class="cells">
+          <div class="cell lvl0"></div>
+          <div class="cell lvl1"></div>
+          <div class="cell lvl2">
+            <div class="chip"><span class="rid">R7</span><span class="rname">sécurité agents</span></div>
+          </div>
+          <div class="cell lvl3">
+            <div class="chip"><span class="rid">R5</span><span class="rname">conformité multi-pays</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="row-head">Faible</div>
+        <div class="cells">
+          <div class="cell lvl0"></div>
+          <div class="cell lvl0"></div>
+          <div class="cell lvl0"></div>
+          <div class="cell lvl1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="x-title">IMPACT</div>
+  <div class="legend">
+    <div class="lg"><span class="k">R1</span>Scope titanesque vs capacité d'exécution</div>
+    <div class="lg"><span class="k">R2</span>Dépendance aux intégrations Mobile Money / banques</div>
+    <div class="lg"><span class="k">R3</span>Qualité des données d'entrée (graph)</div>
+    <div class="lg"><span class="k">R4</span>Coûts et latence des modèles</div>
+    <div class="lg"><span class="k">R5</span>Conformité réglementaire multi-pays</div>
+    <div class="lg"><span class="k">R6</span>Connectivité faible / absence d'offline-first</div>
+    <div class="lg"><span class="k">R7</span>Sécurité des agents à autonomie croissante</div>
+    <div class="lg"><span class="k">R8</span>Modèle économique non traité</div>
+  </div>
+</div>
+</body>
+</html>

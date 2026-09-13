@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Noto+Serif+SC:wght@400;700;900&family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  @page { size: 794px 1123px; margin: 0; }
+  :root {
+    --c-bg: #0a1628;
+    --c-accent: #4da8da;
+    --c-text: #e8f0f8;
+    --c-muted: #7a9bb8;
+    --c-glow: #2d7ab3;
+  }
+  html, body {
+    margin: 0; padding: 0; width: 794px; height: 1123px;
+    background: var(--c-bg); color: var(--c-text);
+    font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  }
+  @media screen {
+    html { height: auto; display: flex; justify-content: center; min-height: 100vh; background: var(--c-bg); }
+    body { transform-origin: top center; scale: min(1, calc(100vw / 794), calc(100vh / 1123)); margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.45); }
+  }
+  .cover { width: 794px; height: 1123px; position: relative; box-sizing: border-box;
+           border: none; outline: none; box-shadow: none; }
+  /* Layer 1 - background glow (clipped) */
+  .bg-layer { position: absolute; inset: 0; overflow: hidden; z-index: 1; }
+  .glow-a {
+    position: absolute; left: 0; top: 0; width: 420px; height: 420px;
+    background: radial-gradient(circle at 30% 30%, rgba(45,122,179,0.08), rgba(45,122,179,0) 70%);
+  }
+  .glow-b {
+    position: absolute; right: 0; bottom: 0; width: 480px; height: 480px;
+    background: radial-gradient(circle at 70% 70%, rgba(45,122,179,0.07), rgba(45,122,179,0) 70%);
+  }
+  /* Layer 2 - luminous frame */
+  .frame { position: absolute; left: 60px; right: 60px; top: 80px; bottom: 80px;
+           border: 2px solid var(--c-accent); z-index: 2; pointer-events: none; }
+  /* Layer 3 - content */
+  .content { position: absolute; inset: 0; z-index: 3; }
+  .kicker {
+    position: absolute; left: 110px; top: 135px;
+    font-size: 11pt; font-weight: 300; color: var(--c-accent);
+    letter-spacing: 5px; text-transform: uppercase;
+  }
+  .hero {
+    position: absolute; left: 110px; top: 226px; max-width: 560px;
+    font-family: 'Playfair Display', 'Noto Serif SC', serif;
+    font-size: 50pt; font-weight: 900; line-height: 1.15; color: var(--c-text);
+    text-shadow: 0 0 26px rgba(77,168,218,0.28);
+  }
+  .summary {
+    position: absolute; left: 110px; top: 505px; max-width: 520px;
+    font-size: 15px; font-weight: 400; line-height: 1.7; color: var(--c-muted);
+  }
+  .org {
+    position: absolute; left: 110px; top: 726px;
+    font-size: 18px; font-weight: 500; color: var(--c-text); letter-spacing: 0.5px;
+  }
+  .org-sub {
+    position: absolute; left: 110px; top: 758px;
+    font-size: 12.5px; font-weight: 400; color: var(--c-muted); letter-spacing: 0.5px;
+  }
+  .date {
+    position: absolute; left: 110px; top: 968px;
+    font-size: 10pt; font-weight: 400; color: var(--c-muted); letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <div class="bg-layer">
+      <div class="glow-a"></div>
+      <div class="glow-b"></div>
+    </div>
+    <div class="frame"></div>
+    <div class="content">
+      <div class="kicker">Audit stratégique · Analyse approfondie</div>
+      <div class="hero">YAHRIA<br>BUSINESS OS</div>
+      <div class="summary">Analyse critique de l'architecture V1 : la boucle données, intelligence, action et preuve évaluée brique par brique, la matrice des huit risques majeurs, les incohérences structurelles à trancher et la roadmap priorisée pour livrer un premier système opérant crédible sur le marché africain.</div>
+      <div class="org">Préparé pour l'équipe produit YAHRIA</div>
+      <div class="org-sub">Concept détaillé · Posture d'audit exigeant · Recommandations opérationnelles</div>
+      <div class="date">Septembre 2026 · Version 1.0 · Document de travail</div>
+    </div>
+  </div>
+</body>
+</html>

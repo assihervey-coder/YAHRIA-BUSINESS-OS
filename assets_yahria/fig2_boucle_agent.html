@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #ffffff; font-family: 'Inter', 'Segoe UI', sans-serif; color: #142840; }
+  .fig { width: 1000px; height: 480px; background: #ffffff; position: relative; }
+  .node {
+    position: absolute; width: 170px; height: 64px; border-radius: 9px;
+    background: #f5f8fc; border: 1.4px solid #c0d0e2;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 6px 8px; text-align: center;
+  }
+  .node .t { font-size: 15px; font-weight: 800; color: #1a4a7a; line-height: 1.2; }
+  .node .d { font-size: 11.5px; font-weight: 500; color: #5a7a96; margin-top: 3px; line-height: 1.25; }
+  .node.start { background: #edf2f9; border-color: #2d7ab3; }
+  .node.human {
+    background: #e4ecf5; border: 2.4px solid #2d7ab3;
+  }
+  .node.human .t { color: #1a4a7a; }
+  .node.graph { background: #1a4a7a; border-color: #1a4a7a; }
+  .node.graph .t { color: #ffffff; }
+  .node.graph .d { color: #d7e4f2; }
+  .badge {
+    position: absolute; top: -11px; left: -9px; width: 24px; height: 24px; border-radius: 50%;
+    background: #2d7ab3; color: #ffffff; font-size: 11.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tag {
+    position: absolute; top: -34px; left: 50%; transform: translateX(-50%);
+    background: #2d7ab3; color: #ffffff; font-size: 11.5px; font-weight: 700;
+    padding: 4px 10px; border-radius: 5px; white-space: nowrap; letter-spacing: 0.3px;
+  }
+  svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .note {
+    position: absolute; left: 20px; right: 20px; top: 418px;
+    border-left: 4px solid #2d7ab3; background: #f5f8fc;
+    padding: 10px 14px; font-size: 14px; font-weight: 500; color: #142840; line-height: 1.5;
+    border-radius: 0 8px 8px 0;
+  }
+  .row-label {
+    position: absolute; font-size: 12.5px; font-weight: 700; letter-spacing: 2px;
+    color: #5a7a96; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="fig" id="fig">
+  <svg class="wires" viewBox="0 0 1000 480">
+    <defs>
+      <marker id="ar" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+        <path d="M 0 1 L 9 5 L 0 9 z" fill="#2d7ab3"/>
+      </marker>
+    </defs>
+    <!-- row 1 arrows (left to right), y center = 102 -->
+    <line x1="188" y1="102" x2="211" y2="102" stroke="#2d7ab3" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="388" y1="102" x2="411" y2="102" stroke="#2d7ab3" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="588" y1="102" x2="611" y2="102" stroke="#2d7ab3" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="788" y1="102" x2="811" y2="102" stroke="#2d7ab3" stroke-width="2" marker-end="url(#ar)"/>
+    <!-- elbow: RISK CHECK down to APPROBATION -->
+    <line x1="900" y1="136" x2="900" y2="276" stroke="#2d7ab3" stroke-width="2" marker-end="url(#ar)"/>
+    <!-- row 2 arrows (right to left), y center = 310 -->
+    <line x1="811" y1="310" x2="788" y2="310" stroke="#2d7ab3" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="611" y1="310" x2="588" y2="310" stroke="#2d7ab3" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="411" y1="310" x2="388" y2="310" stroke="#2d7ab3" stroke-width="2" marker-end="url(#ar)"/>
+    <line x1="211" y1="310" x2="188" y2="310" stroke="#2d7ab3" stroke-width="2" marker-end="url(#ar)"/>
+  </svg>
+
+  <!-- Row 1: y = 70..134 -->
+  <div class="node start" style="left:15px; top:70px;"><span class="t">AGENT</span><span class="d">intention métier</span><span class="badge">01</span></div>
+  <div class="node" style="left:215px; top:70px;"><span class="t">INTENT</span><span class="d">action déclarée</span><span class="badge">02</span></div>
+  <div class="node" style="left:415px; top:70px;"><span class="t">POLICY ENGINE</span><span class="d">règles et autorisations</span><span class="badge">03</span></div>
+  <div class="node" style="left:615px; top:70px;"><span class="t">RISK CHECK</span><span class="d">score et seuils</span><span class="badge">04</span></div>
+  <div class="node" style="left:815px; top:70px;"><span class="t">RISK GATE</span><span class="d">validité de l'intention</span><span class="badge">05</span></div>
+
+  <!-- Row 2: y = 278..342 -->
+  <div class="node graph" style="left:815px; top:278px;"><span class="t">EVIDENCE</span><span class="d">preuves horodatées</span><span class="badge">08</span></div>
+  <div class="node" style="left:615px; top:278px;"><span class="t">EXECUTION FABRIC</span><span class="d">action contrôlée</span><span class="badge">07</span></div>
+  <div class="node human" style="left:415px; top:278px;"><span class="t">APPROBATION</span><span class="d">humaine, conditionnelle</span><span class="badge">06</span><span class="tag">point de contrôle humain</span></div>
+  <div class="node" style="left:215px; top:278px;"><span class="t">AUDIT</span><span class="d">journalisation complète</span><span class="badge">09</span></div>
+  <div class="node graph" style="left:15px; top:278px;"><span class="t">BUSINESS GRAPH</span><span class="d">contexte enrichi</span><span class="badge">10</span></div>
+
+  <div class="note"><b>Fermeture de boucle :</b> chaque opération auditée devient une donnée exploitable par le Business Graph, qui affine à son tour les décisions futures de l'agent.</div>
+</div>
+</body>
+</html>
