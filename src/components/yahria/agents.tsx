@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { StatusBadge, SectionTitle, fcfa, fmtDateTime } from './ui'
+import { StatusBadge, SectionTitle, LoadError, fcfa, fmtDateTime } from './ui'
+import { apiJson, ApiFail, isAuthLoss, toApiFail } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
 import { Bot, PlayCircle, CheckCircle2, XCircle, ShieldAlert, Wrench, FileCheck2, Lock } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -44,12 +45,13 @@ export function AgentsView() {
   const [intent, setIntent] = useState('')
   const [busy, setBusy] = useState(false)
   const [openRun, setOpenRun] = useState<string | null>(null)
+  const [error, setError] = useState<ApiFail | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/v1/agents').then((r) => r.json()).then((d) => {
-      setAgents(d.agents ?? []); setRuns(d.runs ?? [])
-    })
-    fetch('/api/v1/agents/approvals').then((r) => r.json()).then((d) => setApprovals(d.items ?? []))
+    apiJson<{ agents?: Agent[]; runs?: Run[] }>('/api/v1/agents')
+      .then((d) => { setAgents(d.agents ?? []); setRuns(d.runs ?? []); setError(null) })
+      .catch((e: unknown) => { if (!isAuthLoss(e)) setError(toApiFail(e)) })
+    apiJson<{ items?: Approval[] }>('/api/v1/agents/approvals').then((d) => setApprovals(d.items ?? [])).catch(() => {})
   }, [])
   useEffect(load, [load])
 
@@ -85,6 +87,7 @@ export function AgentsView() {
     } else toast({ title: 'Erreur', description: d.error, variant: 'destructive' })
   }
 
+  if (error) return <LoadError error={error} onRetry={load} />
   if (!agents) return <div className="space-y-3"><Skeleton className="h-40" /><Skeleton className="h-64" /></div>
 
   const pending = approvals.filter((a) => a.status === 'PENDING')

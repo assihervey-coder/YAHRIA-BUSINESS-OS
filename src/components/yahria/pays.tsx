@@ -1,10 +1,11 @@
 'use client'
 
 // YAHRIA BUSINESS OS V1 — 06_SECTOR_ENGINES + 07_COUNTRY_PACKS view
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { StatusBadge, SectionTitle, fcfa } from './ui'
+import { StatusBadge, SectionTitle, LoadError, fcfa } from './ui'
+import { apiJson, ApiFail, isAuthLoss, toApiFail } from '@/lib/yahria/client-api'
 import { Globe2, Blocks, Building2, Smartphone, Scale, ReceiptText, Users } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -18,11 +19,16 @@ interface Sector { id: string; code: string; name: string; description: string; 
 
 export function PaysSecteursView() {
   const [meta, setMeta] = useState<{ countryPacks: Pack[]; sectorEngines: Sector[] } | null>(null)
+  const [error, setError] = useState<ApiFail | null>(null)
 
-  useEffect(() => {
-    fetch('/api/v1/meta').then((r) => r.json()).then((d) => setMeta({ countryPacks: d.countryPacks ?? [], sectorEngines: d.sectorEngines ?? [] }))
+  const load = useCallback(() => {
+    apiJson<{ countryPacks?: Pack[]; sectorEngines?: Sector[] }>('/api/v1/meta')
+      .then((d) => { setMeta({ countryPacks: d.countryPacks ?? [], sectorEngines: d.sectorEngines ?? [] }); setError(null) })
+      .catch((e: unknown) => { if (!isAuthLoss(e)) setError(toApiFail(e)) })
   }, [])
+  useEffect(load, [load])
 
+  if (error) return <div className="space-y-3"><LoadError error={error} onRetry={load} /></div>
   if (!meta) return <div className="space-y-3"><Skeleton className="h-48" /><Skeleton className="h-64" /></div>
 
   return (

@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { SectionTitle, fmtDateTime } from './ui'
+import { SectionTitle, LoadError, fmtDateTime } from './ui'
+import { apiJson, ApiFail, isAuthLoss, toApiFail } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
 import { Users as UsersIcon, UserPlus, Ban, CheckCircle2, ShieldCheck } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -43,10 +44,13 @@ export function UsersView() {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', role: 'OPS', password: 'Demo2026!' })
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<ApiFail | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/v1/users').then((r) => r.json()).then((d) => setUsers(d.users ?? []))
-    fetch('/api/v1/auth/me').then((r) => r.json()).then((d) => setMe(d.user ?? null))
+    apiJson<{ users?: UserRow[] }>('/api/v1/users')
+      .then((d) => { setUsers(d.users ?? []); setError(null) })
+      .catch((e: unknown) => { if (!isAuthLoss(e)) setError(toApiFail(e)) })
+    apiJson<{ user?: { name: string; role: string } }>('/api/v1/auth/me').then((d) => setMe(d.user ?? null)).catch(() => {})
   }, [])
   useEffect(load, [load])
 
@@ -74,6 +78,7 @@ export function UsersView() {
     load()
   }
 
+  if (error) return <div className="space-y-3"><LoadError error={error} onRetry={load} /></div>
   if (!users) return <div className="space-y-3"><Skeleton className="h-64" /></div>
 
   return (

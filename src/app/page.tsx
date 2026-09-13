@@ -2,9 +2,10 @@
 
 // YAHRIA BUSINESS OS V1 — OS Shell
 // YAHRIA PLATFORM (Identity/Tenant/Policy/Audit/Evidence) ───── YAHRIA BUSINESS OS (10 domaines)
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { apiJson, SESSION_EXPIRED_EVENT, ME_REFRESH_EVENT } from '@/lib/yahria/client-api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -55,19 +56,58 @@ export default function Home() {
   const [meta, setMeta] = useState<Meta | null>(null)
   const [approvals, setApprovals] = useState(0)
   const [me, setMe] = useState<Me | null>(null)
+  // Machine à états du mur MFA :
+  //  · 'never'  — jamais muré (ou clic explicite après levée) → navigation normale
+  //  · 'active' — 2FA manquante → SEULE la vue Sécurité est rendue (structurel)
+  //  · 'lifted' — enrôlement terminé : on RESTE sur Sécurité (les codes de
+  //    récupération s'affichent) jusqu'à un clic de navigation post-levée.
+  //    Les clics effectués À TRAVERS le mur ('active') ne lèvent jamais le mur.
+  const [wall, setWall] = useState<'never' | 'active' | 'lifted'>('never')
+
+  const goTo = useCallback((id: ViewId) => {
+    setWall((w) => (w === 'lifted' ? 'never' : w))
+    setView(id)
+  }, [])
 
   useEffect(() => {
+    let alive = true
     fetch('/api/v1/auth/me').then((r) => {
       if (r.status === 401) { router.push('/login'); return null }
       return r.json()
-    }).then((d) => d?.user && setMe(d.user)).catch(() => {})
-    fetch('/api/v1/meta').then((r) => r.json()).then(setMeta).catch(() => {})
+    }).then((d) => { if (alive && d?.user) setMe(d.user) }).catch(() => {})
+    fetch('/api/v1/meta').then((r) => r.json()).then((d) => { if (alive) setMeta(d) }).catch(() => {})
+    return () => { alive = false }
   }, [router])
+
+  // Robustesse PAR CONSTRUCTION : tout 401 émis par la couche client apiJson()
+  // (session expirée, révoquée, famille tuée par détection de rejeu) redirige
+  // instantanément vers /login — aucune vue ne reste sur un écran cassé.
   useEffect(() => {
-    const t = setInterval(() => {
-      fetch('/api/v1/agents/approvals').then((r) => r.json()).then((d) => setApprovals((d.items ?? []).filter((a: { status: string }) => a.status === 'PENDING').length)).catch(() => {})
-    }, 15000)
-    fetch('/api/v1/agents/approvals').then((r) => r.json()).then((d) => setApprovals((d.items ?? []).filter((a: { status: string }) => a.status === 'PENDING').length)).catch(() => {})
+    const onExpired = () => router.push('/login')
+    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired)
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired)
+  }, [router])
+
+  // Mur MFA : après enrôlement/désactivation 2FA dans le panneau Sécurité,
+  // l'état « me » du shell est rechargé pour lever/poser le mur à jour.
+  useEffect(() => {
+    let alive = true
+    const refreshMe = () => {
+      fetch('/api/v1/auth/me').then((r) => (r.ok ? r.json() : null)).then((d) => {
+        if (alive && d?.user) setMe(d.user)
+      }).catch(() => {})
+    }
+    window.addEventListener(ME_REFRESH_EVENT, refreshMe)
+    return () => { alive = false; window.removeEventListener(ME_REFRESH_EVENT, refreshMe) }
+  }, [])
+
+  useEffect(() => {
+    const poll = () =>
+      apiJson<{ items?: { status: string }[] }>('/api/v1/agents/approvals')
+        .then((d) => setApprovals((d.items ?? []).filter((a) => a.status === 'PENDING').length))
+        .catch(() => {})
+    const t = setInterval(poll, 15000)
+    poll()
     return () => clearInterval(t)
   }, [])
 
@@ -75,7 +115,20 @@ export default function Home() {
   const perms = me?.permissions ?? []
   const visibleNav = NAV.filter((n) => navAllowed(n.perm as string | null, perms))
   const viewAllowed = (id: ViewId) => { const n = NAV.find((x) => x.id === id); return n ? navAllowed(n.perm as string | null, perms) : false }
-  const effectiveView: ViewId = viewAllowed(view) ? view : 'cockpit'
+  // SEC-003 — Mur 2FA structurel : tant que l'enrôlement TOTP n'est pas fait
+  // (rôles des vagues actives), la SEULE vue rendue est « Sécurité ». Ce n'est
+  // pas un conseil affiché, c'est la structure du shell qui verrouille.
+  const mfaWall = !!me?.mfaRequired && !me.totpEnabled
+  // Transition d'état du mur calculée PENDANT le rendu (pattern React officiel
+  // « adjusting state when props change ») — pas d'effet, pas de rendu en cascade :
+  //  · levée du mur (active → lifted) : on reste sur Sécurité jusqu'à un clic
+  //  · re-verrouillage (2FA désactivée) : retour immédiat à 'active'
+  const [prevMfaWall, setPrevMfaWall] = useState(mfaWall)
+  if (mfaWall !== prevMfaWall) {
+    setPrevMfaWall(mfaWall)
+    setWall((w) => (mfaWall ? 'active' : w === 'active' ? 'lifted' : w))
+  }
+  const effectiveView: ViewId = wall !== 'never' ? 'security' : (viewAllowed(view) ? view : 'cockpit')
 
   async function logout() {
     await fetch('/api/v1/auth/logout', { method: 'POST' }).catch(() => {})
@@ -105,7 +158,7 @@ export default function Home() {
             return (
               <button
                 key={n.id}
-                onClick={() => setView(n.id)}
+                onClick={() => goTo(n.id)}
                 title={collapsed ? n.label : undefined}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
@@ -177,7 +230,7 @@ export default function Home() {
         {/* mobile nav */}
         <div className="md:hidden border-b px-3 py-2 flex gap-1.5 overflow-x-auto">
           {visibleNav.map((n) => (
-            <button key={n.id} onClick={() => setView(n.id)}
+            <button key={n.id} onClick={() => goTo(n.id)}
               className={cn('text-xs px-3 py-1.5 rounded-full border whitespace-nowrap', view === n.id ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border text-muted-foreground')}>
               {n.label}
             </button>
@@ -185,15 +238,13 @@ export default function Home() {
         </div>
 
         <main className="flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto">
-          {me?.mfaRequired && !me.totpEnabled && effectiveView !== 'security' && (
+          {mfaWall && (
             <div className="mb-4 flex items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3">
               <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0" />
               <p className="text-xs text-amber-200 flex-1">
-                Accès restreint : votre rôle <span className="font-semibold">{me.role}</span> exige la double authentification.
+                Accès restreint : votre rôle <span className="font-semibold">{me?.role}</span> exige la double authentification.
+                Toutes les autres vues restent verrouillées jusqu&apos;à l&apos;enrôlement.
               </p>
-              <Button size="sm" variant="outline" className="h-7 text-xs border-amber-500/50 text-amber-200 hover:bg-amber-500/15" onClick={() => setView('security')}>
-                Configurer maintenant
-              </Button>
             </div>
           )}
           {effectiveView === 'cockpit' && <CockpitLazy />}

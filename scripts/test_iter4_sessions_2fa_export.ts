@@ -3,6 +3,16 @@
 // ② 2FA TOTP (enrôlement, connexion 2 étapes, code de récupération, verrou OWNER/CFO)
 // ③ Exports SYSCOHADA (3 documents × 2 formats, signature binaire)
 import { createHmac } from 'node:crypto'
+import { execSync } from 'node:child_process'
+
+/** Pré-nettoyage : état 2FA des comptes de test remis à zéro en base — rend le
+ *  run déterministe même si un run précédent a crashé en cours d'enrôlement. */
+function resetAccount2fa(email: string) {
+  execSync(
+    `node -e "const {PrismaClient}=require('@prisma/client');const p=new PrismaClient();p.user.update({where:{email:'${email}'},data:{totpSecret:null,totpEnabledAt:null,recoveryCodes:null}}).then(()=>p.\\$disconnect())"`,
+    { cwd: '/home/z/my-project', stdio: 'pipe' }
+  )
+}
 
 const BASE = 'http://localhost:3000'
 let pass = 0
@@ -69,6 +79,10 @@ function totp(secret: string, driftSteps = 0): string {
 }
 
 async function main() {
+  resetAccount2fa('icoulibaly@ivoire-distribution.ci')
+  resetAccount2fa('fdiomande@ivoire-distribution.ci')
+  resetAccount2fa('akone@ivoire-distribution.ci')
+
   console.log('\n━━━ ① SESSIONS ROTATIVES ━━━')
 
   // — login OPS (sans 2FA)
@@ -180,8 +194,14 @@ async function main() {
 
   console.log('\n━━━ ③ EXPORTS SYSCOHADA ━━━')
 
+  // Depuis le verrouillage 2FA par vagues (SEC-003, vague 2 : ADMIN/ACCOUNTANT),
+  // le comptable doit être ENRÔLÉ pour accéder aux routes métier d'export.
   const exp: Jar = {}
   await call(exp, 'POST', '/api/v1/auth/login', { email: 'fdiomande@ivoire-distribution.ci', password: 'Demo2026!' })
+  const su = await call(exp, 'POST', '/api/v1/auth/2fa/setup')
+  const suBody = (await su.json().catch(() => ({}))) as { secret?: string }
+  const en = await call(exp, 'POST', '/api/v1/auth/2fa/enable', { code: totp(suBody.secret ?? '') })
+  check('comptable enrôlé 2FA avant exports (vague 2 active)', su.status === 200 && en.status === 200)
   for (const type of ['balance', 'grandlivre', 'journal']) {
     for (const format of ['pdf', 'xlsx']) {
       const res = await fetch(`${BASE}/api/v1/finance/export?type=${type}&format=${format}&from=2025-01-01&to=2026-12-31`, {
@@ -196,6 +216,25 @@ async function main() {
   // accès refusé sans auth
   const anon = await fetch(`${BASE}/api/v1/finance/export?type=balance&format=pdf`)
   check('export sans session → 401', anon.status === 401)
+
+  console.log('\n━━━ ④ NETTOYAGE — état démo neutre ━━━')
+  // Les tests viennent d'enrôler comptable ET CFO : on désactive la 2FA des deux
+  // (mot de passe requis) pour restaurer l'état de démonstration d'origine.
+  const dis1 = await call(exp, 'POST', '/api/v1/auth/2fa/disable', { password: 'Demo2026!' })
+  check('fdiomande : 2FA désactivée après tests', dis1.status === 200)
+  const cfo9: Jar = {}
+  const cfoLogin = await call(cfo9, 'POST', '/api/v1/auth/login', { email: 'icoulibaly@ivoire-distribution.ci', password: 'Demo2026!' })
+  const cfoLoginBody = (await cfoLogin.json().catch(() => ({}))) as { mfaRequired?: boolean; challenge?: string }
+  if (cfoLoginBody.mfaRequired && cfoLoginBody.challenge) {
+    // Le CFO a été enrôlé par la section ② de CE run — le secret est connu :
+    // vérification TOTP puis désactivation pour restaurer l'état démo.
+    await call(cfo9, 'POST', '/api/v1/auth/2fa/verify', { challenge: cfoLoginBody.challenge, code: totp(secret) })
+    const dis2 = await call(cfo9, 'POST', '/api/v1/auth/2fa/disable', { password: 'Demo2026!' })
+    check('icoulibaly (CFO) : 2FA désactivée après tests', dis2.status === 200)
+  } else {
+    const dis2 = await call(cfo9, 'POST', '/api/v1/auth/2fa/disable', { password: 'Demo2026!' })
+    check('icoulibaly (CFO) : 2FA désactivée après tests', dis2.status === 200)
+  }
 
   console.log(`\n━━━ RÉSULTAT : ${pass} PASS / ${fail} FAIL ━━━`)
   if (fails.length) console.log('Échecs : ' + fails.join(' · '))

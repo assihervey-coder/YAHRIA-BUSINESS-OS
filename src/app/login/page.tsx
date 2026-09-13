@@ -117,7 +117,7 @@ export default function LoginPage() {
           <div className="space-y-2 text-[11px] text-muted-foreground">
             <p className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> Session chiffrée · rotation · détection de rejeu · scrypt</p>
             <p className="flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-primary" /> Chaque requête bornée à votre tenant (INV-001)</p>
-            <p className="flex items-center gap-2"><Smartphone className="h-3.5 w-3.5 text-primary" /> 2FA TOTP obligatoire pour OWNER et CFO</p>
+            <p className="flex items-center gap-2"><Smartphone className="h-3.5 w-3.5 text-primary" /> 2FA TOTP obligatoire — verrouillage progressif sur tous les rôles (vagues)</p>
             <p className="font-mono pt-3 border-t border-border/60">YBOS-ARCH-V1 · baseline 1.2.0 · multi-tenant</p>
           </div>
         </div>

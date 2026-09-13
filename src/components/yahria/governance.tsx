@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { StatusBadge, SectionTitle, fmtDateTime } from './ui'
+import { StatusBadge, SectionTitle, LoadError, fmtDateTime } from './ui'
+import { apiJson, ApiFail, isAuthLoss, toApiFail } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
 import { ShieldCheck, ScrollText, Fingerprint, Scale, Lock, KeyRound, Globe2, PlayCircle, Braces, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -31,9 +32,12 @@ export function GovernanceView() {
   const [testing, setTesting] = useState(false)
   const [runningProofs, setRunningProofs] = useState(false)
   const [isoResult, setIsoResult] = useState<{ orgCountry: string; foreignPack: string; results: { rail: string; railLabel: string; allowed: boolean; detail: string }[] } | null>(null)
+  const [error, setError] = useState<ApiFail | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/v1/governance').then((r) => r.json()).then(setData)
+    apiJson<NonNullable<typeof data>>('/api/v1/governance')
+      .then((d) => { setData(d); setError(null) })
+      .catch((e: unknown) => { if (!isAuthLoss(e)) setError(toApiFail(e)) })
   }, [])
   useEffect(load, [load])
 
@@ -86,6 +90,7 @@ export function GovernanceView() {
     load()
   }
 
+  if (error) return <LoadError error={error} onRetry={load} />
   if (!data) return <div className="space-y-3"><Skeleton className="h-64" /><Skeleton className="h-64" /></div>
 
   const proofOf = (id: string) => data.construction?.proofs?.find((p) => p.id === id) ?? null

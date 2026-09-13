@@ -3,7 +3,7 @@
 // TTL glissant + plafond absolu + rotation + détection de réutilisation.
 // Mots de passe scrypt, matrice de permissions par rôle alignée sur la matrice
 // de délégation du rapport d'audit (§7.1) : séparation comptable / approbateur.
-// 2FA TOTP : obligatoire PAR CONSTRUCTION pour OWNER et CFO (SEC-003).
+// 2FA TOTP : obligatoire PAR CONSTRUCTION, déployée par VAGUES de rôles (SEC-003).
 import { NextRequest, NextResponse } from 'next/server'
 import { dbUnscoped, db, runWithRls } from '@/lib/db'
 import { ensureSeeded } from './seed'
@@ -22,8 +22,29 @@ export { hashPassword, verifyPassword }
 
 export const SESSION_COOKIE = 'yahria_session'
 
-// Rôles soumis à l'obligation 2FA — sans enrôlement, l'accès est verrouillé.
-export const MFA_REQUIRED_ROLES: ReadonlySet<string> = new Set(['OWNER', 'CFO'])
+// ── SEC-003 : 2FA obligatoire par VAGUES (verrouillage progressif) ──────────
+// Vague 1 — OWNER, CFO       : direction financière (verrouillée depuis l'itération 4)
+// Vague 2 — ADMIN, ACCOUNTANT: administration système & comptabilité
+// Vague 3 — OPS, AUDITOR     : opérations & audit → couverture TOTALE des rôles
+// La vague ACTIVE est pilotée par la variable d'environnement YAHRIA_MFA_WAVE
+// (défaut 3 = tous les rôles verrouillés). Un rôle non enrôlé d'une vague
+// active ne peut accéder à AUCUNE route métier (whitelist auth uniquement).
+export const MFA_WAVES: ReadonlyArray<{ wave: number; roles: readonly string[]; label: string }> = [
+  { wave: 1, roles: ['OWNER', 'CFO'], label: 'Direction — OWNER, CFO' },
+  { wave: 2, roles: ['ADMIN', 'ACCOUNTANT'], label: 'Administration & comptabilité — ADMIN, ACCOUNTANT' },
+  { wave: 3, roles: ['OPS', 'AUDITOR'], label: 'Opérations & audit — OPS, AUDITOR' },
+]
+export const CURRENT_MFA_WAVE = Math.min(
+  MFA_WAVES.length,
+  Math.max(1, Number(process.env.YAHRIA_MFA_WAVE ?? 3))
+)
+export const MFA_REQUIRED_ROLES: ReadonlySet<string> = new Set(
+  MFA_WAVES.filter((w) => w.wave <= CURRENT_MFA_WAVE).flatMap((w) => w.roles)
+)
+export function mfaWaveOfRole(role: string): number | null {
+  const w = MFA_WAVES.find((x) => x.roles.includes(role))
+  return w ? w.wave : null
+}
 
 export type Role = 'OWNER' | 'ADMIN' | 'CFO' | 'ACCOUNTANT' | 'OPS' | 'AUDITOR'
 
@@ -147,8 +168,9 @@ function withContractHeaders(res: NextResponse): NextResponse {
 /**
  * Garde-fou standard des routes API :
  * 1. session valide (401)  2. permission requise (403)
- * 3. obligation d'enrôlement 2FA pour OWNER/CFO — tout ce qui n'est pas
- *    « auth.* » (setup, verify, sessions, me) est verrouillé (403 MFA_REQUIRED)
+ * 3. obligation d'enrôlement 2FA pour les rôles des vagues actives — tout ce
+ *    qui n'est pas « auth.* » (setup, verify, sessions, me) est verrouillé
+ *    (403 MFA_ENROLLMENT_REQUIRED)
  * 4. exécution sous périmètre RLS {tenantId, orgId} — INV-001
  */
 export async function withAuth<T>(
@@ -167,7 +189,7 @@ export async function withAuth<T>(
       )
     )
   }
-  // SEC-003 — 2FA obligatoire pour OWNER/CFO : verrou PAR CONSTRUCTION.
+  // SEC-003 — 2FA obligatoire par vagues de rôles : verrou PAR CONSTRUCTION.
   // Ce n'est PAS la capability qui décide (les routes « null » existent) :
   // seule une WHITELIST explicite de chemins d'authentification reste ouverte.
   const MFA_ALLOWED_PATHS = [

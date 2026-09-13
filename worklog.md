@@ -158,3 +158,26 @@ Stage Summary:
 - 29/29 tests API + 6/6 étapes navigateur PASS ; lint 0 erreur ; TSC src clean
 - Sécurité : cookie httpOnly inchangé côté client (rotation transparente), aucune route métier accessible sans 2FA pour OWNER/CFO
 - Fichiers clés : src/lib/yahria/{sessions,totp,ohada,ohada-xlsx,ohada-pdf,mfa-key}.ts, api/v1/auth/{sessions,session/rotate,2fa/*}, api/v1/finance/export, components/yahria/security.tsx
+
+---
+Task ID: 6
+Agent: main (Super Z)
+Task: ① Hotfix crash Cockpit « Cannot read properties of undefined (reading 'treasury') » ② Verrouillage 2FA progressif sur les autres rôles (vagues)
+
+Work Log:
+- DIAGNOSTIC : les 11 vues front faisaient fetch().then(r=>r.json()) sans vérifier le statut — une réponse 401 (session expirée/révoquée/rejeu) ou 403 (MFA_ENROLLMENT_REQUIRED) était rendue comme des données → TypeError en cascade (cockpit.tsx:59)
+- src/lib/yahria/client-api.ts (NOUVEAU) : couche client PAR CONSTRUCTION — apiJson<T>() (2xx → corps JSON typé ; !2xx → ApiFail(status, message, code) ; 401 → broadcast global yahria:session-expired), ApiFail, isMfaLock/isAuthLoss/toApiFail, hook useApiData (respects react-hooks/set-state-in-effect)
+- ui.tsx : +LoadError — état d'erreur gracieux universel (variante ambre « 2FA requise » / variante rouge « Réessayer »)
+- 11 vues migrent vers apiJson + état d'erreur : cockpit (garde défensive kpis/accounts + retry), money, finance, agents, governance, graph, users, pays, core, security (+load callback), shell
+- page.tsx (shell) : écoute SESSION_EXPIRED_EVENT → router.push('/login') ; poll approbations via apiJson (détection de mort de session ≤15 s) ; MUR MFA STRUCTUREL — machine à états wall: never|active|lifted, effectiveView forcée 'security' tant que non enrôlé ; levée SANS téléportation (les clics « à travers » le mur ne comptent pas, les codes de récupération restent lisibles) ; ME_REFRESH_EVENT rafraîchit me après activation/désactivation 2FA
+- auth.ts : 2FA PAR VAGUES (SEC-003) — MFA_WAVES [1: OWNER+CFO, 2: ADMIN+ACCOUNTANT, 3: OPS+AUDITOR], CURRENT_MFA_WAVE piloté par YAHRIA_MFA_WAVE (défaut 3 = couverture totale), MFA_REQUIRED_ROLES dérivé, mfaWaveOfRole() ; whitelist auth inchangée (verrou indépendant des permissions, testé)
+- Textes : login (« verrouillage progressif sur tous les rôles »), panneau Sécurité, .env.example (YAHRIA_MFA_WAVE)
+- Tests : scripts/test_iter5_mfa_wall.ts 21/21 PASS (verrou ACCOUNTANT/OPS/AUDITOR, whitelist auth ouverte, gouvernance verrouillée pour OPS, enrôlement = déblocage immédiat, re-login défi TOTP, 401 {error} propre, nettoyage) ; scripts/test_ui_mfa_wall.js 14/14 PASS (redirection anonyme, mur rendu sans crash, nav bloquée, enrôlement UI QR→TOTP→codes de récupération, mur levé, cockpit KPI OK, logout serveur → 401 → /login automatique, zéro erreur console)
+- Non-régression : scripts/test_iter4_sessions_2fa_export.ts 32/32 PASS (adapté : enrôlement comptable avant exports + nettoyage 2FA fdiomande+CFO ; pré-nettoyage DB déterministe) ; état démo final : 0 compte enrôlé
+- eslint src : 0 erreur · tsc src : 0 erreur ; 2 bugs UX découverts et corrigés au passage : (a) mur non levé après enrôlement (shell me périmé → ME_REFRESH_EVENT), (b) téléportation hors Sécurité à la levée du mur (machine à états)
+
+Stage Summary:
+- Crash « reading 'treasury' » impossible PAR CONSTRUCTION : une erreur API ne peut plus être rendue comme des données (apiJson garanti 2xx, sinon ApiFail + LoadError)
+- Toute session morte (expiration, révocation, rejeu) → redirection /login automatique ≤15 s, aucune vue cassée
+- 2FA obligatoire sur les 6 rôles par vagues configurables (YAHRIA_MFA_WAVE), mur structurel côté shell + verrou whitelist côté API
+- Fichiers clés : src/lib/yahria/client-api.ts (nouveau), src/lib/yahria/auth.ts, src/app/page.tsx, src/components/yahria/{cockpit,ui,security,...}.tsx, scripts/test_iter5_mfa_wall.ts, scripts/test_ui_mfa_wall.js

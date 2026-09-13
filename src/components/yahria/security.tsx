@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { SectionTitle, fmtDateTime } from './ui'
+import { SectionTitle, LoadError, fmtDateTime } from './ui'
+import { apiJson, ApiFail, isAuthLoss, toApiFail, ME_REFRESH_EVENT } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
 import {
   KeyRound, RefreshCw, Trash2, ShieldCheck, Smartphone, QrCode, ShieldOff, Timer, Lock,
@@ -55,12 +56,23 @@ export function SecurityView() {
   const [recovery, setRecovery] = useState<string[] | null>(null)
   const [disablePassword, setDisablePassword] = useState('')
   const [showDisable, setShowDisable] = useState(false)
+  const [error, setError] = useState<ApiFail | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/v1/auth/sessions').then((r) => r.json()).then((d) => setSessions(d.sessions ?? []))
-    fetch('/api/v1/auth/me').then((r) => r.json()).then((d) => setMe(d.user ?? null))
+    apiJson<{ sessions?: SessionRow[] }>('/api/v1/auth/sessions')
+      .then((d) => setSessions(d.sessions ?? []))
+      .catch((e: unknown) => { if (!isAuthLoss(e)) setError(toApiFail(e)) })
+    apiJson<{ user?: MeState }>('/api/v1/auth/me')
+      .then((d) => setMe(d.user ?? null))
+      .catch(() => {})
   }, [])
   useEffect(load, [load])
+
+  /** Le shell écoute : après activation/désactivation 2FA, son état « me » doit se rafraîchir
+   *  sans quoi le mur MFA structurel resterait basé sur une information périmée. */
+  const notifyMeChanged = useCallback(() => {
+    window.dispatchEvent(new CustomEvent(ME_REFRESH_EVENT))
+  }, [])
 
   async function revoke(id: string) {
     const res = await fetch('/api/v1/auth/sessions', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
@@ -106,6 +118,7 @@ export function SecurityView() {
     setSetup(null)
     setCode('')
     toast({ title: '2FA activée', description: 'Conservez les codes de récupération en lieu sûr.' })
+    notifyMeChanged()
     load()
   }
 
@@ -118,16 +131,18 @@ export function SecurityView() {
     setShowDisable(false)
     setDisablePassword('')
     toast({ title: '2FA désactivée' })
+    notifyMeChanged()
     load()
   }
 
+  if (error) return <div className="space-y-3"><LoadError error={error} onRetry={load} /></div>
   if (!sessions || !me) return <div className="space-y-3"><Skeleton className="h-64" /></div>
 
   return (
     <div className="space-y-5">
       <SectionTitle
         title="SÉCURITÉ — sessions rotatives & 2FA"
-        desc="TTL glissant 7 j · plafond absolu 30 j · rotation à chaque rotation de token · tout rejeu d'un ancien token révoque la famille entière. 2FA TOTP obligatoire pour OWNER et CFO."
+        desc="TTL glissant 7 j · plafond absolu 30 j · rotation à chaque rotation de token · tout rejeu d'un ancien token révoque la famille entière. 2FA TOTP obligatoire — verrouillage progressif par vagues (direction → admin/compta → ops/audit)."
       />
 
       {me.mfaRequired && !me.totpEnabled && (
@@ -137,8 +152,8 @@ export function SecurityView() {
             <div>
               <p className="text-sm font-semibold text-amber-300">Double authentification requise — accès applicatif verrouillé</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Votre rôle ({me.role}) impose la 2FA. Toutes les fonctions (Finance, Money, Core…) restent bloquées
-                tant que l&apos;enrôlement n&apos;est pas terminé. Configurez-la ci-dessous — 2 minutes.
+                Votre rôle ({me.role}) relève d&apos;une vague 2FA active. Toutes les fonctions (Finance, Money, Core…)
+                restent bloquées tant que l&apos;enrôlement n&apos;est pas terminé. Configurez-la ci-dessous — 2 minutes.
               </p>
             </div>
           </CardContent>
@@ -209,7 +224,7 @@ export function SecurityView() {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <p className="text-xs text-muted-foreground max-w-xl">
                 Une deuxième étape TOTP est demandée à chaque connexion. La désactivation exige votre mot de passe
-                et réactive le verrou d&apos;enrôlement pour les rôles OWNER/CFO.
+                et réactive le verrou d&apos;enrôlement de votre rôle (accès applicatif de nouveau bloqué).
               </p>
               <Button size="sm" variant="outline" onClick={() => setShowDisable(true)} className="gap-1.5 text-red-400 border-red-500/40 hover:bg-red-500/10">
                 <ShieldOff className="h-3.5 w-3.5" /> Désactiver la 2FA

@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { StatusBadge, SectionTitle, fcfa, fmtDate, fmt } from './ui'
+import { StatusBadge, SectionTitle, LoadError, fcfa, fmtDate, fmt } from './ui'
+import { apiJson, ApiFail } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
 import { Plus, Send, Ban, BellRing, CheckCircle2, Scale, FileDown, FileSpreadsheet } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -212,11 +213,14 @@ export function FinanceView() {
   const [journal, setJournal] = useState<JournalData | null>(null)
   const [detail, setDetail] = useState<Invoice | null>(null)
   const [tab, setTab] = useState('invoices')
+  const [error, setError] = useState<ApiFail | null>(null)
+
+  const fail = (e: unknown) => { if (!(e instanceof ApiFail && e.status === 401)) setError(e instanceof ApiFail ? e : new ApiFail(0, 'Erreur inattendue')) }
 
   const load = useCallback(() => {
-    fetch('/api/v1/finance/invoices').then((r) => r.json()).then((d) => setInvoices(d.items ?? []))
-    fetch('/api/v1/finance/expenses').then((r) => r.json()).then((d) => setExpenses(d.items ?? []))
-    fetch('/api/v1/finance/journal').then((r) => r.json()).then(setJournal)
+    apiJson<{ items?: Invoice[] }>('/api/v1/finance/invoices').then((d) => { setInvoices(d.items ?? []); setError(null) }).catch(fail)
+    apiJson<{ items?: Expense[] }>('/api/v1/finance/expenses').then((d) => setExpenses(d.items ?? [])).catch(fail)
+    apiJson<JournalData>('/api/v1/finance/journal').then(setJournal).catch(fail)
   }, [])
   useEffect(load, [load])
 
@@ -267,7 +271,7 @@ export function FinanceView() {
             <Card className="p-3"><p className="text-xs text-muted-foreground">Encours ouvert</p><p className="text-lg font-bold tabular-nums text-amber-300">{fcfa(invoiceStats.open)}</p></Card>
             <Card className="p-3"><p className="text-xs text-muted-foreground">En retard</p><p className="text-lg font-bold tabular-nums text-red-300">{invoiceStats.overdue} facture(s)</p></Card>
           </div>
-          {!invoices && <Skeleton className="h-72" />}
+          {error ? <LoadError error={error} onRetry={load} /> : !invoices && <Skeleton className="h-72" />}
           {invoices && (
             <div className="rounded-lg border overflow-hidden max-h-[30rem] overflow-y-auto">
               <Table>

@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { StatusBadge, SectionTitle, fcfa, fmtDateTime, fmtDate, xof } from './ui'
+import { StatusBadge, SectionTitle, LoadError, fcfa, fmtDateTime, fmtDate, xof } from './ui'
+import { apiJson, ApiFail, isAuthLoss, toApiFail } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
 import { Landmark, Smartphone, Coins, Plus, RefreshCcw, ShieldCheck, Route, FileCheck2 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -199,11 +200,12 @@ export function MoneyView() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [recos, setRecos] = useState<Recon[]>([])
   const [filter, setFilter] = useState('ALL')
+  const [error, setError] = useState<ApiFail | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/v1/money/payments').then((r) => r.json()).then((d) => {
-      setAccounts(d.accounts ?? []); setPayments(d.payments ?? []); setRecos(d.reconciliations ?? [])
-    })
+    apiJson<{ accounts?: Account[]; payments?: Payment[]; reconciliations?: Recon[] }>('/api/v1/money/payments')
+      .then((d) => { setAccounts(d.accounts ?? []); setPayments(d.payments ?? []); setRecos(d.reconciliations ?? []); setError(null) })
+      .catch((e: unknown) => { if (!isAuthLoss(e)) setError(toApiFail(e)) })
   }, [])
   useEffect(load, [load])
 
@@ -217,6 +219,7 @@ export function MoneyView() {
     else toast({ title: 'Échec', variant: 'destructive' })
   }
 
+  if (error) return <LoadError error={error} onRetry={load} />
   if (!accounts) return <div className="space-y-3"><Skeleton className="h-24" /><Skeleton className="h-96" /></div>
 
   const filtered = payments.filter((p) => filter === 'ALL' || p.type === filter)

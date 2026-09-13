@@ -1,7 +1,9 @@
 'use client'
 
 // YAHRIA BUSINESS OS V1 — shared UI primitives
+import { AlertTriangle, ShieldAlert } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export function fmt(n: number | null | undefined): string {
@@ -122,6 +124,44 @@ export function SectionTitle({ title, desc, right }: { title: string; desc?: str
         {desc && <p className="text-sm text-muted-foreground mt-0.5">{desc}</p>}
       </div>
       {right}
+    </div>
+  )
+}
+
+/**
+ * État d'erreur gracieux — affiché quand une lecture API échoue (hors 401,
+ * qui est géré globalement par redirection vers /login). Deux variantes :
+ *  · verrou 2FA (code MFA_ENROLLMENT_REQUIRED) → encart ambre explicite
+ *  · toute autre erreur → encart neutre avec bouton « Réessayer »
+ * Garantit qu'aucune vue ne crashe sur un corps d'erreur API.
+ */
+export function LoadError({ error, onRetry }: { error: { status: number; message: string; code?: string } | null; onRetry?: () => void }) {
+  if (!error) return null
+  if (error.code === 'MFA_ENROLLMENT_REQUIRED') {
+    return (
+      <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 flex items-start gap-3">
+        <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-amber-300">Données verrouillées — 2FA requise</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Ouvrez l&apos;onglet « Sécurité » pour configurer la double authentification, puis revenez ici.
+          </p>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 flex items-start gap-3">
+      <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-red-300">Impossible de charger les données</p>
+        <p className="text-xs text-muted-foreground mt-0.5 break-words">{error.message}</p>
+      </div>
+      {onRetry && (
+        <Button size="sm" variant="outline" className="h-7 text-xs border-red-500/40 text-red-300 hover:bg-red-500/15 shrink-0" onClick={onRetry}>
+          Réessayer
+        </Button>
+      )}
     </div>
   )
 }

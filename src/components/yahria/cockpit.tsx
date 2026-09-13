@@ -1,13 +1,17 @@
 'use client'
 
 // YAHRIA BUSINESS OS V1 — Cockpit (Executive Intelligence layer)
-import { useEffect, useState } from 'react'
+// Lecture via apiJson() : un échec API (401/403/500) ne peut JAMAIS être rendu
+// comme des données — il déclenche soit la redirection /login (401, globale),
+// soit l'état d'erreur gracieux <LoadError/> (jamais de TypeError sur kpis).
+import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar } from 'recharts'
 import { Wallet, ArrowDownToLine, ArrowUpFromLine, AlertTriangle, BadgeCheck, Bot, Landmark, Smartphone, Coins, Banknote } from 'lucide-react'
-import { StatCard, SectionTitle, fcfa, fmt, StatusBadge, fmtDateTime, fmtDate } from './ui'
+import { StatCard, SectionTitle, LoadError, fcfa, fmt, StatusBadge, fmtDateTime, fmtDate } from './ui'
+import { apiJson, ApiFail } from '@/lib/yahria/client-api'
 
 interface DashData {
   org: { name: string; city: string; country: string; taxId: string; rccm: string; sector: string; currency: string } | null
@@ -30,10 +34,17 @@ const accountIcon = (type: string) =>
 export function Cockpit() {
   const [data, setData] = useState<DashData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<ApiFail | null>(null)
 
-  useEffect(() => {
-    fetch('/api/v1/dashboard').then((r) => r.json()).then((d) => { setData(d); setLoading(false) })
+  const load = useCallback(() => {
+    apiJson<DashData>('/api/v1/dashboard')
+      .then((d) => { setData(d); setError(null) })
+      .catch((e: unknown) => { if (e instanceof ApiFail && e.status !== 401) setError(e) })
+      .finally(() => setLoading(false))
   }, [])
+  // Relance manuelle (bouton « Réessayer ») : synchronisé ici, pas dans l'effet.
+  const retry = useCallback(() => { setLoading(true); load() }, [load])
+  useEffect(load, [load])
 
   if (loading) {
     return (
@@ -45,7 +56,12 @@ export function Cockpit() {
       </div>
     )
   }
-  if (!data) return <p className="text-muted-foreground">Impossible de charger le cockpit.</p>
+  // Verrou 2FA ou erreur serveur → état gracieux, jamais de crash.
+  if (error) return <LoadError error={error} onRetry={retry} />
+  // Garde défensive : contrat drift (réponse 2xx malformée) → même traitement.
+  if (!data || !data.kpis || !Array.isArray(data.accounts)) {
+    return <LoadError error={{ status: 0, message: 'Réponse inattendue du serveur (contrat dashboard).' }} onRetry={retry} />
+  }
   const k = data.kpis
 
   return (

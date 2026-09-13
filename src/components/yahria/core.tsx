@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { StatusBadge, SectionTitle, fcfa, fmt, fmtDate } from './ui'
+import { StatusBadge, SectionTitle, LoadError, fcfa, fmt, fmtDate } from './ui'
+import { apiJson, ApiFail, isAuthLoss, toApiFail } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
 import { Plus, Archive, Search } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -97,9 +98,12 @@ function CreateDialog({ entity, onDone }: { entity: string; onDone: () => void }
 function DataTable({ entity, cols, refreshKey }: { entity: string; cols: { key: string; label: string; fmt?: (v: unknown) => string }[]; refreshKey: number }) {
   const [rows, setRows] = useState<Row[] | null>(null)
   const [q, setQ] = useState('')
+  const [error, setError] = useState<ApiFail | null>(null)
 
   const load = useCallback(() => {
-    fetch(`/api/v1/core/${entity}`).then((r) => r.json()).then((d) => setRows(d.items ?? []))
+    apiJson<{ items?: Row[] }>(`/api/v1/core/${entity}`)
+      .then((d) => { setRows(d.items ?? []); setError(null) })
+      .catch((e: unknown) => { if (!isAuthLoss(e)) setError(toApiFail(e)) })
   }, [entity])
 
   useEffect(load, [load, refreshKey])
@@ -113,6 +117,7 @@ function DataTable({ entity, cols, refreshKey }: { entity: string; cols: { key: 
     }
   }
 
+  if (error) return <div className="space-y-2"><LoadError error={error} onRetry={load} /></div>
   if (!rows) return <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
   const filtered = rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q.toLowerCase()))
   const statusOf = (r: Row) => (typeof r.status === 'string' ? r.status : null)

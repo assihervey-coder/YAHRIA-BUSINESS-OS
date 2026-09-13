@@ -5,7 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { SectionTitle, NODE_COLORS, fcfa } from './ui'
+import { SectionTitle, NODE_COLORS, LoadError, fcfa } from './ui'
+import { apiJson, ApiFail, isAuthLoss, toApiFail } from '@/lib/yahria/client-api'
 import { RefreshCcw, Network } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
@@ -23,9 +24,12 @@ export function GraphView() {
   const [hover, setHover] = useState<string | null>(null)
   const [hiddenTypes, setHiddenTypes] = useState<Record<string, boolean>>({})
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<ApiFail | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/v1/graph').then((r) => r.json()).then(setData)
+    apiJson<GraphData>('/api/v1/graph')
+      .then((d) => { setData(d); setError(null) })
+      .catch((e: unknown) => { if (!isAuthLoss(e)) setError(toApiFail(e)) })
   }, [])
   useEffect(load, [load])
 
@@ -67,6 +71,7 @@ export function GraphView() {
     if (res.ok) { toast({ title: 'Projection reconstruite', description: 'Le graphe a été re-projeté depuis les événements métier (INV-GRAPH-004).' }); load() }
   }
 
+  if (error) return <div className="space-y-3"><LoadError error={error} onRetry={load} /></div>
   if (!data) return <Skeleton className="h-[32rem]" />
 
   const connectedEdges = selected ? data.edges.filter((e) => e.source === selected.id || e.target === selected.id) : []
