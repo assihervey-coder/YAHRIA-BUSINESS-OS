@@ -1,0 +1,2002 @@
+     1→Je le positionnerais comme la couche d'exploitation intelligente de l'entreprise, construite sur les fondations technologiques YAHRIA : identité, politiques, agents, knowledge graph, evidence, exécution, IA multi-modèles et gouvernance.
+     2→
+     3→YAHRIA BUSINESS OS V1
+     4→Positionnement
+     5→
+     6→YAHRIA BUSINESS OS
+     7→The Intelligent Operating System for African Business.
+     8→
+     9→Son rôle :
+    10→
+    11→DONNÉES
+    12→   ↓
+    13→CONTEXTE
+    14→   ↓
+    15→BUSINESS GRAPH
+    16→   ↓
+    17→INTELLIGENCE
+    18→   ↓
+    19→DÉCISION
+    20→   ↓
+    21→WORKFLOW
+    22→   ↓
+    23→ACTION
+    24→   ↓
+    25→CONTRÔLE
+    26→   ↓
+    27→EVIDENCE
+    28→
+    29→L'entreprise ne travaille donc plus seulement dans YAHRIA.
+    30→
+    31→Elle peut progressivement être opérée par YAHRIA, sous contrôle humain et avec traçabilité.
+    32→
+    33→1. Architecture générale
+    34→
+    35→Je figerais V1 autour de cette architecture :
+    36→
+    37→YAHRIA ECOSYSTEM
+    38→│
+    39→├── YAHRIA PLATFORM
+    40→│   │
+    41→│   ├── Identity & Access
+    42→│   ├── Organization
+    43→│   ├── Tenant
+    44→│   ├── RBAC / ABAC
+    45→│   ├── Policy Engine
+    46→│   ├── Workflow Engine
+    47→│   ├── Event Bus
+    48→│   ├── Audit
+    49→│   ├── Evidence
+    50→│   ├── Knowledge
+    51→│   ├── AI Gateway
+    52→│   ├── Agent Runtime
+    53→│   └── Execution Fabric
+    54→│
+    55→└── YAHRIA BUSINESS OS
+    56→    │
+    57→    ├── CORE
+    58→    ├── MONEY
+    59→    ├── FINANCE
+    60→    ├── BUSINESS GRAPH
+    61→    ├── AI
+    62→    ├── AGENTS
+    63→    ├── SECTOR ENGINES
+    64→    ├── COUNTRY PACKS
+    65→    ├── API PLATFORM
+    66→    └── MARKETPLACE
+    67→
+    68→Le point important est donc :
+    69→
+    70→YAHRIA BUSINESS OS dépend de YAHRIA PLATFORM, mais constitue un produit autonome.
+    71→
+    72→2. Le Core
+    73→
+    74→Le Business Core est le noyau opérationnel commun à toutes les entreprises.
+    75→
+    76→CORE
+    77→│
+    78→├── Organizations
+    79→├── Business Units
+    80→├── Legal Entities
+    81→├── Branches
+    82→├── Departments
+    83→├── Workspaces
+    84→├── Users
+    85→├── Roles
+    86→├── Customers
+    87→├── Suppliers
+    88→├── Employees
+    89→├── Partners
+    90→├── Products
+    91→├── Services
+    92→├── Contracts
+    93→├── Documents
+    94→├── Tasks
+    95→├── Workflows
+    96→├── Approvals
+    97→├── Notifications
+    98→├── Calendar
+    99→├── Communication
+   100→├── Business Rules
+   101→├── Events
+   102→├── Audit Trail
+   103→└── Evidence
+   104→Principe fondamental
+   105→
+   106→Tout objet métier possède notamment :
+   107→
+   108→tenant_id
+   109→organization_id
+   110→entity_id
+   111→created_by
+   112→created_at
+   113→updated_at
+   114→status
+   115→version
+   116→policy_context
+   117→audit_reference
+   118→evidence_reference
+   119→
+   120→Cela permettra ensuite à l'IA et aux agents de comprendre qui, quoi, où, quand, pourquoi et avec quelle autorisation.
+   121→
+   122→3. YAHRIA MONEY
+   123→
+   124→C'est la couche financière transactionnelle.
+   125→
+   126→MONEY
+   127→│
+   128→├── Payment Accounts
+   129→├── Wallets
+   130→├── Bank Accounts
+   131→├── Mobile Money Accounts
+   132→├── Payment Methods
+   133→│
+   134→├── COLLECTIONS
+   135→│   ├── Customer Payments
+   136→│   ├── Invoice Payments
+   137→│   ├── Subscription Payments
+   138→│   └── Payment Links
+   139→│
+   140→├── DISBURSEMENTS
+   141→│   ├── Supplier Payments
+   142→│   ├── Payroll Payments
+   143→│   ├── Refunds
+   144→│   └── Mass Payouts
+   145→│
+   146→├── TRANSFERS
+   147→│   ├── Internal
+   148→│   ├── Bank
+   149→│   ├── Mobile Money
+   150→│   └── Cross-border
+   151→│
+   152→├── PAYMENT ORCHESTRATION
+   153→│   ├── Routing
+   154→│   ├── Provider Selection
+   155→│   ├── Retry
+   156→│   ├── Failover
+   157→│   └── Idempotency
+   158→│
+   159→├── RECONCILIATION
+   160→│
+   161→├── SETTLEMENT
+   162→│
+   163→├── FEES
+   164→│
+   165→├── FX
+   166→│
+   167→└── TRANSACTION RISK
+   168→
+   169→L'intérêt de YAHRIA n'est donc pas seulement de faire un paiement.
+   170→
+   171→Le système doit pouvoir déterminer :
+   172→
+   173→Quel moyen de paiement ?
+   174→Quel fournisseur ?
+   175→Quel compte ?
+   176→Quel montant ?
+   177→Quel risque ?
+   178→Quelle autorisation ?
+   179→Quelle politique ?
+   180→Quelle justification ?
+   181→Quelle réconciliation ?
+   182→
+   183→4. YAHRIA FINANCE
+   184→
+   185→Au-dessus de MONEY vient la finance d'entreprise.
+   186→
+   187→FINANCE
+   188→│
+   189→├── Accounting
+   190→├── General Ledger
+   191→├── Chart of Accounts
+   192→├── Journals
+   193→├── Accounts Payable
+   194→├── Accounts Receivable
+   195→├── Invoicing
+   196→├── Expenses
+   197→├── Tax
+   198→├── VAT
+   199→├── Budget
+   200→├── Forecast
+   201→├── Cash Flow
+   202→├── Financial Statements
+   203→├── Closing
+   204→├── Reconciliation
+   205→├── Consolidation
+   206→├── Multi-currency
+   207→├── Multi-entity
+   208→└── Financial Analytics
+   209→
+   210→Et surtout :
+   211→
+   212→FINANCE
+   213→   ↕
+   214→MONEY
+   215→   ↕
+   216→BUSINESS GRAPH
+   217→   ↕
+   218→AI
+   219→
+   220→Cela permet par exemple :
+   221→
+   222→FACTURE
+   223→   ↓
+   224→CLIENT
+   225→   ↓
+   226→ENCAISSEMENT
+   227→   ↓
+   228→MOBILE MONEY / BANQUE
+   229→   ↓
+   230→RÉCONCILIATION
+   231→   ↓
+   232→COMPTABILITÉ
+   233→   ↓
+   234→TRÉSORERIE
+   235→   ↓
+   236→PRÉVISION
+   237→5. PROCUREMENT & SUPPLIERS
+   238→
+   239→Je l'intégrerais au Business OS même si ce n'est pas dans les neuf briques que tu as citées, car c'est indispensable à l'exploitation réelle.
+   240→
+   241→PROCUREMENT
+   242→│
+   243→├── Supplier Registry
+   244→├── Supplier Qualification
+   245→├── Supplier Risk
+   246→├── RFQ
+   247→├── Purchase Requests
+   248→├── Purchase Orders
+   249→├── Contracts
+   250→├── Goods Receipt
+   251→├── Supplier Invoices
+   252→├── Approval
+   253→├── Supplier Payments
+   254→├── Supplier Performance
+   255→└── Supplier Intelligence
+   256→6. PEOPLE
+   257→
+   258→Même logique :
+   259→
+   260→PEOPLE
+   261→│
+   262→├── Employee Registry
+   263→├── Organization Chart
+   264→├── Contracts
+   265→├── Attendance
+   266→├── Leave
+   267→├── Payroll
+   268→├── Benefits
+   269→├── Expenses
+   270→├── Advances
+   271→├── Employee Payments
+   272→└── Workforce Intelligence
+   273→
+   274→Le payroll utilise directement :
+   275→
+   276→PEOPLE
+   277→   ↓
+   278→PAYROLL
+   279→   ↓
+   280→MONEY
+   281→   ↓
+   282→FINANCE
+   283→   ↓
+   284→ACCOUNTING
+   285→7. BUSINESS GRAPH
+   286→
+   287→C'est probablement l'une des briques les plus différenciantes de YAHRIA BUSINESS OS.
+   288→
+   289→Je ne ferais pas simplement une base de données relationnelle.
+   290→
+   291→Je construirais un Business Knowledge Graph.
+   292→
+   293→                    ┌── EMPLOYEE
+   294→                    │
+   295→                    ↓
+   296→CUSTOMER ←→ COMPANY ←→ SUPPLIER
+   297→   │           │           │
+   298→   ↓           ↓           ↓
+   299→INVOICE     CONTRACT    PURCHASE
+   300→   │           │           │
+   301→   ↓           ↓           ↓
+   302→PAYMENT ←→ ACCOUNT ←→ TRANSACTION
+   303→   │
+   304→   ↓
+   305→BANK / MOBILE MONEY
+   306→
+   307→Puis :
+   308→
+   309→BUSINESS GRAPH
+   310→│
+   311→├── Customer Graph
+   312→├── Supplier Graph
+   313→├── Employee Graph
+   314→├── Transaction Graph
+   315→├── Payment Graph
+   316→├── Contract Graph
+   317→├── Product Graph
+   318→├── Organization Graph
+   319→├── Risk Graph
+   320→├── Compliance Graph
+   321→├── Relationship Graph
+   322→├── Ownership Graph
+   323→├── Geographic Graph
+   324→└── Intelligence Graph
+   325→
+   326→Le Graph devient le contexte commun de l'IA.
+   327→
+   328→8. YAHRIA AI
+   329→
+   330→Je séparerais clairement AI et Agents.
+   331→
+   332→AI = intelligence.
+   333→
+   334→Agents = action.
+   335→
+   336→AI
+   337→│
+   338→├── AI Gateway
+   339→├── Model Router
+   340→├── Local Models
+   341→├── Cloud Models
+   342→├── Embeddings
+   343→├── Reranking
+   344→├── RAG
+   345→├── Business Knowledge
+   346→├── Business Reasoning
+   347→├── Prediction
+   348→├── Classification
+   349→├── Anomaly Detection
+   350→├── Forecasting
+   351→├── Risk Scoring
+   352→├── Recommendation
+   353→├── Explainability
+   354→├── AI Evaluation
+   355→├── Model Registry
+   356→└── Model Risk Management
+   357→
+   358→Le système peut utiliser plusieurs modèles selon la tâche :
+   359→
+   360→TASK
+   361→ ↓
+   362→AI ROUTER
+   363→ ├── reasoning model
+   364→ ├── coding model
+   365→ ├── vision model
+   366→ ├── embedding model
+   367→ ├── reranker
+   368→ ├── forecasting model
+   369→ └── local/private model
+   370→
+   371→Cela rejoint directement l'architecture Multi-LLM que nous avons déjà envisagée pour YAHRIA.
+   372→
+   373→9. YAHRIA AGENTS
+   374→
+   375→C'est là que BUSINESS OS devient véritablement opérationnel.
+   376→
+   377→AGENTS
+   378→│
+   379→├── Finance Agent
+   380→├── Treasury Agent
+   381→├── Accounting Agent
+   382→├── Payment Agent
+   383→├── Procurement Agent
+   384→├── Supplier Agent
+   385→├── Payroll Agent
+   386→├── Sales Agent
+   387→├── Customer Agent
+   388→├── Compliance Agent
+   389→├── Risk Agent
+   390→├── Tax Agent
+   391→├── Operations Agent
+   392→├── Reporting Agent
+   393→├── Executive Agent
+   394→└── Orchestrator Agent
+   395→
+   396→Mais les agents ne doivent jamais avoir des pouvoirs illimités.
+   397→
+   398→Ils passent par :
+   399→
+   400→AGENT
+   401→ ↓
+   402→INTENT
+   403→ ↓
+   404→POLICY ENGINE
+   405→ ↓
+   406→AUTHORIZATION
+   407→ ↓
+   408→RISK CHECK
+   409→ ↓
+   410→HUMAN APPROVAL ?
+   411→ ↓
+   412→EXECUTION FABRIC
+   413→ ↓
+   414→EVIDENCE
+   415→ ↓
+   416→AUDIT
+   417→
+   418→C'est essentiel pour la philosophie YAHRIA.
+   419→
+   420→10. Executive Intelligence
+   421→
+   422→Je créerais également une couche transverse :
+   423→
+   424→EXECUTIVE INTELLIGENCE
+   425→│
+   426→├── CEO Copilot
+   427→├── CFO Copilot
+   428→├── COO Copilot
+   429→├── HR Copilot
+   430→├── Procurement Copilot
+   431→├── Sales Copilot
+   432→├── Risk Copilot
+   433→└── Board Intelligence
+   434→
+   435→Exemple :
+   436→
+   437→« Quelle est la situation financière de l'entreprise ? »
+   438→
+   439→YAHRIA ne répondrait pas simplement avec un LLM.
+   440→
+   441→Il construirait :
+   442→
+   443→QUESTION
+   444→ ↓
+   445→BUSINESS CONTEXT
+   446→ ↓
+   447→GRAPH
+   448→ ↓
+   449→FINANCE
+   450→ ↓
+   451→MONEY
+   452→ ↓
+   453→RISK
+   454→ ↓
+   455→FORECAST
+   456→ ↓
+   457→REASONING
+   458→ ↓
+   459→ANSWER
+   460→ ↓
+   461→EVIDENCE
+   462→11. SECTOR ENGINES
+   463→
+   464→C'est ici que nous reprenons directement notre discussion précédente sur les secteurs.
+   465→
+   466→Les secteurs ne doivent pas être seulement des pages marketing.
+   467→
+   468→Ils deviennent des extensions métier du Business OS.
+   469→
+   470→SECTOR ENGINES
+   471→│
+   472→├── ENTERPRISE_ENGINE
+   473→├── NGO_ENGINE
+   474→├── MICROFINANCE_ENGINE
+   475→├── RETAIL_ENGINE
+   476→├── SCHOOL_ENGINE
+   477→├── HOSPITAL_ENGINE
+   478→├── CONSTRUCTION_ENGINE
+   479→├── INDUSTRY_ENGINE
+   480→├── TOLL_ENGINE
+   481→├── RESTAURANT_ENGINE
+   482→├── ECOMMERCE_ENGINE
+   483→├── TRAVEL_ENGINE
+   484→└── MONEY_TRANSFER_ENGINE
+   485→
+   486→Chaque Engine réutilise :
+   487→
+   488→CORE
+   489→MONEY
+   490→FINANCE
+   491→GRAPH
+   492→AI
+   493→AGENTS
+   494→COUNTRY PACK
+   495→
+   496→mais ajoute ses propres :
+   497→
+   498→entities
+   499→workflows
+   500→rules
+   501→KPIs
+   502→documents
+   503→agents
+   504→integrations
+   505→policies
+   506→12. COUNTRY PACKS
+   507→
+   508→Pour ton orientation africaine, cette brique est stratégique.
+   509→
+   510→COUNTRY PACKS
+   511→│
+   512→├── CI
+   513→├── SN
+   514→├── BJ
+   515→├── TG
+   516→├── BF
+   517→├── ML
+   518→├── NE
+   519→├── GN
+   520→├── CM
+   521→├── GA
+   522→├── CG
+   523→├── CD
+   524→├── TD
+   525→├── CF
+   526→├── GQ
+   527→├── KM
+   528→└── GW
+   529→
+   530→Chaque Country Pack :
+   531→
+   532→COUNTRY
+   533→│
+   534→├── Identity
+   535→├── Legal Entities
+   536→├── Tax
+   537→├── Accounting
+   538→├── Currency
+   539→├── Banking
+   540→├── Mobile Money
+   541→├── Payment Providers
+   542→├── Payroll Rules
+   543→├── Invoicing
+   544→├── Regulatory Rules
+   545→├── Compliance
+   546→├── Government APIs
+   547→└── Local Workflows
+   548→
+   549→Et surtout :
+   550→
+   551→COUNTRY PACK
+   552→      ↓
+   553→RULE ENGINE
+   554→      ↓
+   555→BUSINESS OS
+   556→
+   557→Donc le même produit peut fonctionner différemment selon le pays sans dupliquer le Core.
+   558→
+   559→13. API PLATFORM
+   560→API PLATFORM
+   561→│
+   562→├── REST API
+   563→├── GraphQL
+   564→├── Webhooks
+   565→├── Events
+   566→├── Commands
+   567→├── SDKs
+   568→├── API Keys
+   569→├── OAuth2 / OIDC
+   570→├── Service Accounts
+   571→├── Rate Limiting
+   572→├── Idempotency
+   573→├── Versioning
+   574→├── Developer Portal
+   575→├── Sandbox
+   576→├── API Analytics
+   577→└── Integration Hub
+   578→
+   579→Avec une architecture :
+   580→
+   581→YAHRIA BUSINESS OS
+   582→        │
+   583→        ├── REST
+   584→        ├── EVENTS
+   585→        ├── WEBHOOKS
+   586→        ├── CONNECTORS
+   587→        └── SDK
+   588→              │
+   589→       ┌──────┼────────┐
+   590→       ↓      ↓        ↓
+   591→    BANKS   MOBILE   ERP/CRM
+   592→             MONEY
+   593→14. MARKETPLACE
+   594→
+   595→Le Marketplace devient le mécanisme d'extension de l'écosystème.
+   596→
+   597→MARKETPLACE
+   598→│
+   599→├── Apps
+   600→├── Sector Engines
+   601→├── Country Packs
+   602→├── AI Agents
+   603→├── AI Models
+   604→├── Connectors
+   605→├── Payment Providers
+   606→├── Banking Connectors
+   607→├── Accounting Packs
+   608→├── Compliance Packs
+   609→├── Templates
+   610→├── Workflows
+   611→├── Reports
+   612→└── Developer Extensions
+   613→
+   614→Un partenaire pourrait donc développer :
+   615→
+   616→YAHRIA APP
+   617→      ↓
+   618→YAHRIA API
+   619→      ↓
+   620→YAHRIA POLICY
+   621→      ↓
+   622→YAHRIA EVENT BUS
+   623→      ↓
+   624→YAHRIA BUSINESS OS
+   625→15. L'architecture de sécurité
+   626→
+   627→Compte tenu de tout ce que nous avons déjà construit dans YAHRIA, je ne mettrais surtout pas la sécurité en simple module.
+   628→
+   629→Elle doit traverser tout le système.
+   630→
+   631→SECURITY & GOVERNANCE
+   632→│
+   633→├── Identity
+   634→├── Authentication
+   635→├── Authorization
+   636→├── RBAC
+   637→├── ABAC
+   638→├── Resource Policies
+   639→├── Data Policies
+   640→├── AI Policies
+   641→├── Agent Policies
+   642→├── Transaction Policies
+   643→├── Approval Policies
+   644→├── Secrets
+   645→├── Encryption
+   646→├── Audit
+   647→├── Evidence
+   648→├── Compliance
+   649→├── Risk
+   650→└── Governance
+   651→16. Le cerveau opérationnel
+   652→
+   653→La vraie architecture YAHRIA devient alors :
+   654→
+   655→                 ┌──────────────────────┐
+   656→                 │    HUMAN / USER      │
+   657→                 └──────────┬───────────┘
+   658→                            ↓
+   659→                   ┌────────────────┐
+   660→                   │ YAHRIA AI      │
+   661→                   └───────┬────────┘
+   662→                           ↓
+   663→                  ┌──────────────────┐
+   664→                  │ BUSINESS GRAPH   │
+   665→                  └────────┬─────────┘
+   666→                           ↓
+   667→                 ┌────────────────────┐
+   668→                 │ DECISION ENGINE    │
+   669→                 └─────────┬──────────┘
+   670→                           ↓
+   671→                    ┌─────────────┐
+   672→                    │   AGENTS    │
+   673→                    └──────┬──────┘
+   674→                           ↓
+   675→                 ┌────────────────────┐
+   676→                 │ POLICY / SECURITY  │
+   677→                 └─────────┬──────────┘
+   678→                           ↓
+   679→                 ┌────────────────────┐
+   680→                 │ EXECUTION FABRIC   │
+   681→                 └─────────┬──────────┘
+   682→                           ↓
+   683→       ┌───────────────────┼───────────────────┐
+   684→       ↓                   ↓                   ↓
+   685→     MONEY              FINANCE             CORE
+   686→       │                   │                   │
+   687→       └───────────────────┼───────────────────┘
+   688→                           ↓
+   689→                     EVIDENCE
+   690→                           ↓
+   691→                        AUDIT
+   692→
+   693→C'est cette boucle qui différencie vraiment YAHRIA BUSINESS OS d'un ERP classique.
+   694→
+   695→17. Modèle de données conceptuel
+   696→
+   697→Le modèle V1 devrait s'organiser autour de quelques agrégats fondamentaux :
+   698→
+   699→TENANT
+   700→  │
+   701→  └── ORGANIZATION
+   702→       │
+   703→       ├── LEGAL_ENTITY
+   704→       ├── BUSINESS_UNIT
+   705→       ├── BRANCH
+   706→       ├── USER
+   707→       ├── EMPLOYEE
+   708→       ├── CUSTOMER
+   709→       ├── SUPPLIER
+   710→       ├── PARTNER
+   711→       ├── PRODUCT
+   712→       ├── CONTRACT
+   713→       ├── INVOICE
+   714→       ├── PAYMENT
+   715→       ├── ACCOUNT
+   716→       ├── TRANSACTION
+   717→       ├── JOURNAL
+   718→       ├── PURCHASE_ORDER
+   719→       ├── WORKFLOW
+   720→       ├── TASK
+   721→       ├── AGENT
+   722→       ├── AI_DECISION
+   723→       ├── POLICY
+   724→       └── EVIDENCE
+   725→
+   726→Avec transversalement :
+   727→
+   728→tenant_id
+   729→organization_id
+   730→country_code
+   731→currency_code
+   732→created_at
+   733→updated_at
+   734→version
+   735→status
+   736→audit_id
+   737→evidence_id
+   738→18. Le cycle de vie d'une opération
+   739→
+   740→C'est un invariant que je figerais dans V1.
+   741→
+   742→DISCOVERY
+   743→   ↓
+   744→INTENT
+   745→   ↓
+   746→VALIDATION
+   747→   ↓
+   748→POLICY CHECK
+   749→   ↓
+   750→RISK CHECK
+   751→   ↓
+   752→APPROVAL
+   753→   ↓
+   754→EXECUTION
+   755→   ↓
+   756→RECONCILIATION
+   757→   ↓
+   758→ACCOUNTING
+   759→   ↓
+   760→EVIDENCE
+   761→   ↓
+   762→AUDIT
+   763→   ↓
+   764→INTELLIGENCE
+   765→
+   766→Cela permet à YAHRIA de transformer chaque opération en donnée exploitable par le Business Graph.
+   767→
+   768→19. Architecture produit V1
+   769→
+   770→Je figerais donc les dix domaines principaux :
+   771→
+   772→YAHRIA BUSINESS OS V1
+   773→│
+   774→├── 00_CORE
+   775→│
+   776→├── 01_MONEY
+   777→│
+   778→├── 02_FINANCE
+   779→│
+   780→├── 03_BUSINESS_GRAPH
+   781→│
+   782→├── 04_AI
+   783→│
+   784→├── 05_AGENTS
+   785→│
+   786→├── 06_SECTOR_ENGINES
+   787→│
+   788→├── 07_COUNTRY_PACKS
+   789→│
+   790→├── 08_API_PLATFORM
+   791→│
+   792→├── 09_MARKETPLACE
+   793→│
+   794→└── 99_GOVERNANCE
+   795→
+   796→Et 99_GOVERNANCE serait relié directement aux fondations YAHRIA :
+   797→
+   798→99_GOVERNANCE
+   799→├── Security
+   800→├── Compliance
+   801→├── Policy
+   802→├── Audit
+   803→├── Evidence
+   804→├── Data Governance
+   805→├── AI Governance
+   806→├── Agent Governance
+   807→├── Model Risk
+   808→├── Business Continuity
+   809→└── Disaster Recovery
+   810→20. Ce que devient YAHRIA
+   811→
+   812→Avec cette architecture, nous avons en réalité trois niveaux :
+   813→
+   814→                         YAHRIA
+   815→                           │
+   816→              ┌────────────┴────────────┐
+   817→              ↓                         ↓
+   818→       YAHRIA PLATFORM          YAHRIA BUSINESS OS
+   819→       Infrastructure           Business Operating System
+   820→              │                         │
+   821→              │               ┌─────────┼─────────┐
+   822→              │               ↓         ↓         ↓
+   823→              │             MONEY    FINANCE    BUSINESS
+   824→              │                                  GRAPH
+   825→              │
+   826→              ├── Agent OS
+   827→              ├── Policy Engine
+   828→              ├── Execution Fabric
+   829→              ├── Evidence Engine
+   830→              ├── Knowledge Graph
+   831→              └── AI Gateway
+   832→
+   833→Puis demain :
+   834→
+   835→YAHRIA ECOSYSTEM
+   836→│
+   837→├── YAHRIA BUSINESS OS
+   838→├── YAHRIA LEGAL
+   839→├── YAHRIA HEALTH
+   840→├── YAHRIA FINANCE
+   841→├── YAHRIA GOVERNMENT
+   842→├── YAHRIA AI
+   843→└── YAHRIA DEVELOPER PLATFORM
+   844→Mon avis stratégique
+   845→
+   846→YAHRIA BUSINESS OS doit être le premier grand produit vertical de YAHRIA.
+   847→
+   848→Il constitue le meilleur point de convergence de tout ce que nous avons déjà conçu : Multi-tenancy + ABAC + Policy Engine + AI Gateway + Agents + Knowledge Graph + Evidence + Execution Fabric + Country Packs + systèmes financiers + intelligence métier.
+   849→
+   850→Et surtout, je ne chercherais plus à lui donner un autre nom comme NEXORA, NEXARA ou KORAVA : YAHRIA devient la marque technologique, et BUSINESS OS devient le produit.
+   851→
+   852→La prochaine étape logique est de transformer cette vision en YAHRIA_BUSINESS_OS_V1_ARCHITECTURE.md, puis en arborescence de monorepo industrialisée, avec les bounded contexts, contrats Python/API/events, schéma PostgreSQL, invariants, manifests et dépendances, exactement dans la méthode que nous avons utilisée pour le socle YAHRIA.
+   853→
+   854→aujourd’hui 20:10
+   855→
+   856→La prochaine étape logique est de transformer cette vision en YAHRIA_BUSINESS_OS_V1_ARCHITECTURE.md, puis en arborescence de monorepo industrialisée, avec les bounded contexts, contrats Python/API/events, schéma PostgreSQL, invariants, manifests et dépendances, exactement dans la méthode que nous avons utilisée pour le socle YAHRIA.
+   857→
+   858→Oui. Je propose de figer maintenant YAHRIA BUSINESS OS V1 comme un produit industriel, sans casser les fondations YAHRIA déjà établies.
+   859→
+   860→L'approche doit respecter une règle essentielle :
+   861→
+   862→YAHRIA BUSINESS OS ne recrée pas YAHRIA PLATFORM. Il consomme ses capacités natives.
+   863→
+   864→Ainsi, Identity, ABAC, Policy Engine, Evidence, Audit, Agent Runtime, Execution Fabric, AI Gateway, Knowledge Graph, etc. restent des capacités de la plateforme YAHRIA et deviennent des dépendances explicites du Business OS.
+   865→
+   866→1. Document d'architecture à figer
+   867→
+   868→Voici le contenu que je recommande pour le document racine :
+   869→
+   870→YAHRIA BUSINESS OS V1 — Architecture
+   871→YAHRIA BUSINESS OS V1
+   872→ARCHITECTURE SPECIFICATION
+   873→
+   874→Document ID: YBOS-ARCH-V1
+   875→Status: ARCHITECTURE BASELINE
+   876→Version: 1.0.0
+   877→Product: YAHRIA BUSINESS OS
+   878→Platform: YAHRIA
+   879→Classification: Enterprise Architecture
+   880→Authority: YAHRIA Architecture Governance
+   881→
+   882→1. PURPOSE
+   883→
+   884→YAHRIA BUSINESS OS V1 est le système d'exploitation métier intelligent de l'écosystème YAHRIA.
+   885→
+   886→Il fournit une plateforme unifiée permettant à une organisation de gérer :
+   887→
+   888→ses personnes ;
+   889→ses clients ;
+   890→ses fournisseurs ;
+   891→ses produits et services ;
+   892→ses opérations ;
+   893→ses paiements ;
+   894→sa trésorerie ;
+   895→sa comptabilité ;
+   896→ses achats ;
+   897→ses documents ;
+   898→ses workflows ;
+   899→ses risques ;
+   900→ses décisions ;
+   901→ses agents IA ;
+   902→ses intégrations externes.
+   903→
+   904→YAHRIA BUSINESS OS transforme les données opérationnelles en contexte, intelligence, décision et action contrôlée.
+   905→
+   906→2. ARCHITECTURAL PRINCIPLE
+   907→
+   908→Le système suit la chaîne :
+   909→
+   910→DATA → CONTEXT → GRAPH → INTELLIGENCE → DECISION → POLICY → ACTION → EVIDENCE
+   911→
+   912→Aucune action sensible générée par l'IA ne doit contourner :
+   913→
+   914→Identity ;
+   915→Authorization ;
+   916→Policy ;
+   917→Risk ;
+   918→Approval ;
+   919→Audit ;
+   920→Evidence.
+   921→3. PRODUCT BOUNDARY
+   922→
+   923→YAHRIA BUSINESS OS possède les domaines :
+   924→
+   925→00_CORE
+   926→01_MONEY
+   927→02_FINANCE
+   928→03_BUSINESS_GRAPH
+   929→04_AI
+   930→05_AGENTS
+   931→06_SECTOR_ENGINES
+   932→07_COUNTRY_PACKS
+   933→08_API_PLATFORM
+   934→09_MARKETPLACE
+   935→99_GOVERNANCE
+   936→
+   937→Les capacités suivantes appartiennent à YAHRIA PLATFORM :
+   938→
+   939→Identity
+   940→Tenant
+   941→Organization
+   942→RBAC
+   943→ABAC
+   944→Policy Engine
+   945→Workflow Runtime
+   946→Event Bus
+   947→AI Gateway
+   948→Agent Runtime
+   949→Execution Fabric
+   950→Sandbox
+   951→Evidence Engine
+   952→Audit
+   953→Knowledge Infrastructure
+   954→Secrets
+   955→Observability
+   956→Security
+   957→
+   958→BUSINESS OS les consomme via des contrats versionnés.
+   959→
+   960→4. TENANCY MODEL
+   961→
+   962→Le modèle de sécurité multi-tenant est obligatoire.
+   963→
+   964→Platform
+   965→└── Tenant
+   966→    └── Organization
+   967→        ├── Legal Entity
+   968→        ├── Business Unit
+   969→        ├── Branch
+   970→        ├── Department
+   971→        └── Workspace
+   972→
+   973→Toutes les données métier sont rattachées à un tenant_id.
+   974→
+   975→Les données nécessitant une séparation organisationnelle possèdent également :
+   976→
+   977→organization_id
+   978→legal_entity_id
+   979→business_unit_id
+   980→
+   981→La Row Level Security PostgreSQL est utilisée lorsque pertinente.
+   982→
+   983→5. BOUNDED CONTEXTS
+   984→5.1 CORE
+   985→
+   986→Responsabilités :
+   987→
+   988→organizations ;
+   989→legal entities ;
+   990→business units ;
+   991→branches ;
+   992→departments ;
+   993→users ;
+   994→customers ;
+   995→suppliers ;
+   996→employees ;
+   997→partners ;
+   998→products ;
+   999→services ;
+  1000→contracts ;
+  1001→documents ;
+  1002→tasks ;
+  1003→workflows ;
+  1004→approvals ;
+  1005→notifications.
+  1006→
+  1007→Le Core ne contient aucune logique financière spécialisée.
+  1008→
+  1009→5.2 MONEY
+  1010→
+  1011→Responsabilités :
+  1012→
+  1013→payment accounts ;
+  1014→wallets ;
+  1015→bank accounts ;
+  1016→mobile money ;
+  1017→payment methods ;
+  1018→collections ;
+  1019→disbursements ;
+  1020→transfers ;
+  1021→payment routing ;
+  1022→payment orchestration ;
+  1023→fees ;
+  1024→settlement ;
+  1025→reconciliation ;
+  1026→transaction risk.
+  1027→
+  1028→MONEY possède des intégrations avec :
+  1029→
+  1030→BANK
+  1031→MOBILE_MONEY
+  1032→PAYMENT_GATEWAY
+  1033→CARD_PROCESSOR
+  1034→TRANSFER_PROVIDER
+  1035→FX_PROVIDER
+  1036→5.3 FINANCE
+  1037→
+  1038→Responsabilités :
+  1039→
+  1040→accounting ;
+  1041→chart of accounts ;
+  1042→journals ;
+  1043→ledger ;
+  1044→accounts payable ;
+  1045→accounts receivable ;
+  1046→invoicing ;
+  1047→expenses ;
+  1048→tax ;
+  1049→VAT ;
+  1050→budgets ;
+  1051→forecasts ;
+  1052→cash flow ;
+  1053→financial statements ;
+  1054→closing ;
+  1055→consolidation ;
+  1056→multi-currency.
+  1057→
+  1058→FINANCE consomme les événements MONEY mais ne doit pas dépendre directement d'un fournisseur de paiement.
+  1059→
+  1060→5.4 BUSINESS GRAPH
+  1061→
+  1062→Le Business Graph constitue la représentation relationnelle et sémantique de l'entreprise.
+  1063→
+  1064→Nœuds principaux :
+  1065→
+  1066→Organization
+  1067→LegalEntity
+  1068→Customer
+  1069→Supplier
+  1070→Employee
+  1071→Partner
+  1072→Product
+  1073→Service
+  1074→Contract
+  1075→Invoice
+  1076→Payment
+  1077→Account
+  1078→Transaction
+  1079→PurchaseOrder
+  1080→Project
+  1081→Document
+  1082→Risk
+  1083→Policy
+  1084→Decision
+  1085→Agent
+  1086→
+  1087→Relations :
+  1088→
+  1089→OWNS
+  1090→EMPLOYS
+  1091→SERVES
+  1092→SUPPLIES
+  1093→PURCHASES_FROM
+  1094→OWES
+  1095→PAYS
+  1096→RECEIVES
+  1097→CONTRACTS_WITH
+  1098→BELONGS_TO
+  1099→OPERATES
+  1100→LOCATED_IN
+  1101→RELATED_TO
+  1102→DEPENDS_ON
+  1103→RISKED_BY
+  1104→CONTROLLED_BY
+  1105→
+  1106→Le Graph devient le contexte commun des agents et moteurs d'intelligence.
+  1107→
+  1108→5.5 AI
+  1109→
+  1110→AI fournit :
+  1111→
+  1112→model gateway ;
+  1113→model routing ;
+  1114→RAG ;
+  1115→embeddings ;
+  1116→reranking ;
+  1117→classification ;
+  1118→extraction ;
+  1119→prediction ;
+  1120→forecasting ;
+  1121→anomaly detection ;
+  1122→risk scoring ;
+  1123→recommendation ;
+  1124→explanation ;
+  1125→AI evaluation ;
+  1126→model registry ;
+  1127→model risk management.
+  1128→
+  1129→L'AI Context Layer agrège :
+  1130→
+  1131→User Context
+  1132→+
+  1133→Organization Context
+  1134→+
+  1135→Business Graph
+  1136→+
+  1137→Country Pack
+  1138→+
+  1139→Sector Engine
+  1140→+
+  1141→Historical Data
+  1142→+
+  1143→Policies
+  1144→+
+  1145→Evidence
+  1146→5.6 AGENTS
+  1147→
+  1148→Les agents sont des acteurs logiciels contrôlés.
+  1149→
+  1150→Agents V1 :
+  1151→
+  1152→FinanceAgent
+  1153→TreasuryAgent
+  1154→AccountingAgent
+  1155→PaymentAgent
+  1156→ProcurementAgent
+  1157→SupplierAgent
+  1158→PayrollAgent
+  1159→SalesAgent
+  1160→CustomerAgent
+  1161→ComplianceAgent
+  1162→RiskAgent
+  1163→TaxAgent
+  1164→OperationsAgent
+  1165→ReportingAgent
+  1166→ExecutiveAgent
+  1167→
+  1168→Tous les agents utilisent :
+  1169→
+  1170→Agent Runtime
+  1171→Policy Engine
+  1172→Tool Registry
+  1173→Execution Fabric
+  1174→Evidence Engine
+  1175→Audit Engine
+  1176→
+  1177→Un agent ne doit jamais disposer d'un accès direct illimité à la base de données.
+  1178→
+  1179→5.7 SECTOR ENGINES
+  1180→
+  1181→Les secteurs sont des extensions métier.
+  1182→
+  1183→V1 :
+  1184→
+  1185→Enterprise
+  1186→NGO
+  1187→Microfinance
+  1188→Retail
+  1189→Education
+  1190→Construction
+  1191→Industry
+  1192→Toll
+  1193→Restaurant
+  1194→Ecommerce
+  1195→Travel
+  1196→MoneyTransfer
+  1197→Healthcare
+  1198→
+  1199→Chaque Sector Engine définit :
+  1200→
+  1201→Entities
+  1202→Commands
+  1203→Events
+  1204→Workflows
+  1205→Policies
+  1206→KPIs
+  1207→Documents
+  1208→Reports
+  1209→Agents
+  1210→Integrations
+  1211→
+  1212→Il consomme le Core sans le modifier.
+  1213→
+  1214→5.8 COUNTRY PACKS
+  1215→
+  1216→Les Country Packs encapsulent les spécificités nationales.
+  1217→
+  1218→Structure logique :
+  1219→
+  1220→CountryPack
+  1221→├── Identity
+  1222→├── Legal
+  1223→├── Tax
+  1224→├── Accounting
+  1225→├── Currency
+  1226→├── Banking
+  1227→├── MobileMoney
+  1228→├── Payroll
+  1229→├── Invoicing
+  1230→├── Compliance
+  1231→├── Regulatory
+  1232→└── GovernmentIntegrations
+  1233→
+  1234→La logique nationale ne doit pas être codée directement dans les bounded contexts génériques.
+  1235→
+  1236→5.9 API PLATFORM
+  1237→
+  1238→Expose :
+  1239→
+  1240→REST
+  1241→GraphQL
+  1242→Commands
+  1243→Queries
+  1244→Events
+  1245→Webhooks
+  1246→OAuth2/OIDC
+  1247→API Keys
+  1248→Service Accounts
+  1249→SDKs
+  1250→Sandbox
+  1251→Developer Portal
+  1252→
+  1253→Toutes les API sont versionnées.
+  1254→
+  1255→5.10 MARKETPLACE
+  1256→
+  1257→Le Marketplace permet d'étendre le système avec :
+  1258→
+  1259→Apps
+  1260→Agents
+  1261→Sector Engines
+  1262→Country Packs
+  1263→Connectors
+  1264→AI Models
+  1265→Workflows
+  1266→Templates
+  1267→Reports
+  1268→Compliance Packs
+  1269→Accounting Packs
+  1270→Payment Providers
+  1271→
+  1272→Chaque extension est soumise au :
+  1273→
+  1274→Marketplace Policy
+  1275→Security Validation
+  1276→Compatibility Validation
+  1277→Version Validation
+  1278→Permission Validation
+  1279→Evidence Requirements
+  1280→6. DOMAIN DEPENDENCY MODEL
+  1281→
+  1282→Dépendances autorisées :
+  1283→
+  1284→CORE
+  1285→ ↑
+  1286→MONEY
+  1287→ ↑
+  1288→FINANCE
+  1289→
+  1290→CORE
+  1291→ ↓
+  1292→BUSINESS_GRAPH
+  1293→
+  1294→CORE
+  1295→ ↓
+  1296→SECTOR_ENGINES
+  1297→ ↓
+  1298→COUNTRY_PACKS
+  1299→
+  1300→BUSINESS_GRAPH
+  1301→ ↓
+  1302→AI
+  1303→ ↓
+  1304→AGENTS
+  1305→
+  1306→API_PLATFORM
+  1307→ ↓
+  1308→ALL BUSINESS DOMAINS
+  1309→
+  1310→MARKETPLACE
+  1311→ ↓
+  1312→EXTENSION CONTRACTS
+  1313→
+  1314→Architecture cible :
+  1315→
+  1316→                 YAHRIA PLATFORM
+  1317→                       │
+  1318→        ┌──────────────┼───────────────┐
+  1319→        ↓              ↓               ↓
+  1320→     POLICY          AI GATEWAY     EXECUTION
+  1321→        │              │               │
+  1322→        └──────────────┼───────────────┘
+  1323→                       ↓
+  1324→             YAHRIA BUSINESS OS
+  1325→                       │
+  1326→     ┌─────────┬───────┼────────┬─────────┐
+  1327→     ↓         ↓       ↓        ↓         ↓
+  1328→   CORE      MONEY   FINANCE   GRAPH      AI
+  1329→                                      │
+  1330→                                      ↓
+  1331→                                   AGENTS
+  1332→                                      │
+  1333→                         ┌────────────┴────────────┐
+  1334→                         ↓                         ↓
+  1335→                  SECTOR ENGINES             COUNTRY PACKS
+  1336→                         │                         │
+  1337→                         └────────────┬────────────┘
+  1338→                                      ↓
+  1339→                                API PLATFORM
+  1340→                                      │
+  1341→                                      ↓
+  1342→                                 MARKETPLACE
+  1343→7. COMMAND / EVENT MODEL
+  1344→
+  1345→Aucune modification métier critique ne doit être effectuée directement par une interface utilisateur.
+  1346→
+  1347→Flux :
+  1348→
+  1349→COMMAND
+  1350→ ↓
+  1351→VALIDATION
+  1352→ ↓
+  1353→AUTHORIZATION
+  1354→ ↓
+  1355→POLICY
+  1356→ ↓
+  1357→DOMAIN LOGIC
+  1358→ ↓
+  1359→STATE CHANGE
+  1360→ ↓
+  1361→DOMAIN EVENT
+  1362→ ↓
+  1363→EVIDENCE
+  1364→ ↓
+  1365→AUDIT
+  1366→
+  1367→Exemple :
+  1368→
+  1369→CreatePaymentCommand
+  1370→        ↓
+  1371→PaymentPolicyCheck
+  1372→        ↓
+  1373→PaymentRiskCheck
+  1374→        ↓
+  1375→PaymentExecution
+  1376→        ↓
+  1377→PaymentCreated
+  1378→        ↓
+  1379→PaymentExecuted
+  1380→        ↓
+  1381→PaymentReconciled
+  1382→        ↓
+  1383→AccountingEntryCreated
+  1384→8. CONTRACT MODEL
+  1385→
+  1386→Chaque bounded context possède :
+  1387→
+  1388→commands/
+  1389→queries/
+  1390→events/
+  1391→schemas/
+  1392→services/
+  1393→ports/
+  1394→
+  1395→Les contrats sont indépendants de l'implémentation.
+  1396→
+  1397→Exemple :
+  1398→
+  1399→class CreatePaymentCommand:
+  1400→    tenant_id: UUID
+  1401→    organization_id: UUID
+  1402→    source_account_id: UUID
+  1403→    destination: PaymentDestination
+  1404→    amount: Money
+  1405→    currency: Currency
+  1406→    idempotency_key: str
+  1407→
+  1408→Les événements sont immuables.
+  1409→
+  1410→class PaymentExecuted:
+  1411→    event_id: UUID
+  1412→    payment_id: UUID
+  1413→    tenant_id: UUID
+  1414→    amount: Decimal
+  1415→    currency: str
+  1416→    provider: str
+  1417→    executed_at: datetime
+  1418→9. DATABASE ARCHITECTURE
+  1419→
+  1420→PostgreSQL constitue la base transactionnelle principale.
+  1421→
+  1422→Principes :
+  1423→
+  1424→PostgreSQL
+  1425→├── Multi-tenant
+  1426→├── RLS
+  1427→├── UUID
+  1428→├── JSONB
+  1429→├── Temporal metadata
+  1430→├── Audit metadata
+  1431→├── Partitioning
+  1432→├── Constraints
+  1433→├── Foreign Keys
+  1434→├── Index strategy
+  1435→└── Migration control
+  1436→
+  1437→Schémas logiques :
+  1438→
+  1439→core
+  1440→money
+  1441→finance
+  1442→graph
+  1443→ai
+  1444→agents
+  1445→sectors
+  1446→countries
+  1447→marketplace
+  1448→audit
+  1449→evidence
+  1450→integration
+  1451→
+  1452→Les schémas physiques peuvent être ajustés selon les exigences de déploiement.
+  1453→
+  1454→10. CORE DATA ENTITIES
+  1455→tenant
+  1456→organization
+  1457→legal_entity
+  1458→business_unit
+  1459→branch
+  1460→department
+  1461→user
+  1462→role
+  1463→permission
+  1464→customer
+  1465→supplier
+  1466→employee
+  1467→partner
+  1468→product
+  1469→service
+  1470→contract
+  1471→document
+  1472→workflow
+  1473→task
+  1474→approval
+  1475→notification
+  1476→11. MONEY DATA ENTITIES
+  1477→payment_account
+  1478→wallet
+  1479→bank_account
+  1480→mobile_money_account
+  1481→payment_method
+  1482→payment
+  1483→payment_attempt
+  1484→payment_provider
+  1485→payment_route
+  1486→transfer
+  1487→collection
+  1488→disbursement
+  1489→fee
+  1490→settlement
+  1491→reconciliation
+  1492→transaction_risk
+  1493→12. FINANCE DATA ENTITIES
+  1494→chart_of_account
+  1495→account
+  1496→accounting_period
+  1497→journal
+  1498→journal_entry
+  1499→ledger_entry
+  1500→invoice
+  1501→invoice_line
+  1502→credit_note
+  1503→debit_note
+  1504→expense
+  1505→tax
+  1506→tax_rate
+  1507→vat
+  1508→budget
+  1509→budget_line
+  1510→forecast
+  1511→cash_flow
+  1512→financial_statement
+  1513→closing
+  1514→13. GRAPH DATA ENTITIES
+  1515→graph_node
+  1516→graph_edge
+  1517→graph_entity
+  1518→graph_relation
+  1519→graph_snapshot
+  1520→graph_projection
+  1521→graph_embedding
+  1522→graph_evidence
+  1523→
+  1524→Le Graph ne remplace pas PostgreSQL transactionnel.
+  1525→
+  1526→Il fournit une représentation spécialisée des relations métier.
+  1527→
+  1528→14. AI DATA ENTITIES
+  1529→ai_model
+  1530→model_provider
+  1531→model_version
+  1532→model_capability
+  1533→ai_request
+  1534→ai_response
+  1535→ai_decision
+  1536→ai_evaluation
+  1537→prompt_template
+  1538→embedding
+  1539→retrieval
+  1540→reranking
+  1541→knowledge_source
+  1542→knowledge_chunk
+  1543→model_risk
+  1544→drift_measurement
+  1545→15. AGENT DATA ENTITIES
+  1546→agent
+  1547→agent_version
+  1548→agent_capability
+  1549→agent_policy
+  1550→agent_tool
+  1551→agent_run
+  1552→agent_task
+  1553→agent_plan
+  1554→agent_action
+  1555→agent_approval
+  1556→agent_execution
+  1557→agent_evidence
+  1558→agent_failure
+  1559→16. INVARIANTS
+  1560→INV-001 — Tenant Isolation
+  1561→
+  1562→Aucune donnée d'un tenant ne peut être accessible par un autre tenant.
+  1563→
+  1564→INV-002 — Authorization
+  1565→
+  1566→Toute opération protégée doit être autorisée.
+  1567→
+  1568→INV-003 — Policy Enforcement
+  1569→
+  1570→Toute opération sensible doit passer par le Policy Engine.
+  1571→
+  1572→INV-004 — Financial Integrity
+  1573→
+  1574→Tout mouvement financier doit être traçable.
+  1575→
+  1576→INV-005 — Accounting Integrity
+  1577→
+  1578→Les écritures comptables doivent respecter débit = crédit.
+  1579→
+  1580→INV-006 — Idempotency
+  1581→
+  1582→Les opérations financières critiques doivent être idempotentes.
+  1583→
+  1584→INV-007 — Event Immutability
+  1585→
+  1586→Un événement publié ne peut pas être modifié.
+  1587→
+  1588→INV-008 — Evidence
+  1589→
+  1590→Toute décision IA ayant un impact métier significatif doit produire une preuve exploitable.
+  1591→
+  1592→INV-009 — Human Oversight
+  1593→
+  1594→Les actions dépassant les seuils de risque ou d'autorisation nécessitent une validation humaine.
+  1595→
+  1596→INV-010 — Agent Least Privilege
+  1597→
+  1598→Un agent possède uniquement les permissions nécessaires à sa fonction.
+  1599→
+  1600→INV-011 — Country Isolation
+  1601→
+  1602→Les règles nationales sont encapsulées dans les Country Packs.
+  1603→
+  1604→INV-012 — Sector Isolation
+  1605→
+  1606→Les extensions sectorielles ne doivent pas contaminer le Core.
+  1607→
+  1608→INV-013 — Versioning
+  1609→
+  1610→Les contrats publics sont versionnés.
+  1611→
+  1612→INV-014 — Auditability
+  1613→
+  1614→Toute action critique est auditable.
+  1615→
+  1616→INV-015 — Explainability
+  1617→
+  1618→Les décisions IA critiques doivent être explicables.
+  1619→
+  1620→17. AI DECISION CONTROL
+  1621→
+  1622→Une décision IA suit :
+  1623→
+  1624→INPUT
+  1625→ ↓
+  1626→CONTEXT
+  1627→ ↓
+  1628→RETRIEVAL
+  1629→ ↓
+  1630→MODEL
+  1631→ ↓
+  1632→REASONING
+  1633→ ↓
+  1634→CONFIDENCE
+  1635→ ↓
+  1636→RISK
+  1637→ ↓
+  1638→POLICY
+  1639→ ↓
+  1640→DECISION
+  1641→ ↓
+  1642→HUMAN REVIEW
+  1643→ ↓
+  1644→ACTION
+  1645→
+  1646→Le système doit distinguer :
+  1647→
+  1648→AI_SUGGESTION
+  1649→AI_RECOMMENDATION
+  1650→AI_DECISION
+  1651→AUTHORIZED_ACTION
+  1652→EXECUTED_ACTION
+  1653→
+  1654→Ces états ne sont pas interchangeables.
+  1655→
+  1656→18. AGENT EXECUTION CONTROL
+  1657→Agent
+  1658→ ↓
+  1659→Intent
+  1660→ ↓
+  1661→Plan
+  1662→ ↓
+  1663→Tool Selection
+  1664→ ↓
+  1665→Policy
+  1666→ ↓
+  1667→Authorization
+  1668→ ↓
+  1669→Risk
+  1670→ ↓
+  1671→Approval
+  1672→ ↓
+  1673→Execution
+  1674→ ↓
+  1675→Verification
+  1676→ ↓
+  1677→Evidence
+  1678→ ↓
+  1679→Audit
+  1680→
+  1681→Toute défaillance doit produire un état contrôlé.
+  1682→
+  1683→19. OBSERVABILITY
+  1684→
+  1685→Chaque opération importante possède :
+  1686→
+  1687→trace_id
+  1688→correlation_id
+  1689→causation_id
+  1690→actor_id
+  1691→tenant_id
+  1692→organization_id
+  1693→operation_id
+  1694→policy_decision_id
+  1695→evidence_id
+  1696→
+  1697→Observabilité :
+  1698→
+  1699→Logs
+  1700→Metrics
+  1701→Traces
+  1702→Events
+  1703→Agent Runs
+  1704→AI Calls
+  1705→Policy Decisions
+  1706→Financial Operations
+  1707→Security Events
+  1708→20. RESILIENCE
+  1709→
+  1710→Le système doit prévoir :
+  1711→
+  1712→Retry
+  1713→Timeout
+  1714→Circuit Breaker
+  1715→Idempotency
+  1716→Dead Letter Queue
+  1717→Provider Failover
+  1718→Transaction Recovery
+  1719→Workflow Compensation
+  1720→Agent Recovery
+  1721→Evidence Preservation
+  1722→21. SECURITY MODEL
+  1723→Identity
+  1724→ ↓
+  1725→Authentication
+  1726→ ↓
+  1727→Authorization
+  1728→ ↓
+  1729→RBAC
+  1730→ ↓
+  1731→ABAC
+  1732→ ↓
+  1733→Resource Policy
+  1734→ ↓
+  1735→Risk Policy
+  1736→ ↓
+  1737→Execution Policy
+  1738→
+  1739→La sécurité doit être appliquée au niveau :
+  1740→
+  1741→API
+  1742→Service
+  1743→Command
+  1744→Query
+  1745→Database
+  1746→Agent
+  1747→Tool
+  1748→Workflow
+  1749→Transaction
+  1750→Document
+  1751→AI
+  1752→22. API PRINCIPLES
+  1753→
+  1754→Les API doivent être :
+  1755→
+  1756→versionnées ;
+  1757→idempotentes lorsque nécessaire ;
+  1758→authentifiées ;
+  1759→autorisées ;
+  1760→documentées ;
+  1761→observables ;
+  1762→rate-limited ;
+  1763→auditables.
+  1764→
+  1765→Structure :
+  1766→
+  1767→/api/v1/core
+  1768→/api/v1/money
+  1769→/api/v1/finance
+  1770→/api/v1/graph
+  1771→/api/v1/ai
+  1772→/api/v1/agents
+  1773→/api/v1/sectors
+  1774→/api/v1/countries
+  1775→/api/v1/marketplace
+  1776→23. MARKETPLACE CONTRACT
+  1777→
+  1778→Une extension Marketplace doit fournir :
+  1779→
+  1780→manifest
+  1781→metadata
+  1782→version
+  1783→dependencies
+  1784→permissions
+  1785→capabilities
+  1786→configuration
+  1787→healthcheck
+  1788→security_policy
+  1789→compatibility
+  1790→installation_hooks
+  1791→uninstallation_hooks
+  1792→
+  1793→Aucune extension ne peut accéder librement au système.
+  1794→
+  1795→24. V1 NON-GOALS
+  1796→
+  1797→YAHRIA BUSINESS OS V1 ne cherche pas à :
+  1798→
+  1799→remplacer toutes les banques ;
+  1800→devenir immédiatement un core banking ;
+  1801→devenir un système gouvernemental ;
+  1802→fournir toutes les réglementations mondiales ;
+  1803→automatiser sans supervision toutes les décisions critiques ;
+  1804→supporter tous les secteurs dès la première release.
+  1805→
+  1806→La V1 doit établir un socle extensible et sécurisé.
+  1807→
+  1808→25. V1 SUCCESS CRITERIA
+  1809→
+  1810→Le produit est considéré comme architecturalement prêt lorsque :
+  1811→
+  1812→CORE
+  1813→✓
+  1814→
+  1815→MONEY
+  1816→✓
+  1817→
+  1818→FINANCE
+  1819→✓
+  1820→
+  1821→BUSINESS GRAPH
+  1822→✓
+  1823→
+  1824→AI
+  1825→✓
+  1826→
+  1827→AGENTS
+  1828→✓
+  1829→
+  1830→SECTOR ENGINES
+  1831→✓
+  1832→
+  1833→COUNTRY PACKS
+  1834→✓
+  1835→
+  1836→API PLATFORM
+  1837→✓
+  1838→
+  1839→MARKETPLACE
+  1840→✓
+  1841→
+  1842→SECURITY
+  1843→✓
+  1844→
+  1845→POLICY
+  1846→✓
+  1847→
+  1848→AUDIT
+  1849→✓
+  1850→
+  1851→EVIDENCE
+  1852→✓
+  1853→
+  1854→sont tous intégrés par contrats explicites et testables.
+  1855→
+  1856→26. FINAL ARCHITECTURAL PRINCIPLE
+  1857→
+  1858→YAHRIA BUSINESS OS n'est pas :
+  1859→
+  1860→ERP + AI
+  1861→
+  1862→Il est :
+  1863→
+  1864→BUSINESS OPERATING SYSTEM
+  1865→
+  1866→        DATA
+  1867→          ↓
+  1868→       GRAPH
+  1869→          ↓
+  1870→    INTELLIGENCE
+  1871→          ↓
+  1872→      DECISION
+  1873→          ↓
+  1874→       POLICY
+  1875→          ↓
+  1876→       AGENTS
+  1877→          ↓
+  1878→      EXECUTION
+  1879→          ↓
+  1880→      EVIDENCE
+  1881→          ↓
+  1882→       LEARNING
+  1883→          ↺
+  1884→
+  1885→L'objectif V1 est donc de construire une plateforme capable de comprendre l'entreprise, de l'assister, de recommander des décisions, d'exécuter certaines opérations sous contrôle et d'en conserver une preuve complète.
+  1886→
+  1887→END OF ARCHITECTURE BASELINE
+  1888→
+  1889→2. Arborescence du monorepo
+  1890→
+  1891→À partir de cette architecture, je recommande de ne pas mélanger architecture produit et implémentation. Le monorepo doit refléter les bounded contexts et conserver une couche de contrats explicite.
+  1892→
+  1893→yahria-business-os/
+  1894→│
+  1895→├── 00_GOVERNANCE/
+  1896→│   ├── 00_BUSINESS_OS_CONTRACT.md
+  1897→│   ├── CANONICAL_INDEX.md
+  1898→│   ├── ARCHITECTURE_DECISIONS.md
+  1899→│   ├── GLOBAL_INVARIANTS.md
+  1900→│   ├── DEPENDENCY_GRAPH.md
+  1901→│   ├── IMPLEMENTATION_MANIFEST.md
+  1902→│   ├── FILE_GENERATION_MANIFEST.md
+  1903→│   ├── ACCEPTANCE_TEST_MANIFEST.md
+  1904→│   ├── EVIDENCE_MANIFEST.md
+  1905→│   ├── STATE_TRANSITION_MANIFEST.md
+  1906→│   ├── AUTONOMY_GOVERNANCE_MANIFEST.md
+  1907→│   ├── FAILURE_AND_RECOVERY_MANIFEST.md
+  1908→│   ├── SECURITY_BASELINE.md
+  1909→│   ├── DATA_GOVERNANCE.md
+  1910→│   ├── AI_GOVERNANCE.md
+  1911→│   └── MARKETPLACE_GOVERNANCE.md
+  1912→│
+  1913→├── 01_CONTRACTS/
+  1914→│   ├── domain/
+  1915→│   │   ├── core/
+  1916→│   │   ├── money/
+  1917→│   │   ├── finance/
+  1918→│   │   ├── business_graph/
+  1919→│   │   ├── ai/
+  1920→│   │   ├── agents/
+  1921→│   │   ├── sectors/
+  1922→│   │   ├── countries/
+  1923→│   │   └── marketplace/
+  1924→│   │
+  1925→│   ├── api/
+  1926→│   │   ├── openapi/
+  1927→│   │   ├── graphql/
+  1928→│   │   └── webhooks/
+  1929→│   │
+  1930→│   ├── commands/
+  1931→│   ├── queries/
+  1932→│   ├── events/
+  1933→│   ├── schemas/
+  1934→│   └── integration/
+  1935→│
+  1936→├── 02_CORE/
+  1937→│   ├── domain/
+  1938→│   │   ├── organization/
+  1939→│   │   ├── legal_entity/
+  1940→│   │   ├── business_unit/
+  1941→│   │   ├── branch/
+  1942→│   │   ├── department/
+  1943→│   │   ├── customer/
+  1944→│   │   ├── supplier/
+  1945→│   │   ├── employee/
+  1946→│   │   ├── partner/
+  1947→│   │   ├── product/
+  1948→│   │   ├── service/
+  1949→│   │   ├── contract/
+  1950→│   │   ├── document/
+  1951→│   │   ├── workflow/
+  1952→│   │   ├── task/
+  1953→│   │   └── approval/
+  1954→│   │
+  1955→│   ├── application/
+  1956→│   ├── infrastructure/
+  1957→│   ├── api/
+  1958→│   └── tests/
+  1959→│
+  1960→├── 03_MONEY/
+  1961→│   ├── domain/
+  1962→│   │   ├── payment_account/
+  1963→│   │   ├── wallet/
+  1964→│   │   ├── bank_account/
+  1965→│   │   ├── mobile_money/
+  1966→│   │   ├── payment/
+  1967→│   │   ├── collection/
+  1968→│   │   ├── disbursement/
+  1969→│   │   ├── transfer/
+  1970→│   │   ├── routing/
+  1971→│   │   ├── orchestration/
+  1972→│   │   ├── fee/
+  1973→│   │   ├── settlement/
+  1974→│   │   └── reconciliation/
+  1975→│   │
+  1976→│   ├── application/
+  1977→│   ├── infrastructure/
+  1978→│   │   ├── banking/
+  1979→│   │   ├── mobile_money/
+  1980→│   │   ├── payment_providers/
+  1981→│   │   └── fx/
+  1982→│   ├── api/
+  1983→│   └── tests/
+  1984→│
+  1985→├── 04_FINANCE/
+  1986→│   ├── domain/
+  1987→│   │   ├── accounting/
+  1988→│   │   ├── ledger/
+  1989→│   │   ├── accounts/
+  1990→│   │   ├── journal/
+  1991→│   │   ├── invoice/
+  1992→│   │   ├── expense/
+  1993→│   │   ├── receivables/
+  1994→│   │   ├── payables/
+  1995→│   │   ├── tax/
+  1996→│   │   ├── vat/
+  1997→│   │   ├── budget/
+  1998→│   │   ├── forecast/
+  1999→│   │   ├── cashflow/
+  2000→│   │   ├── statements/
+
+[showing lines 1-2000 of 3908; use offset=2001 with limit to continue reading]

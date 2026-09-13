@@ -1,0 +1,446 @@
+// YAHRIA BUSINESS OS V1 — Data Model (YBOS-ARCH-V1 §9-17)
+// Multi-tenant, UUID-like ids, audit metadata, evidence references.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./db/yahria.db"
+}
+
+// ─────────────────────────────── PLATFORM LAYER ───────────────────────────────
+
+model Tenant {
+  id           String         @id @default(cuid())
+  slug         String         @unique
+  name         String
+  plan         String         @default("ENTERPRISE")
+  status       String         @default("ACTIVE")
+  createdAt    DateTime       @default(now())
+  organizations Organization[]
+}
+
+model Organization {
+  id           String  @id @default(cuid())
+  tenantId     String
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  name         String
+  legalName    String
+  countryCode  String // CI | SN
+  city         String
+  currencyCode String // XOF
+  sectorCode   String // ENTERPRISE
+  taxId        String // NCC / NINEA
+  rccm         String
+  status       String  @default("ACTIVE")
+  createdAt    DateTime @default(now())
+
+  customers  Customer[]
+  suppliers  Supplier[]
+  employees  Employee[]
+  products   Product[]
+  accounts   PaymentAccount[]
+  payments   Payment[]
+  invoices   Invoice[]
+  expenses   Expense[]
+  accounts_  Account[]
+  journal    JournalEntry[]
+  agents     Agent[]
+  runs       AgentRun[]
+  approvals  Approval[]
+  policies   Policy[]
+  audit      AuditRecord[]
+  evidence   Evidence[]
+  nodes      GraphNode[]
+  edges      GraphEdge[]
+}
+
+// ─────────────────────────────── 00_CORE ───────────────────────────────
+
+model Customer {
+  id          String    @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  code        String
+  name        String
+  segment     String // SME | CORP | NGO | GOV | RETAIL
+  email       String?
+  phone       String?
+  city        String?
+  countryCode String?
+  taxId       String?
+  riskScore   Float     @default(20)
+  status      String    @default("ACTIVE") // ACTIVE | SUSPENDED | ARCHIVED
+  createdAt   DateTime  @default(now())
+  invoices    Invoice[]
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  code        String
+  name        String
+  category    String // LOGISTICS | SUPPLIES | SERVICES | TELECOM | UTILITIES
+  email       String?
+  phone       String?
+  city        String?
+  performance Int      @default(80) // 0-100
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+}
+
+model Employee {
+  id           String   @id @default(cuid())
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id])
+  code         String
+  name         String
+  position     String
+  department   String // DIRECTION | FINANCE | OPS | COMMERCIAL | IT
+  contractType String // CDI | CDD | STAGE | CONSULTANT
+  grossSalary  Float
+  currency     String   @default("XOF")
+  status       String   @default("ACTIVE")
+  hiredAt      DateTime @default(now())
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  code        String
+  name        String
+  type        String // PRODUCT | SERVICE
+  unit        String   @default("unité")
+  unitPrice   Float
+  vatRate     Float    @default(0.18)
+  stock       Int?
+  description String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+}
+
+// ─────────────────────────────── 01_MONEY ───────────────────────────────
+
+model PaymentAccount {
+  id          String  @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  name        String
+  type        String // BANK | MOBILE_MONEY | WALLET | CASH
+  provider    String // SGCI | BICICI | ORANGE_MONEY | MTN_MOMO | WAVE | CAISSE
+  accountNo   String?
+  currency    String  @default("XOF")
+  balance     Float   @default(0)
+  isDefault   Boolean @default(false)
+  status      String  @default("ACTIVE")
+  createdAt   DateTime @default(now())
+}
+
+model Payment {
+  id                String    @id @default(cuid())
+  orgId             String
+  org               Organization @relation(fields: [orgId], references: [id])
+  reference         String    @unique
+  idempotencyKey    String    @unique
+  type              String // COLLECTION | DISBURSEMENT | TRANSFER
+  direction         String // IN | OUT | INTERNAL
+  amount            Float
+  fee               Float     @default(0)
+  currency          String    @default("XOF")
+  counterpartyName  String
+  counterpartyType  String // CUSTOMER | SUPPLIER | EMPLOYEE | INTERNAL | OTHER
+  method            String // MOBILE_MONEY | BANK_TRANSFER | CASH | WALLET
+  provider          String
+  sourceAccountId   String?
+  destAccountId     String?
+  invoiceId         String?
+  invoice           Invoice?  @relation(fields: [invoiceId], references: [id])
+  expenseId         String?
+  status            String // PENDING_POLICY | PENDING_APPROVAL | APPROVED | EXECUTED | RECONCILED | FAILED | REJECTED | CANCELLED
+  policyDecisionId  String?
+  policyDecision    String? // ALLOW | REQUIRE_APPROVAL | DENY
+  policyReason      String?
+  riskScore         Float     @default(0)
+  riskLevel         String    @default("LOW") // LOW | MEDIUM | HIGH | CRITICAL
+  initiatedByType   String    @default("HUMAN") // HUMAN | AGENT | SYSTEM
+  initiatedByName   String    @default("Awa Koné")
+  agentRunId        String?
+  approvalId        String?
+  evidenceId        String?
+  reason            String?
+  timeline          String    @default("[]") // JSON array of {ts, state, note}
+  createdAt         DateTime  @default(now())
+  executedAt        DateTime?
+  reconciliations   Reconciliation[]
+}
+
+model Reconciliation {
+  id           String    @id @default(cuid())
+  orgId        String
+  paymentId    String
+  payment      Payment   @relation(fields: [paymentId], references: [id])
+  externalRef  String
+  provider     String
+  amount       Float
+  currency     String    @default("XOF")
+  matched      Boolean   @default(false)
+  variance     Float     @default(0)
+  note         String?
+  reconciledAt DateTime  @default(now())
+}
+
+// ─────────────────────────────── 02_FINANCE ───────────────────────────────
+
+model Invoice {
+  id         String   @id @default(cuid())
+  orgId      String
+  org        Organization @relation(fields: [orgId], references: [id])
+  number     String   @unique
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  status     String   @default("DRAFT") // DRAFT | SENT | PARTIAL | PAID | OVERDUE | CANCELLED
+  issueDate  DateTime @default(now())
+  dueDate    DateTime
+  currency   String   @default("XOF")
+  subtotal   Float    @default(0)
+  vatRate    Float    @default(0.18)
+  vatAmount  Float    @default(0)
+  total      Float    @default(0)
+  paidAmount Float    @default(0)
+  notes      String?
+  createdAt  DateTime @default(now())
+  lines      InvoiceLine[]
+  payments   Payment[]
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId   String?
+  description String
+  quantity    Float
+  unitPrice   Float
+  vatRate     Float   @default(0.18)
+  lineTotal   Float
+}
+
+model Expense {
+  id               String   @id @default(cuid())
+  orgId            String
+  org              Organization @relation(fields: [orgId], references: [id])
+  reference        String   @unique
+  category         String // RENT | UTILITIES | FUEL | SALARIES | SUPPLIES | TRANSPORT | TELECOM | OTHER
+  description      String
+  amount           Float
+  vatAmount        Float    @default(0)
+  currency         String   @default("XOF")
+  supplierId       String?
+  status           String   @default("PENDING") // PENDING | APPROVED | PAID
+  expenseDate      DateTime @default(now())
+  paymentAccountId String?
+  createdAt        DateTime @default(now())
+}
+
+// SYSCOHADA chart of accounts (OHADA)
+model Account {
+  id      String @id @default(cuid())
+  orgId   String
+  org     Organization @relation(fields: [orgId], references: [id])
+  code    String
+  name    String
+  class   Int // 1..8
+  type    String // ASSET | LIABILITY | EQUITY | REVENUE | EXPENSE | TREASURY
+}
+
+model JournalEntry {
+  id          String  @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  entryDate   DateTime @default(now())
+  reference   String
+  description String
+  source      String // INVOICE | PAYMENT | EXPENSE | PAYROLL | MANUAL
+  sourceId    String?
+  posted      Boolean @default(true)
+  createdAt   DateTime @default(now())
+  lines       LedgerLine[]
+}
+
+model LedgerLine {
+  id          String       @id @default(cuid())
+  entryId     String
+  entry       JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountCode String
+  accountName String
+  debit       Float        @default(0)
+  credit      Float        @default(0)
+}
+
+// ─────────────────────────────── 03_BUSINESS_GRAPH ───────────────────────────────
+
+model GraphNode {
+  id       String  @id @default(cuid())
+  orgId    String
+  org      Organization @relation(fields: [orgId], references: [id])
+  nodeType String // ORGANIZATION | CUSTOMER | SUPPLIER | EMPLOYEE | PRODUCT | INVOICE | PAYMENT | ACCOUNT | EXPENSE | AGENT
+  refId    String
+  label    String
+  meta     String  @default("{}")
+  risk     Float?
+}
+
+model GraphEdge {
+  id          String @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  sourceId    String
+  targetId    String
+  relation    String // ISSUES_TO | PAYS | RECEIVES_FROM | SUPPLIES | OWNS | EMPLOYS | BELONGS_TO | SETTLES | CHARGES | OPERATED_BY
+  weight      Float  @default(1)
+}
+
+// ─────────────────────────────── 04_AI / 05_AGENTS ───────────────────────────────
+
+model Agent {
+  id             String  @id @default(cuid())
+  orgId          String
+  org            Organization @relation(fields: [orgId], references: [id])
+  code           String  @unique // FinanceAgent
+  name           String
+  domain         String // FINANCE | TREASURY | ACCOUNTING | PAYMENT | PROCUREMENT | SALES | COMPLIANCE | RISK | TAX | OPS | REPORTING | EXECUTIVE
+  status         String  @default("READONLY") // ACTIVE | READONLY | SUSPENDED | QUARANTINE
+  autonomyLevel  String  @default("SUGGEST") // SUGGEST | RECOMMEND | DECIDE | ACT
+  description    String
+  capabilities   String  @default("[]")
+  tools          String  @default("[]")
+  maxAmount      Float   @default(0)
+  approvalAbove  Float   @default(0)
+  readOnly       Boolean @default(true)
+  version        String  @default("1.0.0")
+  createdAt      DateTime @default(now())
+  runs           AgentRun[]
+}
+
+model AgentRun {
+  id              String    @id @default(cuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id])
+  agentId         String
+  agent           Agent     @relation(fields: [agentId], references: [id])
+  intent          String
+  inputJson       String    @default("{}")
+  state           String // RUNNING | AWAITING_APPROVAL | COMPLETED | REJECTED | FAILED | BLOCKED_POLICY
+  steps           String    @default("[]") // control-loop trace
+  policyDecisionId String?
+  policyDecision  String?
+  riskScore       Float     @default(0)
+  riskLevel       String    @default("LOW")
+  proposedAction  String    @default("{}")
+  resultJson      String?
+  evidenceId      String?
+  paymentId       String?
+  actorType       String    @default("AGENT")
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+  approvals       Approval[]
+}
+
+model Approval {
+  id          String    @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id])
+  kind        String // AGENT_ACTION | PAYMENT
+  status      String    @default("PENDING") // PENDING | APPROVED | REJECTED
+  runId       String?
+  run         AgentRun? @relation(fields: [runId], references: [id])
+  paymentId   String?
+  title       String
+  description String
+  amount      Float?
+  currency    String?
+  requestedBy String
+  riskLevel   String    @default("MEDIUM")
+  decidedBy   String?
+  decisionNote String?
+  decidedAt   DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+// ─────────────────────────────── 99_GOVERNANCE ───────────────────────────────
+
+model Policy {
+  id          String   @id @default(cuid())
+  orgId       String?
+  org         Organization? @relation(fields: [orgId], references: [id])
+  code        String   @unique
+  name        String
+  category    String // PAYMENT | AGENT | AI | SECURITY | FINANCE | DATA | APPROVAL
+  description String
+  ruleJson    String   @default("{}") // thresholds
+  active      Boolean  @default(true)
+  version     Int      @default(1)
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditRecord {
+  id           String   @id @default(cuid())
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id])
+  traceId      String
+  actorType    String // HUMAN | AGENT | SYSTEM
+  actorId      String
+  actorName    String
+  action       String
+  resourceType String
+  resourceId   String?
+  summary      String
+  metaJson     String   @default("{}")
+  createdAt    DateTime @default(now())
+}
+
+model Evidence {
+  id         String   @id @default(cuid())
+  orgId      String
+  org        Organization @relation(fields: [orgId], references: [id])
+  ref        String   @unique
+  kind       String // PAYMENT | AGENT_DECISION | AI_ANSWER | POLICY | ACCOUNTING | APPROVAL
+  title      String
+  payloadJson String
+  hash       String
+  provenanceJson String @default("{}")
+  relatedId  String?
+  createdAt  DateTime @default(now())
+}
+
+// ─────────────────────────────── 07_COUNTRY_PACKS / 06_SECTOR_ENGINES ───────────────────────────────
+
+model CountryPack {
+  id            String  @id @default(cuid())
+  code          String  @unique // CI | SN
+  name          String
+  currency      String
+  vatRate       Float
+  mobileMoneyJson String // providers
+  banksJson     String
+  payrollJson   String
+  complianceJson String
+  invoicingJson String
+  active        Boolean @default(true)
+  version       String  @default("1.0.0")
+}
+
+model SectorEngine {
+  id          String  @id @default(cuid())
+  code        String  @unique
+  name        String
+  description String
+  entitiesJson String
+  kpisJson    String
+  workflowsJson String
+  status      String  @default("PLANNED") // AVAILABLE | PLANNED
+}

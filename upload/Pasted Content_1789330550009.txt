@@ -1,0 +1,3908 @@
+Je le positionnerais comme la couche d'exploitation intelligente de l'entreprise, construite sur les fondations technologiques YAHRIA : identité, politiques, agents, knowledge graph, evidence, exécution, IA multi-modèles et gouvernance.
+
+YAHRIA BUSINESS OS V1
+Positionnement
+
+YAHRIA BUSINESS OS
+The Intelligent Operating System for African Business.
+
+Son rôle :
+
+DONNÉES
+   ↓
+CONTEXTE
+   ↓
+BUSINESS GRAPH
+   ↓
+INTELLIGENCE
+   ↓
+DÉCISION
+   ↓
+WORKFLOW
+   ↓
+ACTION
+   ↓
+CONTRÔLE
+   ↓
+EVIDENCE
+
+L'entreprise ne travaille donc plus seulement dans YAHRIA.
+
+Elle peut progressivement être opérée par YAHRIA, sous contrôle humain et avec traçabilité.
+
+1. Architecture générale
+
+Je figerais V1 autour de cette architecture :
+
+YAHRIA ECOSYSTEM
+│
+├── YAHRIA PLATFORM
+│   │
+│   ├── Identity & Access
+│   ├── Organization
+│   ├── Tenant
+│   ├── RBAC / ABAC
+│   ├── Policy Engine
+│   ├── Workflow Engine
+│   ├── Event Bus
+│   ├── Audit
+│   ├── Evidence
+│   ├── Knowledge
+│   ├── AI Gateway
+│   ├── Agent Runtime
+│   └── Execution Fabric
+│
+└── YAHRIA BUSINESS OS
+    │
+    ├── CORE
+    ├── MONEY
+    ├── FINANCE
+    ├── BUSINESS GRAPH
+    ├── AI
+    ├── AGENTS
+    ├── SECTOR ENGINES
+    ├── COUNTRY PACKS
+    ├── API PLATFORM
+    └── MARKETPLACE
+
+Le point important est donc :
+
+YAHRIA BUSINESS OS dépend de YAHRIA PLATFORM, mais constitue un produit autonome.
+
+2. Le Core
+
+Le Business Core est le noyau opérationnel commun à toutes les entreprises.
+
+CORE
+│
+├── Organizations
+├── Business Units
+├── Legal Entities
+├── Branches
+├── Departments
+├── Workspaces
+├── Users
+├── Roles
+├── Customers
+├── Suppliers
+├── Employees
+├── Partners
+├── Products
+├── Services
+├── Contracts
+├── Documents
+├── Tasks
+├── Workflows
+├── Approvals
+├── Notifications
+├── Calendar
+├── Communication
+├── Business Rules
+├── Events
+├── Audit Trail
+└── Evidence
+Principe fondamental
+
+Tout objet métier possède notamment :
+
+tenant_id
+organization_id
+entity_id
+created_by
+created_at
+updated_at
+status
+version
+policy_context
+audit_reference
+evidence_reference
+
+Cela permettra ensuite à l'IA et aux agents de comprendre qui, quoi, où, quand, pourquoi et avec quelle autorisation.
+
+3. YAHRIA MONEY
+
+C'est la couche financière transactionnelle.
+
+MONEY
+│
+├── Payment Accounts
+├── Wallets
+├── Bank Accounts
+├── Mobile Money Accounts
+├── Payment Methods
+│
+├── COLLECTIONS
+│   ├── Customer Payments
+│   ├── Invoice Payments
+│   ├── Subscription Payments
+│   └── Payment Links
+│
+├── DISBURSEMENTS
+│   ├── Supplier Payments
+│   ├── Payroll Payments
+│   ├── Refunds
+│   └── Mass Payouts
+│
+├── TRANSFERS
+│   ├── Internal
+│   ├── Bank
+│   ├── Mobile Money
+│   └── Cross-border
+│
+├── PAYMENT ORCHESTRATION
+│   ├── Routing
+│   ├── Provider Selection
+│   ├── Retry
+│   ├── Failover
+│   └── Idempotency
+│
+├── RECONCILIATION
+│
+├── SETTLEMENT
+│
+├── FEES
+│
+├── FX
+│
+└── TRANSACTION RISK
+
+L'intérêt de YAHRIA n'est donc pas seulement de faire un paiement.
+
+Le système doit pouvoir déterminer :
+
+Quel moyen de paiement ?
+Quel fournisseur ?
+Quel compte ?
+Quel montant ?
+Quel risque ?
+Quelle autorisation ?
+Quelle politique ?
+Quelle justification ?
+Quelle réconciliation ?
+
+4. YAHRIA FINANCE
+
+Au-dessus de MONEY vient la finance d'entreprise.
+
+FINANCE
+│
+├── Accounting
+├── General Ledger
+├── Chart of Accounts
+├── Journals
+├── Accounts Payable
+├── Accounts Receivable
+├── Invoicing
+├── Expenses
+├── Tax
+├── VAT
+├── Budget
+├── Forecast
+├── Cash Flow
+├── Financial Statements
+├── Closing
+├── Reconciliation
+├── Consolidation
+├── Multi-currency
+├── Multi-entity
+└── Financial Analytics
+
+Et surtout :
+
+FINANCE
+   ↕
+MONEY
+   ↕
+BUSINESS GRAPH
+   ↕
+AI
+
+Cela permet par exemple :
+
+FACTURE
+   ↓
+CLIENT
+   ↓
+ENCAISSEMENT
+   ↓
+MOBILE MONEY / BANQUE
+   ↓
+RÉCONCILIATION
+   ↓
+COMPTABILITÉ
+   ↓
+TRÉSORERIE
+   ↓
+PRÉVISION
+5. PROCUREMENT & SUPPLIERS
+
+Je l'intégrerais au Business OS même si ce n'est pas dans les neuf briques que tu as citées, car c'est indispensable à l'exploitation réelle.
+
+PROCUREMENT
+│
+├── Supplier Registry
+├── Supplier Qualification
+├── Supplier Risk
+├── RFQ
+├── Purchase Requests
+├── Purchase Orders
+├── Contracts
+├── Goods Receipt
+├── Supplier Invoices
+├── Approval
+├── Supplier Payments
+├── Supplier Performance
+└── Supplier Intelligence
+6. PEOPLE
+
+Même logique :
+
+PEOPLE
+│
+├── Employee Registry
+├── Organization Chart
+├── Contracts
+├── Attendance
+├── Leave
+├── Payroll
+├── Benefits
+├── Expenses
+├── Advances
+├── Employee Payments
+└── Workforce Intelligence
+
+Le payroll utilise directement :
+
+PEOPLE
+   ↓
+PAYROLL
+   ↓
+MONEY
+   ↓
+FINANCE
+   ↓
+ACCOUNTING
+7. BUSINESS GRAPH
+
+C'est probablement l'une des briques les plus différenciantes de YAHRIA BUSINESS OS.
+
+Je ne ferais pas simplement une base de données relationnelle.
+
+Je construirais un Business Knowledge Graph.
+
+                    ┌── EMPLOYEE
+                    │
+                    ↓
+CUSTOMER ←→ COMPANY ←→ SUPPLIER
+   │           │           │
+   ↓           ↓           ↓
+INVOICE     CONTRACT    PURCHASE
+   │           │           │
+   ↓           ↓           ↓
+PAYMENT ←→ ACCOUNT ←→ TRANSACTION
+   │
+   ↓
+BANK / MOBILE MONEY
+
+Puis :
+
+BUSINESS GRAPH
+│
+├── Customer Graph
+├── Supplier Graph
+├── Employee Graph
+├── Transaction Graph
+├── Payment Graph
+├── Contract Graph
+├── Product Graph
+├── Organization Graph
+├── Risk Graph
+├── Compliance Graph
+├── Relationship Graph
+├── Ownership Graph
+├── Geographic Graph
+└── Intelligence Graph
+
+Le Graph devient le contexte commun de l'IA.
+
+8. YAHRIA AI
+
+Je séparerais clairement AI et Agents.
+
+AI = intelligence.
+
+Agents = action.
+
+AI
+│
+├── AI Gateway
+├── Model Router
+├── Local Models
+├── Cloud Models
+├── Embeddings
+├── Reranking
+├── RAG
+├── Business Knowledge
+├── Business Reasoning
+├── Prediction
+├── Classification
+├── Anomaly Detection
+├── Forecasting
+├── Risk Scoring
+├── Recommendation
+├── Explainability
+├── AI Evaluation
+├── Model Registry
+└── Model Risk Management
+
+Le système peut utiliser plusieurs modèles selon la tâche :
+
+TASK
+ ↓
+AI ROUTER
+ ├── reasoning model
+ ├── coding model
+ ├── vision model
+ ├── embedding model
+ ├── reranker
+ ├── forecasting model
+ └── local/private model
+
+Cela rejoint directement l'architecture Multi-LLM que nous avons déjà envisagée pour YAHRIA.
+
+9. YAHRIA AGENTS
+
+C'est là que BUSINESS OS devient véritablement opérationnel.
+
+AGENTS
+│
+├── Finance Agent
+├── Treasury Agent
+├── Accounting Agent
+├── Payment Agent
+├── Procurement Agent
+├── Supplier Agent
+├── Payroll Agent
+├── Sales Agent
+├── Customer Agent
+├── Compliance Agent
+├── Risk Agent
+├── Tax Agent
+├── Operations Agent
+├── Reporting Agent
+├── Executive Agent
+└── Orchestrator Agent
+
+Mais les agents ne doivent jamais avoir des pouvoirs illimités.
+
+Ils passent par :
+
+AGENT
+ ↓
+INTENT
+ ↓
+POLICY ENGINE
+ ↓
+AUTHORIZATION
+ ↓
+RISK CHECK
+ ↓
+HUMAN APPROVAL ?
+ ↓
+EXECUTION FABRIC
+ ↓
+EVIDENCE
+ ↓
+AUDIT
+
+C'est essentiel pour la philosophie YAHRIA.
+
+10. Executive Intelligence
+
+Je créerais également une couche transverse :
+
+EXECUTIVE INTELLIGENCE
+│
+├── CEO Copilot
+├── CFO Copilot
+├── COO Copilot
+├── HR Copilot
+├── Procurement Copilot
+├── Sales Copilot
+├── Risk Copilot
+└── Board Intelligence
+
+Exemple :
+
+« Quelle est la situation financière de l'entreprise ? »
+
+YAHRIA ne répondrait pas simplement avec un LLM.
+
+Il construirait :
+
+QUESTION
+ ↓
+BUSINESS CONTEXT
+ ↓
+GRAPH
+ ↓
+FINANCE
+ ↓
+MONEY
+ ↓
+RISK
+ ↓
+FORECAST
+ ↓
+REASONING
+ ↓
+ANSWER
+ ↓
+EVIDENCE
+11. SECTOR ENGINES
+
+C'est ici que nous reprenons directement notre discussion précédente sur les secteurs.
+
+Les secteurs ne doivent pas être seulement des pages marketing.
+
+Ils deviennent des extensions métier du Business OS.
+
+SECTOR ENGINES
+│
+├── ENTERPRISE_ENGINE
+├── NGO_ENGINE
+├── MICROFINANCE_ENGINE
+├── RETAIL_ENGINE
+├── SCHOOL_ENGINE
+├── HOSPITAL_ENGINE
+├── CONSTRUCTION_ENGINE
+├── INDUSTRY_ENGINE
+├── TOLL_ENGINE
+├── RESTAURANT_ENGINE
+├── ECOMMERCE_ENGINE
+├── TRAVEL_ENGINE
+└── MONEY_TRANSFER_ENGINE
+
+Chaque Engine réutilise :
+
+CORE
+MONEY
+FINANCE
+GRAPH
+AI
+AGENTS
+COUNTRY PACK
+
+mais ajoute ses propres :
+
+entities
+workflows
+rules
+KPIs
+documents
+agents
+integrations
+policies
+12. COUNTRY PACKS
+
+Pour ton orientation africaine, cette brique est stratégique.
+
+COUNTRY PACKS
+│
+├── CI
+├── SN
+├── BJ
+├── TG
+├── BF
+├── ML
+├── NE
+├── GN
+├── CM
+├── GA
+├── CG
+├── CD
+├── TD
+├── CF
+├── GQ
+├── KM
+└── GW
+
+Chaque Country Pack :
+
+COUNTRY
+│
+├── Identity
+├── Legal Entities
+├── Tax
+├── Accounting
+├── Currency
+├── Banking
+├── Mobile Money
+├── Payment Providers
+├── Payroll Rules
+├── Invoicing
+├── Regulatory Rules
+├── Compliance
+├── Government APIs
+└── Local Workflows
+
+Et surtout :
+
+COUNTRY PACK
+      ↓
+RULE ENGINE
+      ↓
+BUSINESS OS
+
+Donc le même produit peut fonctionner différemment selon le pays sans dupliquer le Core.
+
+13. API PLATFORM
+API PLATFORM
+│
+├── REST API
+├── GraphQL
+├── Webhooks
+├── Events
+├── Commands
+├── SDKs
+├── API Keys
+├── OAuth2 / OIDC
+├── Service Accounts
+├── Rate Limiting
+├── Idempotency
+├── Versioning
+├── Developer Portal
+├── Sandbox
+├── API Analytics
+└── Integration Hub
+
+Avec une architecture :
+
+YAHRIA BUSINESS OS
+        │
+        ├── REST
+        ├── EVENTS
+        ├── WEBHOOKS
+        ├── CONNECTORS
+        └── SDK
+              │
+       ┌──────┼────────┐
+       ↓      ↓        ↓
+    BANKS   MOBILE   ERP/CRM
+             MONEY
+14. MARKETPLACE
+
+Le Marketplace devient le mécanisme d'extension de l'écosystème.
+
+MARKETPLACE
+│
+├── Apps
+├── Sector Engines
+├── Country Packs
+├── AI Agents
+├── AI Models
+├── Connectors
+├── Payment Providers
+├── Banking Connectors
+├── Accounting Packs
+├── Compliance Packs
+├── Templates
+├── Workflows
+├── Reports
+└── Developer Extensions
+
+Un partenaire pourrait donc développer :
+
+YAHRIA APP
+      ↓
+YAHRIA API
+      ↓
+YAHRIA POLICY
+      ↓
+YAHRIA EVENT BUS
+      ↓
+YAHRIA BUSINESS OS
+15. L'architecture de sécurité
+
+Compte tenu de tout ce que nous avons déjà construit dans YAHRIA, je ne mettrais surtout pas la sécurité en simple module.
+
+Elle doit traverser tout le système.
+
+SECURITY & GOVERNANCE
+│
+├── Identity
+├── Authentication
+├── Authorization
+├── RBAC
+├── ABAC
+├── Resource Policies
+├── Data Policies
+├── AI Policies
+├── Agent Policies
+├── Transaction Policies
+├── Approval Policies
+├── Secrets
+├── Encryption
+├── Audit
+├── Evidence
+├── Compliance
+├── Risk
+└── Governance
+16. Le cerveau opérationnel
+
+La vraie architecture YAHRIA devient alors :
+
+                 ┌──────────────────────┐
+                 │    HUMAN / USER      │
+                 └──────────┬───────────┘
+                            ↓
+                   ┌────────────────┐
+                   │ YAHRIA AI      │
+                   └───────┬────────┘
+                           ↓
+                  ┌──────────────────┐
+                  │ BUSINESS GRAPH   │
+                  └────────┬─────────┘
+                           ↓
+                 ┌────────────────────┐
+                 │ DECISION ENGINE    │
+                 └─────────┬──────────┘
+                           ↓
+                    ┌─────────────┐
+                    │   AGENTS    │
+                    └──────┬──────┘
+                           ↓
+                 ┌────────────────────┐
+                 │ POLICY / SECURITY  │
+                 └─────────┬──────────┘
+                           ↓
+                 ┌────────────────────┐
+                 │ EXECUTION FABRIC   │
+                 └─────────┬──────────┘
+                           ↓
+       ┌───────────────────┼───────────────────┐
+       ↓                   ↓                   ↓
+     MONEY              FINANCE             CORE
+       │                   │                   │
+       └───────────────────┼───────────────────┘
+                           ↓
+                     EVIDENCE
+                           ↓
+                        AUDIT
+
+C'est cette boucle qui différencie vraiment YAHRIA BUSINESS OS d'un ERP classique.
+
+17. Modèle de données conceptuel
+
+Le modèle V1 devrait s'organiser autour de quelques agrégats fondamentaux :
+
+TENANT
+  │
+  └── ORGANIZATION
+       │
+       ├── LEGAL_ENTITY
+       ├── BUSINESS_UNIT
+       ├── BRANCH
+       ├── USER
+       ├── EMPLOYEE
+       ├── CUSTOMER
+       ├── SUPPLIER
+       ├── PARTNER
+       ├── PRODUCT
+       ├── CONTRACT
+       ├── INVOICE
+       ├── PAYMENT
+       ├── ACCOUNT
+       ├── TRANSACTION
+       ├── JOURNAL
+       ├── PURCHASE_ORDER
+       ├── WORKFLOW
+       ├── TASK
+       ├── AGENT
+       ├── AI_DECISION
+       ├── POLICY
+       └── EVIDENCE
+
+Avec transversalement :
+
+tenant_id
+organization_id
+country_code
+currency_code
+created_at
+updated_at
+version
+status
+audit_id
+evidence_id
+18. Le cycle de vie d'une opération
+
+C'est un invariant que je figerais dans V1.
+
+DISCOVERY
+   ↓
+INTENT
+   ↓
+VALIDATION
+   ↓
+POLICY CHECK
+   ↓
+RISK CHECK
+   ↓
+APPROVAL
+   ↓
+EXECUTION
+   ↓
+RECONCILIATION
+   ↓
+ACCOUNTING
+   ↓
+EVIDENCE
+   ↓
+AUDIT
+   ↓
+INTELLIGENCE
+
+Cela permet à YAHRIA de transformer chaque opération en donnée exploitable par le Business Graph.
+
+19. Architecture produit V1
+
+Je figerais donc les dix domaines principaux :
+
+YAHRIA BUSINESS OS V1
+│
+├── 00_CORE
+│
+├── 01_MONEY
+│
+├── 02_FINANCE
+│
+├── 03_BUSINESS_GRAPH
+│
+├── 04_AI
+│
+├── 05_AGENTS
+│
+├── 06_SECTOR_ENGINES
+│
+├── 07_COUNTRY_PACKS
+│
+├── 08_API_PLATFORM
+│
+├── 09_MARKETPLACE
+│
+└── 99_GOVERNANCE
+
+Et 99_GOVERNANCE serait relié directement aux fondations YAHRIA :
+
+99_GOVERNANCE
+├── Security
+├── Compliance
+├── Policy
+├── Audit
+├── Evidence
+├── Data Governance
+├── AI Governance
+├── Agent Governance
+├── Model Risk
+├── Business Continuity
+└── Disaster Recovery
+20. Ce que devient YAHRIA
+
+Avec cette architecture, nous avons en réalité trois niveaux :
+
+                         YAHRIA
+                           │
+              ┌────────────┴────────────┐
+              ↓                         ↓
+       YAHRIA PLATFORM          YAHRIA BUSINESS OS
+       Infrastructure           Business Operating System
+              │                         │
+              │               ┌─────────┼─────────┐
+              │               ↓         ↓         ↓
+              │             MONEY    FINANCE    BUSINESS
+              │                                  GRAPH
+              │
+              ├── Agent OS
+              ├── Policy Engine
+              ├── Execution Fabric
+              ├── Evidence Engine
+              ├── Knowledge Graph
+              └── AI Gateway
+
+Puis demain :
+
+YAHRIA ECOSYSTEM
+│
+├── YAHRIA BUSINESS OS
+├── YAHRIA LEGAL
+├── YAHRIA HEALTH
+├── YAHRIA FINANCE
+├── YAHRIA GOVERNMENT
+├── YAHRIA AI
+└── YAHRIA DEVELOPER PLATFORM
+Mon avis stratégique
+
+YAHRIA BUSINESS OS doit être le premier grand produit vertical de YAHRIA.
+
+Il constitue le meilleur point de convergence de tout ce que nous avons déjà conçu : Multi-tenancy + ABAC + Policy Engine + AI Gateway + Agents + Knowledge Graph + Evidence + Execution Fabric + Country Packs + systèmes financiers + intelligence métier.
+
+Et surtout, je ne chercherais plus à lui donner un autre nom comme NEXORA, NEXARA ou KORAVA : YAHRIA devient la marque technologique, et BUSINESS OS devient le produit.
+
+La prochaine étape logique est de transformer cette vision en YAHRIA_BUSINESS_OS_V1_ARCHITECTURE.md, puis en arborescence de monorepo industrialisée, avec les bounded contexts, contrats Python/API/events, schéma PostgreSQL, invariants, manifests et dépendances, exactement dans la méthode que nous avons utilisée pour le socle YAHRIA.
+
+aujourd’hui 20:10
+
+La prochaine étape logique est de transformer cette vision en YAHRIA_BUSINESS_OS_V1_ARCHITECTURE.md, puis en arborescence de monorepo industrialisée, avec les bounded contexts, contrats Python/API/events, schéma PostgreSQL, invariants, manifests et dépendances, exactement dans la méthode que nous avons utilisée pour le socle YAHRIA.
+
+Oui. Je propose de figer maintenant YAHRIA BUSINESS OS V1 comme un produit industriel, sans casser les fondations YAHRIA déjà établies.
+
+L'approche doit respecter une règle essentielle :
+
+YAHRIA BUSINESS OS ne recrée pas YAHRIA PLATFORM. Il consomme ses capacités natives.
+
+Ainsi, Identity, ABAC, Policy Engine, Evidence, Audit, Agent Runtime, Execution Fabric, AI Gateway, Knowledge Graph, etc. restent des capacités de la plateforme YAHRIA et deviennent des dépendances explicites du Business OS.
+
+1. Document d'architecture à figer
+
+Voici le contenu que je recommande pour le document racine :
+
+YAHRIA BUSINESS OS V1 — Architecture
+YAHRIA BUSINESS OS V1
+ARCHITECTURE SPECIFICATION
+
+Document ID: YBOS-ARCH-V1
+Status: ARCHITECTURE BASELINE
+Version: 1.0.0
+Product: YAHRIA BUSINESS OS
+Platform: YAHRIA
+Classification: Enterprise Architecture
+Authority: YAHRIA Architecture Governance
+
+1. PURPOSE
+
+YAHRIA BUSINESS OS V1 est le système d'exploitation métier intelligent de l'écosystème YAHRIA.
+
+Il fournit une plateforme unifiée permettant à une organisation de gérer :
+
+ses personnes ;
+ses clients ;
+ses fournisseurs ;
+ses produits et services ;
+ses opérations ;
+ses paiements ;
+sa trésorerie ;
+sa comptabilité ;
+ses achats ;
+ses documents ;
+ses workflows ;
+ses risques ;
+ses décisions ;
+ses agents IA ;
+ses intégrations externes.
+
+YAHRIA BUSINESS OS transforme les données opérationnelles en contexte, intelligence, décision et action contrôlée.
+
+2. ARCHITECTURAL PRINCIPLE
+
+Le système suit la chaîne :
+
+DATA → CONTEXT → GRAPH → INTELLIGENCE → DECISION → POLICY → ACTION → EVIDENCE
+
+Aucune action sensible générée par l'IA ne doit contourner :
+
+Identity ;
+Authorization ;
+Policy ;
+Risk ;
+Approval ;
+Audit ;
+Evidence.
+3. PRODUCT BOUNDARY
+
+YAHRIA BUSINESS OS possède les domaines :
+
+00_CORE
+01_MONEY
+02_FINANCE
+03_BUSINESS_GRAPH
+04_AI
+05_AGENTS
+06_SECTOR_ENGINES
+07_COUNTRY_PACKS
+08_API_PLATFORM
+09_MARKETPLACE
+99_GOVERNANCE
+
+Les capacités suivantes appartiennent à YAHRIA PLATFORM :
+
+Identity
+Tenant
+Organization
+RBAC
+ABAC
+Policy Engine
+Workflow Runtime
+Event Bus
+AI Gateway
+Agent Runtime
+Execution Fabric
+Sandbox
+Evidence Engine
+Audit
+Knowledge Infrastructure
+Secrets
+Observability
+Security
+
+BUSINESS OS les consomme via des contrats versionnés.
+
+4. TENANCY MODEL
+
+Le modèle de sécurité multi-tenant est obligatoire.
+
+Platform
+└── Tenant
+    └── Organization
+        ├── Legal Entity
+        ├── Business Unit
+        ├── Branch
+        ├── Department
+        └── Workspace
+
+Toutes les données métier sont rattachées à un tenant_id.
+
+Les données nécessitant une séparation organisationnelle possèdent également :
+
+organization_id
+legal_entity_id
+business_unit_id
+
+La Row Level Security PostgreSQL est utilisée lorsque pertinente.
+
+5. BOUNDED CONTEXTS
+5.1 CORE
+
+Responsabilités :
+
+organizations ;
+legal entities ;
+business units ;
+branches ;
+departments ;
+users ;
+customers ;
+suppliers ;
+employees ;
+partners ;
+products ;
+services ;
+contracts ;
+documents ;
+tasks ;
+workflows ;
+approvals ;
+notifications.
+
+Le Core ne contient aucune logique financière spécialisée.
+
+5.2 MONEY
+
+Responsabilités :
+
+payment accounts ;
+wallets ;
+bank accounts ;
+mobile money ;
+payment methods ;
+collections ;
+disbursements ;
+transfers ;
+payment routing ;
+payment orchestration ;
+fees ;
+settlement ;
+reconciliation ;
+transaction risk.
+
+MONEY possède des intégrations avec :
+
+BANK
+MOBILE_MONEY
+PAYMENT_GATEWAY
+CARD_PROCESSOR
+TRANSFER_PROVIDER
+FX_PROVIDER
+5.3 FINANCE
+
+Responsabilités :
+
+accounting ;
+chart of accounts ;
+journals ;
+ledger ;
+accounts payable ;
+accounts receivable ;
+invoicing ;
+expenses ;
+tax ;
+VAT ;
+budgets ;
+forecasts ;
+cash flow ;
+financial statements ;
+closing ;
+consolidation ;
+multi-currency.
+
+FINANCE consomme les événements MONEY mais ne doit pas dépendre directement d'un fournisseur de paiement.
+
+5.4 BUSINESS GRAPH
+
+Le Business Graph constitue la représentation relationnelle et sémantique de l'entreprise.
+
+Nœuds principaux :
+
+Organization
+LegalEntity
+Customer
+Supplier
+Employee
+Partner
+Product
+Service
+Contract
+Invoice
+Payment
+Account
+Transaction
+PurchaseOrder
+Project
+Document
+Risk
+Policy
+Decision
+Agent
+
+Relations :
+
+OWNS
+EMPLOYS
+SERVES
+SUPPLIES
+PURCHASES_FROM
+OWES
+PAYS
+RECEIVES
+CONTRACTS_WITH
+BELONGS_TO
+OPERATES
+LOCATED_IN
+RELATED_TO
+DEPENDS_ON
+RISKED_BY
+CONTROLLED_BY
+
+Le Graph devient le contexte commun des agents et moteurs d'intelligence.
+
+5.5 AI
+
+AI fournit :
+
+model gateway ;
+model routing ;
+RAG ;
+embeddings ;
+reranking ;
+classification ;
+extraction ;
+prediction ;
+forecasting ;
+anomaly detection ;
+risk scoring ;
+recommendation ;
+explanation ;
+AI evaluation ;
+model registry ;
+model risk management.
+
+L'AI Context Layer agrège :
+
+User Context
++
+Organization Context
++
+Business Graph
++
+Country Pack
++
+Sector Engine
++
+Historical Data
++
+Policies
++
+Evidence
+5.6 AGENTS
+
+Les agents sont des acteurs logiciels contrôlés.
+
+Agents V1 :
+
+FinanceAgent
+TreasuryAgent
+AccountingAgent
+PaymentAgent
+ProcurementAgent
+SupplierAgent
+PayrollAgent
+SalesAgent
+CustomerAgent
+ComplianceAgent
+RiskAgent
+TaxAgent
+OperationsAgent
+ReportingAgent
+ExecutiveAgent
+
+Tous les agents utilisent :
+
+Agent Runtime
+Policy Engine
+Tool Registry
+Execution Fabric
+Evidence Engine
+Audit Engine
+
+Un agent ne doit jamais disposer d'un accès direct illimité à la base de données.
+
+5.7 SECTOR ENGINES
+
+Les secteurs sont des extensions métier.
+
+V1 :
+
+Enterprise
+NGO
+Microfinance
+Retail
+Education
+Construction
+Industry
+Toll
+Restaurant
+Ecommerce
+Travel
+MoneyTransfer
+Healthcare
+
+Chaque Sector Engine définit :
+
+Entities
+Commands
+Events
+Workflows
+Policies
+KPIs
+Documents
+Reports
+Agents
+Integrations
+
+Il consomme le Core sans le modifier.
+
+5.8 COUNTRY PACKS
+
+Les Country Packs encapsulent les spécificités nationales.
+
+Structure logique :
+
+CountryPack
+├── Identity
+├── Legal
+├── Tax
+├── Accounting
+├── Currency
+├── Banking
+├── MobileMoney
+├── Payroll
+├── Invoicing
+├── Compliance
+├── Regulatory
+└── GovernmentIntegrations
+
+La logique nationale ne doit pas être codée directement dans les bounded contexts génériques.
+
+5.9 API PLATFORM
+
+Expose :
+
+REST
+GraphQL
+Commands
+Queries
+Events
+Webhooks
+OAuth2/OIDC
+API Keys
+Service Accounts
+SDKs
+Sandbox
+Developer Portal
+
+Toutes les API sont versionnées.
+
+5.10 MARKETPLACE
+
+Le Marketplace permet d'étendre le système avec :
+
+Apps
+Agents
+Sector Engines
+Country Packs
+Connectors
+AI Models
+Workflows
+Templates
+Reports
+Compliance Packs
+Accounting Packs
+Payment Providers
+
+Chaque extension est soumise au :
+
+Marketplace Policy
+Security Validation
+Compatibility Validation
+Version Validation
+Permission Validation
+Evidence Requirements
+6. DOMAIN DEPENDENCY MODEL
+
+Dépendances autorisées :
+
+CORE
+ ↑
+MONEY
+ ↑
+FINANCE
+
+CORE
+ ↓
+BUSINESS_GRAPH
+
+CORE
+ ↓
+SECTOR_ENGINES
+ ↓
+COUNTRY_PACKS
+
+BUSINESS_GRAPH
+ ↓
+AI
+ ↓
+AGENTS
+
+API_PLATFORM
+ ↓
+ALL BUSINESS DOMAINS
+
+MARKETPLACE
+ ↓
+EXTENSION CONTRACTS
+
+Architecture cible :
+
+                 YAHRIA PLATFORM
+                       │
+        ┌──────────────┼───────────────┐
+        ↓              ↓               ↓
+     POLICY          AI GATEWAY     EXECUTION
+        │              │               │
+        └──────────────┼───────────────┘
+                       ↓
+             YAHRIA BUSINESS OS
+                       │
+     ┌─────────┬───────┼────────┬─────────┐
+     ↓         ↓       ↓        ↓         ↓
+   CORE      MONEY   FINANCE   GRAPH      AI
+                                      │
+                                      ↓
+                                   AGENTS
+                                      │
+                         ┌────────────┴────────────┐
+                         ↓                         ↓
+                  SECTOR ENGINES             COUNTRY PACKS
+                         │                         │
+                         └────────────┬────────────┘
+                                      ↓
+                                API PLATFORM
+                                      │
+                                      ↓
+                                 MARKETPLACE
+7. COMMAND / EVENT MODEL
+
+Aucune modification métier critique ne doit être effectuée directement par une interface utilisateur.
+
+Flux :
+
+COMMAND
+ ↓
+VALIDATION
+ ↓
+AUTHORIZATION
+ ↓
+POLICY
+ ↓
+DOMAIN LOGIC
+ ↓
+STATE CHANGE
+ ↓
+DOMAIN EVENT
+ ↓
+EVIDENCE
+ ↓
+AUDIT
+
+Exemple :
+
+CreatePaymentCommand
+        ↓
+PaymentPolicyCheck
+        ↓
+PaymentRiskCheck
+        ↓
+PaymentExecution
+        ↓
+PaymentCreated
+        ↓
+PaymentExecuted
+        ↓
+PaymentReconciled
+        ↓
+AccountingEntryCreated
+8. CONTRACT MODEL
+
+Chaque bounded context possède :
+
+commands/
+queries/
+events/
+schemas/
+services/
+ports/
+
+Les contrats sont indépendants de l'implémentation.
+
+Exemple :
+
+class CreatePaymentCommand:
+    tenant_id: UUID
+    organization_id: UUID
+    source_account_id: UUID
+    destination: PaymentDestination
+    amount: Money
+    currency: Currency
+    idempotency_key: str
+
+Les événements sont immuables.
+
+class PaymentExecuted:
+    event_id: UUID
+    payment_id: UUID
+    tenant_id: UUID
+    amount: Decimal
+    currency: str
+    provider: str
+    executed_at: datetime
+9. DATABASE ARCHITECTURE
+
+PostgreSQL constitue la base transactionnelle principale.
+
+Principes :
+
+PostgreSQL
+├── Multi-tenant
+├── RLS
+├── UUID
+├── JSONB
+├── Temporal metadata
+├── Audit metadata
+├── Partitioning
+├── Constraints
+├── Foreign Keys
+├── Index strategy
+└── Migration control
+
+Schémas logiques :
+
+core
+money
+finance
+graph
+ai
+agents
+sectors
+countries
+marketplace
+audit
+evidence
+integration
+
+Les schémas physiques peuvent être ajustés selon les exigences de déploiement.
+
+10. CORE DATA ENTITIES
+tenant
+organization
+legal_entity
+business_unit
+branch
+department
+user
+role
+permission
+customer
+supplier
+employee
+partner
+product
+service
+contract
+document
+workflow
+task
+approval
+notification
+11. MONEY DATA ENTITIES
+payment_account
+wallet
+bank_account
+mobile_money_account
+payment_method
+payment
+payment_attempt
+payment_provider
+payment_route
+transfer
+collection
+disbursement
+fee
+settlement
+reconciliation
+transaction_risk
+12. FINANCE DATA ENTITIES
+chart_of_account
+account
+accounting_period
+journal
+journal_entry
+ledger_entry
+invoice
+invoice_line
+credit_note
+debit_note
+expense
+tax
+tax_rate
+vat
+budget
+budget_line
+forecast
+cash_flow
+financial_statement
+closing
+13. GRAPH DATA ENTITIES
+graph_node
+graph_edge
+graph_entity
+graph_relation
+graph_snapshot
+graph_projection
+graph_embedding
+graph_evidence
+
+Le Graph ne remplace pas PostgreSQL transactionnel.
+
+Il fournit une représentation spécialisée des relations métier.
+
+14. AI DATA ENTITIES
+ai_model
+model_provider
+model_version
+model_capability
+ai_request
+ai_response
+ai_decision
+ai_evaluation
+prompt_template
+embedding
+retrieval
+reranking
+knowledge_source
+knowledge_chunk
+model_risk
+drift_measurement
+15. AGENT DATA ENTITIES
+agent
+agent_version
+agent_capability
+agent_policy
+agent_tool
+agent_run
+agent_task
+agent_plan
+agent_action
+agent_approval
+agent_execution
+agent_evidence
+agent_failure
+16. INVARIANTS
+INV-001 — Tenant Isolation
+
+Aucune donnée d'un tenant ne peut être accessible par un autre tenant.
+
+INV-002 — Authorization
+
+Toute opération protégée doit être autorisée.
+
+INV-003 — Policy Enforcement
+
+Toute opération sensible doit passer par le Policy Engine.
+
+INV-004 — Financial Integrity
+
+Tout mouvement financier doit être traçable.
+
+INV-005 — Accounting Integrity
+
+Les écritures comptables doivent respecter débit = crédit.
+
+INV-006 — Idempotency
+
+Les opérations financières critiques doivent être idempotentes.
+
+INV-007 — Event Immutability
+
+Un événement publié ne peut pas être modifié.
+
+INV-008 — Evidence
+
+Toute décision IA ayant un impact métier significatif doit produire une preuve exploitable.
+
+INV-009 — Human Oversight
+
+Les actions dépassant les seuils de risque ou d'autorisation nécessitent une validation humaine.
+
+INV-010 — Agent Least Privilege
+
+Un agent possède uniquement les permissions nécessaires à sa fonction.
+
+INV-011 — Country Isolation
+
+Les règles nationales sont encapsulées dans les Country Packs.
+
+INV-012 — Sector Isolation
+
+Les extensions sectorielles ne doivent pas contaminer le Core.
+
+INV-013 — Versioning
+
+Les contrats publics sont versionnés.
+
+INV-014 — Auditability
+
+Toute action critique est auditable.
+
+INV-015 — Explainability
+
+Les décisions IA critiques doivent être explicables.
+
+17. AI DECISION CONTROL
+
+Une décision IA suit :
+
+INPUT
+ ↓
+CONTEXT
+ ↓
+RETRIEVAL
+ ↓
+MODEL
+ ↓
+REASONING
+ ↓
+CONFIDENCE
+ ↓
+RISK
+ ↓
+POLICY
+ ↓
+DECISION
+ ↓
+HUMAN REVIEW
+ ↓
+ACTION
+
+Le système doit distinguer :
+
+AI_SUGGESTION
+AI_RECOMMENDATION
+AI_DECISION
+AUTHORIZED_ACTION
+EXECUTED_ACTION
+
+Ces états ne sont pas interchangeables.
+
+18. AGENT EXECUTION CONTROL
+Agent
+ ↓
+Intent
+ ↓
+Plan
+ ↓
+Tool Selection
+ ↓
+Policy
+ ↓
+Authorization
+ ↓
+Risk
+ ↓
+Approval
+ ↓
+Execution
+ ↓
+Verification
+ ↓
+Evidence
+ ↓
+Audit
+
+Toute défaillance doit produire un état contrôlé.
+
+19. OBSERVABILITY
+
+Chaque opération importante possède :
+
+trace_id
+correlation_id
+causation_id
+actor_id
+tenant_id
+organization_id
+operation_id
+policy_decision_id
+evidence_id
+
+Observabilité :
+
+Logs
+Metrics
+Traces
+Events
+Agent Runs
+AI Calls
+Policy Decisions
+Financial Operations
+Security Events
+20. RESILIENCE
+
+Le système doit prévoir :
+
+Retry
+Timeout
+Circuit Breaker
+Idempotency
+Dead Letter Queue
+Provider Failover
+Transaction Recovery
+Workflow Compensation
+Agent Recovery
+Evidence Preservation
+21. SECURITY MODEL
+Identity
+ ↓
+Authentication
+ ↓
+Authorization
+ ↓
+RBAC
+ ↓
+ABAC
+ ↓
+Resource Policy
+ ↓
+Risk Policy
+ ↓
+Execution Policy
+
+La sécurité doit être appliquée au niveau :
+
+API
+Service
+Command
+Query
+Database
+Agent
+Tool
+Workflow
+Transaction
+Document
+AI
+22. API PRINCIPLES
+
+Les API doivent être :
+
+versionnées ;
+idempotentes lorsque nécessaire ;
+authentifiées ;
+autorisées ;
+documentées ;
+observables ;
+rate-limited ;
+auditables.
+
+Structure :
+
+/api/v1/core
+/api/v1/money
+/api/v1/finance
+/api/v1/graph
+/api/v1/ai
+/api/v1/agents
+/api/v1/sectors
+/api/v1/countries
+/api/v1/marketplace
+23. MARKETPLACE CONTRACT
+
+Une extension Marketplace doit fournir :
+
+manifest
+metadata
+version
+dependencies
+permissions
+capabilities
+configuration
+healthcheck
+security_policy
+compatibility
+installation_hooks
+uninstallation_hooks
+
+Aucune extension ne peut accéder librement au système.
+
+24. V1 NON-GOALS
+
+YAHRIA BUSINESS OS V1 ne cherche pas à :
+
+remplacer toutes les banques ;
+devenir immédiatement un core banking ;
+devenir un système gouvernemental ;
+fournir toutes les réglementations mondiales ;
+automatiser sans supervision toutes les décisions critiques ;
+supporter tous les secteurs dès la première release.
+
+La V1 doit établir un socle extensible et sécurisé.
+
+25. V1 SUCCESS CRITERIA
+
+Le produit est considéré comme architecturalement prêt lorsque :
+
+CORE
+✓
+
+MONEY
+✓
+
+FINANCE
+✓
+
+BUSINESS GRAPH
+✓
+
+AI
+✓
+
+AGENTS
+✓
+
+SECTOR ENGINES
+✓
+
+COUNTRY PACKS
+✓
+
+API PLATFORM
+✓
+
+MARKETPLACE
+✓
+
+SECURITY
+✓
+
+POLICY
+✓
+
+AUDIT
+✓
+
+EVIDENCE
+✓
+
+sont tous intégrés par contrats explicites et testables.
+
+26. FINAL ARCHITECTURAL PRINCIPLE
+
+YAHRIA BUSINESS OS n'est pas :
+
+ERP + AI
+
+Il est :
+
+BUSINESS OPERATING SYSTEM
+
+        DATA
+          ↓
+       GRAPH
+          ↓
+    INTELLIGENCE
+          ↓
+      DECISION
+          ↓
+       POLICY
+          ↓
+       AGENTS
+          ↓
+      EXECUTION
+          ↓
+      EVIDENCE
+          ↓
+       LEARNING
+          ↺
+
+L'objectif V1 est donc de construire une plateforme capable de comprendre l'entreprise, de l'assister, de recommander des décisions, d'exécuter certaines opérations sous contrôle et d'en conserver une preuve complète.
+
+END OF ARCHITECTURE BASELINE
+
+2. Arborescence du monorepo
+
+À partir de cette architecture, je recommande de ne pas mélanger architecture produit et implémentation. Le monorepo doit refléter les bounded contexts et conserver une couche de contrats explicite.
+
+yahria-business-os/
+│
+├── 00_GOVERNANCE/
+│   ├── 00_BUSINESS_OS_CONTRACT.md
+│   ├── CANONICAL_INDEX.md
+│   ├── ARCHITECTURE_DECISIONS.md
+│   ├── GLOBAL_INVARIANTS.md
+│   ├── DEPENDENCY_GRAPH.md
+│   ├── IMPLEMENTATION_MANIFEST.md
+│   ├── FILE_GENERATION_MANIFEST.md
+│   ├── ACCEPTANCE_TEST_MANIFEST.md
+│   ├── EVIDENCE_MANIFEST.md
+│   ├── STATE_TRANSITION_MANIFEST.md
+│   ├── AUTONOMY_GOVERNANCE_MANIFEST.md
+│   ├── FAILURE_AND_RECOVERY_MANIFEST.md
+│   ├── SECURITY_BASELINE.md
+│   ├── DATA_GOVERNANCE.md
+│   ├── AI_GOVERNANCE.md
+│   └── MARKETPLACE_GOVERNANCE.md
+│
+├── 01_CONTRACTS/
+│   ├── domain/
+│   │   ├── core/
+│   │   ├── money/
+│   │   ├── finance/
+│   │   ├── business_graph/
+│   │   ├── ai/
+│   │   ├── agents/
+│   │   ├── sectors/
+│   │   ├── countries/
+│   │   └── marketplace/
+│   │
+│   ├── api/
+│   │   ├── openapi/
+│   │   ├── graphql/
+│   │   └── webhooks/
+│   │
+│   ├── commands/
+│   ├── queries/
+│   ├── events/
+│   ├── schemas/
+│   └── integration/
+│
+├── 02_CORE/
+│   ├── domain/
+│   │   ├── organization/
+│   │   ├── legal_entity/
+│   │   ├── business_unit/
+│   │   ├── branch/
+│   │   ├── department/
+│   │   ├── customer/
+│   │   ├── supplier/
+│   │   ├── employee/
+│   │   ├── partner/
+│   │   ├── product/
+│   │   ├── service/
+│   │   ├── contract/
+│   │   ├── document/
+│   │   ├── workflow/
+│   │   ├── task/
+│   │   └── approval/
+│   │
+│   ├── application/
+│   ├── infrastructure/
+│   ├── api/
+│   └── tests/
+│
+├── 03_MONEY/
+│   ├── domain/
+│   │   ├── payment_account/
+│   │   ├── wallet/
+│   │   ├── bank_account/
+│   │   ├── mobile_money/
+│   │   ├── payment/
+│   │   ├── collection/
+│   │   ├── disbursement/
+│   │   ├── transfer/
+│   │   ├── routing/
+│   │   ├── orchestration/
+│   │   ├── fee/
+│   │   ├── settlement/
+│   │   └── reconciliation/
+│   │
+│   ├── application/
+│   ├── infrastructure/
+│   │   ├── banking/
+│   │   ├── mobile_money/
+│   │   ├── payment_providers/
+│   │   └── fx/
+│   ├── api/
+│   └── tests/
+│
+├── 04_FINANCE/
+│   ├── domain/
+│   │   ├── accounting/
+│   │   ├── ledger/
+│   │   ├── accounts/
+│   │   ├── journal/
+│   │   ├── invoice/
+│   │   ├── expense/
+│   │   ├── receivables/
+│   │   ├── payables/
+│   │   ├── tax/
+│   │   ├── vat/
+│   │   ├── budget/
+│   │   ├── forecast/
+│   │   ├── cashflow/
+│   │   ├── statements/
+│   │   ├── closing/
+│   │   └── consolidation/
+│   │
+│   ├── application/
+│   ├── infrastructure/
+│   ├── api/
+│   └── tests/
+│
+├── 05_BUSINESS_GRAPH/
+│   ├── domain/
+│   ├── graph/
+│   │   ├── nodes/
+│   │   ├── edges/
+│   │   ├── relations/
+│   │   ├── projections/
+│   │   ├── snapshots/
+│   │   └── embeddings/
+│   ├── application/
+│   ├── infrastructure/
+│   ├── api/
+│   └── tests/
+│
+├── 06_AI/
+│   ├── gateway/
+│   ├── router/
+│   ├── providers/
+│   ├── models/
+│   ├── embeddings/
+│   ├── reranking/
+│   ├── rag/
+│   ├── knowledge/
+│   ├── prediction/
+│   ├── forecasting/
+│   ├── anomaly_detection/
+│   ├── risk/
+│   ├── explainability/
+│   ├── evaluation/
+│   ├── model_registry/
+│   ├── model_risk/
+│   └── tests/
+│
+├── 07_AGENTS/
+│   ├── runtime/
+│   ├── orchestrator/
+│   ├── registry/
+│   ├── tools/
+│   ├── policies/
+│   ├── planning/
+│   ├── execution/
+│   ├── recovery/
+│   │
+│   ├── finance_agent/
+│   ├── treasury_agent/
+│   ├── accounting_agent/
+│   ├── payment_agent/
+│   ├── procurement_agent/
+│   ├── supplier_agent/
+│   ├── payroll_agent/
+│   ├── sales_agent/
+│   ├── customer_agent/
+│   ├── compliance_agent/
+│   ├── risk_agent/
+│   ├── tax_agent/
+│   ├── operations_agent/
+│   ├── reporting_agent/
+│   └── executive_agent/
+│
+├── 08_SECTOR_ENGINES/
+│   ├── enterprise/
+│   ├── ngo/
+│   ├── microfinance/
+│   ├── retail/
+│   ├── education/
+│   ├── construction/
+│   ├── industry/
+│   ├── toll/
+│   ├── restaurant/
+│   ├── ecommerce/
+│   ├── travel/
+│   ├── healthcare/
+│   └── money_transfer/
+│
+├── 09_COUNTRY_PACKS/
+│   ├── CI/
+│   ├── SN/
+│   ├── BJ/
+│   ├── TG/
+│   ├── BF/
+│   ├── ML/
+│   ├── NE/
+│   ├── GN/
+│   ├── CM/
+│   ├── GA/
+│   ├── CG/
+│   ├── CD/
+│   ├── TD/
+│   ├── CF/
+│   ├── GQ/
+│   ├── KM/
+│   └── GW/
+│
+├── 10_API_PLATFORM/
+│   ├── rest/
+│   ├── graphql/
+│   ├── commands/
+│   ├── queries/
+│   ├── events/
+│   ├── webhooks/
+│   ├── oauth/
+│   ├── api_keys/
+│   ├── service_accounts/
+│   ├── rate_limiting/
+│   ├── idempotency/
+│   ├── versioning/
+│   ├── sdk/
+│   ├── sandbox/
+│   └── developer_portal/
+│
+├── 11_MARKETPLACE/
+│   ├── registry/
+│   ├── catalog/
+│   ├── manifests/
+│   ├── validation/
+│   ├── compatibility/
+│   ├── security/
+│   ├── installation/
+│   ├── lifecycle/
+│   └── extensions/
+│
+├── 12_DATA/
+│   ├── postgres/
+│   │   ├── core/
+│   │   ├── money/
+│   │   ├── finance/
+│   │   ├── graph/
+│   │   ├── ai/
+│   │   ├── agents/
+│   │   ├── sectors/
+│   │   ├── countries/
+│   │   └── marketplace/
+│   │
+│   ├── migrations/
+│   ├── seeds/
+│   ├── fixtures/
+│   ├── partitioning/
+│   ├── rls/
+│   └── indexes/
+│
+├── 13_INTEGRATIONS/
+│   ├── banking/
+│   ├── mobile_money/
+│   ├── payment_providers/
+│   ├── accounting/
+│   ├── payroll/
+│   ├── tax/
+│   ├── government/
+│   ├── crm/
+│   ├── erp/
+│   ├── ecommerce/
+│   └── messaging/
+│
+├── 14_SECURITY/
+│   ├── identity/
+│   ├── authentication/
+│   ├── authorization/
+│   ├── rbac/
+│   ├── abac/
+│   ├── resource_policies/
+│   ├── transaction_policies/
+│   ├── agent_policies/
+│   ├── ai_policies/
+│   ├── secrets/
+│   ├── encryption/
+│   └── threat_model/
+│
+├── 15_AUDIT_EVIDENCE/
+│   ├── audit/
+│   ├── evidence/
+│   ├── lineage/
+│   ├── replay/
+│   ├── decision_records/
+│   ├── agent_evidence/
+│   └── compliance_evidence/
+│
+├── 16_OBSERVABILITY/
+│   ├── logging/
+│   ├── metrics/
+│   ├── tracing/
+│   ├── health/
+│   ├── alerts/
+│   └── dashboards/
+│
+├── 17_WORKFLOWS/
+│   ├── payment/
+│   ├── procurement/
+│   ├── payroll/
+│   ├── accounting/
+│   ├── collections/
+│   ├── approvals/
+│   ├── reconciliation/
+│   └── agent/
+│
+├── 18_FRONTENDS/
+│   ├── web/
+│   ├── admin/
+│   ├── customer_portal/
+│   ├── supplier_portal/
+│   └── executive/
+│
+├── 19_TESTS/
+│   ├── unit/
+│   ├── integration/
+│   ├── contract/
+│   ├── api/
+│   ├── security/
+│   ├── rls/
+│   ├── financial_integrity/
+│   ├── ai/
+│   ├── agents/
+│   ├── marketplace/
+│   ├── country_packs/
+│   ├── sector_engines/
+│   ├── resilience/
+│   └── end_to_end/
+│
+├── 20_DEVOPS/
+│   ├── docker/
+│   ├── compose/
+│   ├── kubernetes/
+│   ├── helm/
+│   ├── terraform/
+│   ├── environments/
+│   └── scripts/
+│
+├── 21_DOCUMENTATION/
+│   ├── architecture/
+│   ├── domain/
+│   ├── api/
+│   ├── database/
+│   ├── ai/
+│   ├── agents/
+│   ├── integrations/
+│   ├── security/
+│   ├── operations/
+│   └── developer/
+│
+├── pyproject.toml
+├── alembic.ini
+├── Makefile
+├── README.md
+├── LICENSE
+└── .gitignore
+3. Le point essentiel pour notre méthode YAHRIA
+
+Je conserverais deux niveaux de gouvernance :
+
+YAHRIA/
+│
+├── PLATFORM GOVERNANCE
+│
+└── BUSINESS OS GOVERNANCE
+        │
+        ├── PRODUCT CONTRACT
+        ├── DOMAIN CONTRACTS
+        ├── IMPLEMENTATION MANIFEST
+        ├── FILE GENERATION MANIFEST
+        ├── ACCEPTANCE TEST MANIFEST
+        ├── EVIDENCE MANIFEST
+        ├── STATE TRANSITION MANIFEST
+        ├── AUTONOMY GOVERNANCE
+        └── FAILURE & RECOVERY
+
+Ainsi, si demain tu demandes à ton environnement Continue.dev + modèles locaux de générer ou modifier du code, il ne travaille pas « au feeling ».
+
+Il travaille contre :
+
+ARCHITECTURE
+     ↓
+CONTRACTS
+     ↓
+INVARIANTS
+     ↓
+DEPENDENCY GRAPH
+     ↓
+IMPLEMENTATION MANIFEST
+     ↓
+FILE GENERATION MANIFEST
+     ↓
+CODE
+     ↓
+TESTS
+     ↓
+EVIDENCE
+     ↓
+ACCEPTANCE
+Et je ferais une distinction supplémentaire importante
+
+YAHRIA BUSINESS OS V1 ≠ tout YAHRIA.
+
+YAHRIA
+│
+├── PLATFORM
+│   ├── Agent OS
+│   ├── Policy Control Plane
+│   ├── AI Gateway
+│   ├── Execution Fabric
+│   ├── Evidence Engine
+│   ├── Knowledge Graph
+│   ├── Security
+│   └── Observability
+│
+├── BUSINESS OS
+│   ├── Core
+│   ├── Money
+│   ├── Finance
+│   ├── Business Graph
+│   ├── AI
+│   ├── Agents
+│   ├── Sector Engines
+│   ├── Country Packs
+│   ├── API
+│   └── Marketplace
+│
+└── FUTURE PRODUCTS
+    ├── YAHRIA LEGAL
+    ├── YAHRIA HEALTH
+    ├── YAHRIA GOVERNMENT
+    └── YAHRIA OTHER OS
+
+C'est cette séparation qui permettra à YAHRIA BUSINESS OS V1 de devenir un produit commercial autonome tout en restant profondément branché sur le socle YAHRIA.
+
+La prochaine pièce à figer n'est donc pas encore le code : c'est le DEPENDENCY_GRAPH.md de BUSINESS OS, suivi du GLOBAL_INVARIANTS.md, puis du IMPLEMENTATION_MANIFEST.md détaillant fichier par fichier ce qui doit réellement être codé en V1. Cela évitera de construire une arborescence impressionnante mais incohérente.
+
+La prochaine pièce à figer n'est donc pas encore le code : c'est le DEPENDENCY_GRAPH.md de BUSINESS OS, suivi du GLOBAL_INVARIANTS.md, puis du IMPLEMENTATION_MANIFEST.md détaillant fichier par fichier ce qui doit réellement être codé en V1
+
+Exactement. Nous allons maintenant figer les trois artefacts de gouvernance technique de YAHRIA BUSINESS OS V1, dans cet ordre :
+
+DEPENDENCY_GRAPH.md
+GLOBAL_INVARIANTS.md
+IMPLEMENTATION_MANIFEST.md
+
+Je les conçois pour qu'ils soient directement exploitables par le futur pipeline de génération autonome YAHRIA, et non comme de simples documents descriptifs.
+
+DEPENDENCY_GRAPH.md — YAHRIA BUSINESS OS V1
+YAHRIA BUSINESS OS V1
+DEPENDENCY_GRAPH.md
+
+Document ID: YBOS-GOV-002
+Version: 1.0.0
+Status: FROZEN BASELINE
+Product: YAHRIA BUSINESS OS
+Parent Platform: YAHRIA PLATFORM
+
+1. PURPOSE
+
+Ce document définit les dépendances autorisées entre les bounded contexts, services, infrastructures et capacités de YAHRIA BUSINESS OS V1.
+
+Il constitue une contrainte architecturale obligatoire.
+
+Toute dépendance non déclarée ici est considérée comme interdite.
+
+2. ARCHITECTURAL LAW
+BUSINESS DOMAIN
+      ↓
+APPLICATION
+      ↓
+PORTS
+      ↓
+INFRASTRUCTURE
+
+Un domaine métier ne doit jamais dépendre directement d'une implémentation d'infrastructure.
+
+3. SYSTEM LEVEL DEPENDENCY
+YAHRIA PLATFORM
+        │
+        ├── Identity
+        ├── Tenant
+        ├── Organization
+        ├── RBAC
+        ├── ABAC
+        ├── Policy Engine
+        ├── Workflow Runtime
+        ├── Event Bus
+        ├── AI Gateway
+        ├── Agent Runtime
+        ├── Execution Fabric
+        ├── Evidence Engine
+        ├── Audit
+        ├── Knowledge Infrastructure
+        ├── Security
+        └── Observability
+                 │
+                 ↓
+       YAHRIA BUSINESS OS
+
+BUSINESS OS dépend de YAHRIA PLATFORM.
+
+YAHRIA PLATFORM ne doit pas dépendre de BUSINESS OS.
+
+4. BOUNDED CONTEXT DEPENDENCY GRAPH
+CORE
+├── depends_on → PLATFORM.IDENTITY
+├── depends_on → PLATFORM.TENANT
+├── depends_on → PLATFORM.AUTHORIZATION
+├── depends_on → PLATFORM.POLICY
+├── depends_on → PLATFORM.AUDIT
+└── depends_on → PLATFORM.EVIDENCE
+
+
+MONEY
+├── depends_on → CORE
+├── depends_on → PLATFORM.POLICY
+├── depends_on → PLATFORM.AUDIT
+├── depends_on → PLATFORM.EVIDENCE
+└── depends_on → INTEGRATIONS
+
+
+FINANCE
+├── depends_on → CORE
+├── depends_on → MONEY.CONTRACTS
+├── depends_on → COUNTRY_PACKS.CONTRACTS
+├── depends_on → PLATFORM.POLICY
+├── depends_on → PLATFORM.AUDIT
+└── depends_on → PLATFORM.EVIDENCE
+
+
+BUSINESS_GRAPH
+├── depends_on → CORE.CONTRACTS
+├── depends_on → MONEY.CONTRACTS
+├── depends_on → FINANCE.CONTRACTS
+└── depends_on → PLATFORM.KNOWLEDGE
+
+
+AI
+├── depends_on → BUSINESS_GRAPH.CONTRACTS
+├── depends_on → CORE.CONTRACTS
+├── depends_on → PLATFORM.AI_GATEWAY
+├── depends_on → PLATFORM.KNOWLEDGE
+└── depends_on → PLATFORM.EVIDENCE
+
+
+AGENTS
+├── depends_on → AI
+├── depends_on → BUSINESS_GRAPH
+├── depends_on → CORE
+├── depends_on → PLATFORM.AGENT_RUNTIME
+├── depends_on → PLATFORM.POLICY
+├── depends_on → PLATFORM.EXECUTION
+└── depends_on → PLATFORM.EVIDENCE
+
+
+SECTOR_ENGINES
+├── depends_on → CORE
+├── depends_on → MONEY.CONTRACTS
+├── depends_on → FINANCE.CONTRACTS
+├── depends_on → BUSINESS_GRAPH.CONTRACTS
+├── depends_on → AI.CONTRACTS
+├── depends_on → AGENTS.CONTRACTS
+└── depends_on → COUNTRY_PACKS.CONTRACTS
+
+
+COUNTRY_PACKS
+├── depends_on → CORE.CONTRACTS
+├── depends_on → MONEY.CONTRACTS
+├── depends_on → FINANCE.CONTRACTS
+└── depends_on → PLATFORM.POLICY
+
+
+API_PLATFORM
+├── depends_on → ALL_PUBLIC_CONTRACTS
+├── depends_on → PLATFORM.IDENTITY
+├── depends_on → PLATFORM.AUTHORIZATION
+├── depends_on → PLATFORM.RATE_LIMITING
+└── depends_on → PLATFORM.OBSERVABILITY
+
+
+MARKETPLACE
+├── depends_on → API_PLATFORM.CONTRACTS
+├── depends_on → PLATFORM.POLICY
+├── depends_on → PLATFORM.SECURITY
+├── depends_on → PLATFORM.EVIDENCE
+└── depends_on → ALL_EXTENSION_CONTRACTS
+5. DEPENDENCY DIRECTION
+
+La direction autorisée est :
+
+PLATFORM
+   ↓
+CONTRACTS
+   ↓
+DOMAIN
+   ↓
+APPLICATION
+   ↓
+ADAPTERS
+   ↓
+INFRASTRUCTURE
+
+La direction inverse est interdite.
+
+6. CORE DEPENDENCIES
+
+CORE est le contexte fondamental du Business OS.
+
+CORE
+├── PLATFORM
+├── DOMAIN CONTRACTS
+├── APPLICATION
+└── INFRASTRUCTURE
+
+CORE ne dépend pas :
+
+MONEY
+FINANCE
+AI
+AGENTS
+SECTOR_ENGINES
+MARKETPLACE
+7. MONEY DEPENDENCIES
+MONEY
+    ↓
+CORE CONTRACTS
+    ↓
+PAYMENT PROVIDER PORTS
+    ↓
+PROVIDER ADAPTERS
+
+Interdit :
+
+MONEY → specific provider implementation
+DOMAIN → PostgreSQL
+DOMAIN → HTTP client
+DOMAIN → external SDK
+8. FINANCE DEPENDENCIES
+FINANCE
+   ├── CORE
+   ├── MONEY CONTRACTS
+   ├── COUNTRY CONTRACTS
+   └── PLATFORM GOVERNANCE
+
+FINANCE peut consommer :
+
+PaymentExecuted
+PaymentReconciled
+InvoicePaid
+
+FINANCE ne peut pas appeler directement un fournisseur de paiement.
+
+9. BUSINESS GRAPH DEPENDENCIES
+
+Le Graph est consommateur des événements métier.
+
+CORE EVENTS
+      ↓
+MONEY EVENTS
+      ↓
+FINANCE EVENTS
+      ↓
+GRAPH PROJECTION
+
+Le Graph ne doit pas devenir une dépendance transactionnelle obligatoire du Core.
+
+10. AI DEPENDENCIES
+
+AI peut consulter :
+
+CORE
+MONEY
+FINANCE
+BUSINESS_GRAPH
+COUNTRY_PACKS
+SECTOR_ENGINES
+EVIDENCE
+
+mais uniquement via des contrats.
+
+AI
+ ↓
+Context Provider
+ ↓
+Retrieval
+ ↓
+Model Gateway
+ ↓
+Decision
+11. AGENT DEPENDENCIES
+
+Les agents ne doivent jamais accéder directement aux bases de données métier.
+
+AGENT
+ ↓
+TOOL
+ ↓
+APPLICATION SERVICE
+ ↓
+DOMAIN
+
+et jamais :
+
+AGENT
+ ↓
+DATABASE
+
+Les agents doivent passer par :
+
+Policy
+Authorization
+Tool Registry
+Execution Fabric
+Evidence
+Audit
+12. SECTOR ENGINE DEPENDENCY
+
+Un Sector Engine est une extension.
+
+SECTOR ENGINE
+       ↓
+BUSINESS OS CONTRACTS
+       ↓
+CORE
+MONEY
+FINANCE
+GRAPH
+AI
+AGENTS
+
+Un Sector Engine ne peut pas modifier directement le domaine d'un autre Sector Engine.
+
+13. COUNTRY PACK DEPENDENCY
+
+Country Packs fournissent des règles et adaptateurs nationaux.
+
+COUNTRY PACK
+      ↓
+COUNTRY CONTRACT
+      ↓
+RULE ENGINE
+      ↓
+BUSINESS DOMAIN
+
+Le Core reste country-agnostic.
+
+14. API DEPENDENCY
+CLIENT
+ ↓
+API PLATFORM
+ ↓
+APPLICATION SERVICE
+ ↓
+DOMAIN
+ ↓
+EVENT
+
+L'API ne doit jamais contenir de logique métier critique.
+
+15. MARKETPLACE DEPENDENCY
+
+Les extensions Marketplace utilisent uniquement les interfaces publiques.
+
+MARKETPLACE EXTENSION
+        ↓
+PUBLIC CONTRACTS
+        ↓
+API / EVENTS / TOOLS
+
+Une extension ne peut pas importer directement un module interne privé.
+
+16. DATABASE DEPENDENCY RULE
+
+Les domaines ne connaissent pas PostgreSQL.
+
+DOMAIN
+ ↓
+REPOSITORY PORT
+ ↓
+SQLALCHEMY ADAPTER
+ ↓
+POSTGRESQL
+17. EVENT DEPENDENCY RULE
+
+Les événements constituent le mécanisme privilégié de communication asynchrone.
+
+DOMAIN
+ ↓
+DOMAIN EVENT
+ ↓
+EVENT BUS
+ ↓
+CONSUMER
+
+Un consommateur ne doit pas créer de dépendance cyclique avec son producteur.
+
+18. CYCLE DETECTION
+
+Les cycles suivants sont interdits :
+
+CORE → MONEY → CORE
+FINANCE → MONEY → FINANCE
+AI → AGENTS → AI
+SECTOR_A → SECTOR_B → SECTOR_A
+COUNTRY_A → COUNTRY_B → COUNTRY_A
+DOMAIN → INFRASTRUCTURE → DOMAIN
+
+Toute détection de cycle bloque la validation architecturale.
+
+19. DEPENDENCY MATRIX
+Context	CORE	MONEY	FINANCE	GRAPH	AI	AGENTS	SECTORS	COUNTRIES
+CORE	—	❌	❌	❌	❌	❌	❌	❌
+MONEY	✓	—	❌	❌	❌	❌	❌	✓*
+FINANCE	✓	✓*	—	❌	❌	❌	❌	✓
+GRAPH	✓	✓*	✓*	—	❌	❌	✓*	✓*
+AI	✓*	✓*	✓*	✓	—	❌	✓*	✓*
+AGENTS	✓*	✓*	✓*	✓	✓	—	✓*	✓*
+SECTORS	✓	✓*	✓*	✓*	✓*	✓*	—	✓
+COUNTRIES	✓*	✓*	✓*	❌	❌	❌	❌	—
+
+✓* = accès par contrat uniquement.
+
+20. ARCHITECTURAL ENFORCEMENT
+
+La conformité doit être contrôlée automatiquement par :
+
+Architecture Tests
+Dependency Linter
+Import Rules
+Contract Tests
+Static Analysis
+CI Pipeline
+
+Une violation doit provoquer :
+
+BUILD FAILURE
++
+EVIDENCE
++
+ARCHITECTURE VIOLATION
+21. FINAL DEPENDENCY LAW
+NO UNDECLARED DEPENDENCY
+NO CYCLIC DEPENDENCY
+NO DOMAIN → INFRASTRUCTURE
+NO AGENT → DATABASE
+NO COUNTRY LOGIC → CORE
+NO SECTOR LOGIC → CORE
+NO API BUSINESS LOGIC
+NO CROSS-TENANT DEPENDENCY
+
+END OF DEPENDENCY GRAPH
+
+GLOBAL_INVARIANTS.md — YAHRIA BUSINESS OS V1
+YAHRIA BUSINESS OS V1
+GLOBAL_INVARIANTS.md
+
+Document ID: YBOS-GOV-003
+Version: 1.0.0
+Status: FROZEN BASELINE
+
+1. PURPOSE
+
+Ce document définit les invariants qui ne doivent jamais être violés par le code, les agents, les workflows, les intégrations ou les extensions Marketplace.
+
+Un invariant violé constitue un défaut critique.
+
+2. TENANCY INVARIANTS
+INV-TENANT-001
+
+Toute donnée métier possède un tenant_id.
+
+INV-TENANT-002
+
+Un tenant ne peut jamais accéder aux données d'un autre tenant.
+
+INV-TENANT-003
+
+Les repositories doivent appliquer le contexte tenant.
+
+INV-TENANT-004
+
+Les requêtes inter-tenant sont interdites sauf opérations explicitement autorisées au niveau plateforme.
+
+3. IDENTITY INVARIANTS
+INV-ID-001
+
+Tout acteur doit posséder une identité valide.
+
+INV-ID-002
+
+Toute action critique possède un actor_id.
+
+INV-ID-003
+
+Un agent est une identité logicielle distincte d'un utilisateur humain.
+
+INV-ID-004
+
+Les credentials ne sont jamais stockés dans les entités métier.
+
+4. AUTHORIZATION INVARIANTS
+INV-AUTH-001
+
+Aucune opération protégée sans autorisation.
+
+INV-AUTH-002
+
+RBAC et ABAC peuvent être combinés.
+
+INV-AUTH-003
+
+L'ABAC ne peut pas être contourné par l'application.
+
+INV-AUTH-004
+
+Une permission accordée à un agent ne peut dépasser son périmètre déclaré.
+
+5. POLICY INVARIANTS
+INV-POL-001
+
+Toute opération sensible passe par le Policy Engine.
+
+INV-POL-002
+
+Une décision Policy possède un identifiant traçable.
+
+INV-POL-003
+
+Une décision Policy est versionnée.
+
+INV-POL-004
+
+Un changement de Policy ne modifie pas rétroactivement une décision déjà exécutée.
+
+6. FINANCIAL INVARIANTS
+INV-FIN-001
+
+Toute transaction financière possède un identifiant unique.
+
+INV-FIN-002
+
+Toute opération financière critique est idempotente.
+
+INV-FIN-003
+
+Le montant ne peut être négatif sauf modèle métier explicitement prévu.
+
+INV-FIN-004
+
+La devise doit être explicitement définie.
+
+INV-FIN-005
+
+Une transaction exécutée ne peut être silencieusement supprimée.
+
+INV-FIN-006
+
+Tout mouvement financier possède une trace d'audit.
+
+7. ACCOUNTING INVARIANTS
+INV-ACC-001
+
+Toute écriture comptable respecte :
+
+SUM(DEBIT) = SUM(CREDIT)
+INV-ACC-002
+
+Une période clôturée ne peut être modifiée sans procédure de correction autorisée.
+
+INV-ACC-003
+
+Les écritures sont immuables après validation.
+
+INV-ACC-004
+
+Toute correction produit une nouvelle écriture traçable.
+
+8. RECONCILIATION INVARIANTS
+INV-REC-001
+
+Une transaction externe doit pouvoir être rapprochée d'une transaction interne.
+
+INV-REC-002
+
+Les rapprochements doivent être traçables.
+
+INV-REC-003
+
+Les divergences sont conservées comme événements métier.
+
+9. EVENT INVARIANTS
+INV-EVT-001
+
+Les événements sont immuables.
+
+INV-EVT-002
+
+Chaque événement possède :
+
+event_id
+event_type
+aggregate_id
+tenant_id
+occurred_at
+version
+INV-EVT-003
+
+Les consommateurs doivent être idempotents.
+
+INV-EVT-004
+
+Un événement ne doit pas contenir de secrets.
+
+10. GRAPH INVARIANTS
+INV-GRAPH-001
+
+Chaque nœud possède une identité stable.
+
+INV-GRAPH-002
+
+Chaque relation possède une sémantique explicite.
+
+INV-GRAPH-003
+
+Le Graph ne constitue pas la source primaire des transactions financières.
+
+INV-GRAPH-004
+
+Toute projection Graph doit pouvoir être reconstruite.
+
+11. AI INVARIANTS
+INV-AI-001
+
+Une réponse IA n'est jamais automatiquement considérée comme une vérité métier.
+
+INV-AI-002
+
+Les décisions critiques doivent disposer d'un contexte identifiable.
+
+INV-AI-003
+
+Les sources utilisées par le RAG doivent être traçables.
+
+INV-AI-004
+
+Les décisions critiques doivent pouvoir être expliquées.
+
+INV-AI-005
+
+Les modèles utilisés sont versionnés.
+
+INV-AI-006
+
+Les appels IA critiques sont auditables.
+
+12. AGENT INVARIANTS
+INV-AGENT-001
+
+Un agent possède un périmètre de capacités explicite.
+
+INV-AGENT-002
+
+Un agent utilise uniquement des outils autorisés.
+
+INV-AGENT-003
+
+Un agent ne contourne jamais le Policy Engine.
+
+INV-AGENT-004
+
+Un agent ne possède pas d'accès SQL arbitraire.
+
+INV-AGENT-005
+
+Les actions critiques peuvent exiger une validation humaine.
+
+INV-AGENT-006
+
+Chaque exécution d'agent est traçable.
+
+INV-AGENT-007
+
+Chaque action d'agent produit une preuve lorsque requise.
+
+13. HUMAN OVERSIGHT
+INV-HUMAN-001
+
+Les seuils de risque déterminent les actions nécessitant validation humaine.
+
+INV-HUMAN-002
+
+Une validation humaine est elle-même une décision auditée.
+
+INV-HUMAN-003
+
+L'IA ne peut pas s'auto-attribuer une autorisation.
+
+14. COUNTRY PACK INVARIANTS
+INV-COUNTRY-001
+
+Les règles nationales sont isolées.
+
+INV-COUNTRY-002
+
+Le Core ne contient pas de règle spécifique à un pays.
+
+INV-COUNTRY-003
+
+Chaque Country Pack possède une version.
+
+INV-COUNTRY-004
+
+Les changements réglementaires sont traçables.
+
+15. SECTOR ENGINE INVARIANTS
+INV-SECTOR-001
+
+Un Sector Engine est isolé du Core.
+
+INV-SECTOR-002
+
+Il utilise les contrats publics du Business OS.
+
+INV-SECTOR-003
+
+Il ne modifie pas directement les données internes d'un autre secteur.
+
+16. API INVARIANTS
+INV-API-001
+
+Toutes les API publiques sont versionnées.
+
+INV-API-002
+
+Les endpoints sensibles sont authentifiés.
+
+INV-API-003
+
+Les endpoints sensibles sont autorisés.
+
+INV-API-004
+
+Les opérations financières exposées par API sont idempotentes.
+
+INV-API-005
+
+Les erreurs ne doivent jamais révéler de secrets.
+
+17. DATABASE INVARIANTS
+INV-DB-001
+
+Les contraintes d'intégrité doivent être exprimées au niveau DB lorsque possible.
+
+INV-DB-002
+
+Les migrations sont versionnées.
+
+INV-DB-003
+
+Les données critiques ne sont jamais supprimées sans politique explicite.
+
+INV-DB-004
+
+RLS est obligatoire pour les tables multi-tenant concernées.
+
+18. SECURITY INVARIANTS
+INV-SEC-001
+
+Les secrets ne sont jamais présents dans Git.
+
+INV-SEC-002
+
+Les secrets ne sont jamais présents dans les logs.
+
+INV-SEC-003
+
+Les données sensibles sont chiffrées lorsque requis.
+
+INV-SEC-004
+
+Les privilèges suivent le principe du moindre privilège.
+
+19. AUDIT INVARIANTS
+INV-AUDIT-001
+
+Toute action critique produit un audit record.
+
+INV-AUDIT-002
+
+Un audit record est immuable.
+
+INV-AUDIT-003
+
+Un audit doit permettre de reconstruire le contexte de l'action.
+
+20. EVIDENCE INVARIANTS
+INV-EVD-001
+
+Toute décision critique possède une référence d'evidence.
+
+INV-EVD-002
+
+Une evidence possède sa provenance.
+
+INV-EVD-003
+
+Une evidence ne peut être altérée silencieusement.
+
+INV-EVD-004
+
+L'evidence doit permettre le replay lorsque techniquement possible.
+
+21. OBSERVABILITY INVARIANTS
+
+Toute opération critique doit pouvoir être corrélée via :
+
+trace_id
+correlation_id
+operation_id
+actor_id
+tenant_id
+22. RESILIENCE INVARIANTS
+
+Les opérations distribuées doivent prévoir lorsque nécessaire :
+
+timeout
+retry
+idempotency
+circuit breaker
+dead letter
+recovery
+compensation
+23. MARKETPLACE INVARIANTS
+INV-MKT-001
+
+Toute extension possède un manifest.
+
+INV-MKT-002
+
+Toute extension déclare ses permissions.
+
+INV-MKT-003
+
+Toute extension déclare ses dépendances.
+
+INV-MKT-004
+
+Une extension ne peut accéder qu'aux interfaces autorisées.
+
+24. CODE QUALITY INVARIANTS
+NO SILENT EXCEPTIONS
+NO UNDECLARED SIDE EFFECT
+NO GLOBAL MUTABLE STATE
+NO SECRET IN SOURCE
+NO BUSINESS LOGIC IN API ROUTES
+NO DATABASE ACCESS FROM DOMAIN
+NO DIRECT AGENT DATABASE ACCESS
+NO UNVERSIONED PUBLIC CONTRACT
+25. ARCHITECTURAL INVARIANT
+
+Le code doit toujours respecter :
+
+DOMAIN
+ ↓
+APPLICATION
+ ↓
+PORT
+ ↓
+ADAPTER
+ ↓
+INFRASTRUCTURE
+26. FINAL INVARIANT
+
+Le système doit rester :
+
+SECURE
+AUDITABLE
+TRACEABLE
+MULTI-TENANT
+POLICY-CONTROLLED
+AI-GOVERNED
+AGENT-CONTROLLED
+FINANCIALLY-CONSISTENT
+EXTENSIBLE
+RECOVERABLE
+
+END OF GLOBAL INVARIANTS
+
+IMPLEMENTATION_MANIFEST.md — YAHRIA BUSINESS OS V1
+YAHRIA BUSINESS OS V1
+IMPLEMENTATION_MANIFEST.md
+
+Document ID: YBOS-GOV-004
+Version: 1.0.0
+Status: FROZEN IMPLEMENTATION BASELINE
+
+1. PURPOSE
+
+Ce manifeste définit ce qui doit réellement être implémenté pour YAHRIA BUSINESS OS V1.
+
+Il constitue le pont entre :
+
+ARCHITECTURE
+      ↓
+CONTRACTS
+      ↓
+INVARIANTS
+      ↓
+CODE
+      ↓
+TESTS
+      ↓
+EVIDENCE
+
+Aucun fichier hors manifeste ne doit être considéré comme obligatoire.
+
+2. IMPLEMENTATION ORDER
+PHASE 00 — GOVERNANCE
+PHASE 01 — CONTRACTS
+PHASE 02 — CORE
+PHASE 03 — MONEY
+PHASE 04 — FINANCE
+PHASE 05 — BUSINESS GRAPH
+PHASE 06 — AI
+PHASE 07 — AGENTS
+PHASE 08 — COUNTRY PACKS
+PHASE 09 — SECTOR ENGINES
+PHASE 10 — API PLATFORM
+PHASE 11 — MARKETPLACE
+PHASE 12 — DATA
+PHASE 13 — SECURITY
+PHASE 14 — AUDIT/EVIDENCE
+PHASE 15 — OBSERVABILITY
+PHASE 16 — INTEGRATIONS
+PHASE 17 — TESTS
+PHASE 18 — DEPLOYMENT
+3. GOVERNANCE FILES
+00_GOVERNANCE/
+├── 00_BUSINESS_OS_CONTRACT.md
+├── CANONICAL_INDEX.md
+├── ARCHITECTURE_DECISIONS.md
+├── GLOBAL_INVARIANTS.md
+├── DEPENDENCY_GRAPH.md
+├── IMPLEMENTATION_MANIFEST.md
+├── FILE_GENERATION_MANIFEST.md
+├── ACCEPTANCE_TEST_MANIFEST.md
+├── EVIDENCE_MANIFEST.md
+├── STATE_TRANSITION_MANIFEST.md
+├── AUTONOMY_GOVERNANCE_MANIFEST.md
+├── FAILURE_AND_RECOVERY_MANIFEST.md
+├── SECURITY_BASELINE.md
+├── DATA_GOVERNANCE.md
+├── AI_GOVERNANCE.md
+└── MARKETPLACE_GOVERNANCE.md
+
+Tous ces fichiers sont des artefacts de gouvernance.
+
+4. CONTRACT LAYER
+01_CONTRACTS/
+├── domain/
+├── api/
+├── commands/
+├── queries/
+├── events/
+├── schemas/
+└── integration/
+
+Chaque bounded context doit posséder des contrats indépendants de l'implémentation.
+
+5. CORE IMPLEMENTATION
+02_CORE/
+├── domain/
+│   ├── organization/
+│   ├── legal_entity/
+│   ├── business_unit/
+│   ├── branch/
+│   ├── department/
+│   ├── customer/
+│   ├── supplier/
+│   ├── employee/
+│   ├── partner/
+│   ├── product/
+│   ├── service/
+│   ├── contract/
+│   ├── document/
+│   ├── workflow/
+│   ├── task/
+│   └── approval/
+│
+├── application/
+├── infrastructure/
+├── api/
+└── tests/
+Minimum V1
+
+Le Core doit fournir :
+
+Organization
+LegalEntity
+BusinessUnit
+Branch
+Customer
+Supplier
+Employee
+Product
+Service
+Contract
+Document
+Workflow
+Task
+Approval
+6. MONEY IMPLEMENTATION
+03_MONEY/
+├── domain/
+│   ├── payment_account/
+│   ├── wallet/
+│   ├── bank_account/
+│   ├── mobile_money/
+│   ├── payment/
+│   ├── collection/
+│   ├── disbursement/
+│   ├── transfer/
+│   ├── routing/
+│   ├── orchestration/
+│   ├── fee/
+│   ├── settlement/
+│   └── reconciliation/
+├── application/
+├── infrastructure/
+├── api/
+└── tests/
+V1 obligatoire
+Payment
+Collection
+Disbursement
+Transfer
+PaymentProvider
+PaymentAttempt
+Reconciliation
+Settlement
+Fee
+7. FINANCE IMPLEMENTATION
+04_FINANCE/
+├── domain/
+│   ├── accounting/
+│   ├── ledger/
+│   ├── accounts/
+│   ├── journal/
+│   ├── invoice/
+│   ├── expense/
+│   ├── receivables/
+│   ├── payables/
+│   ├── tax/
+│   ├── vat/
+│   ├── budget/
+│   ├── forecast/
+│   ├── cashflow/
+│   ├── statements/
+│   ├── closing/
+│   └── consolidation/
+├── application/
+├── infrastructure/
+├── api/
+└── tests/
+
+V1 doit garantir :
+
+Double-entry accounting
+Ledger
+Invoices
+Expenses
+Receivables
+Payables
+Tax
+Budget
+Cashflow
+Financial reporting
+8. BUSINESS GRAPH IMPLEMENTATION
+05_BUSINESS_GRAPH/
+├── domain/
+├── graph/
+│   ├── nodes/
+│   ├── edges/
+│   ├── relations/
+│   ├── projections/
+│   ├── snapshots/
+│   └── embeddings/
+├── application/
+├── infrastructure/
+├── api/
+└── tests/
+
+Le V1 doit permettre :
+
+entity resolution
+relationship discovery
+graph projection
+graph search
+business context retrieval
+9. AI IMPLEMENTATION
+06_AI/
+├── gateway/
+├── router/
+├── providers/
+├── models/
+├── embeddings/
+├── reranking/
+├── rag/
+├── knowledge/
+├── prediction/
+├── forecasting/
+├── anomaly_detection/
+├── risk/
+├── explainability/
+├── evaluation/
+├── model_registry/
+├── model_risk/
+└── tests/
+AI V1
+
+Priorités :
+
+AI Gateway
+Model Router
+RAG
+Embedding
+Reranking
+Business Context
+Classification
+Extraction
+Forecasting
+Anomaly Detection
+Risk Scoring
+Explainability
+Evaluation
+10. AGENT IMPLEMENTATION
+07_AGENTS/
+├── runtime/
+├── orchestrator/
+├── registry/
+├── tools/
+├── policies/
+├── planning/
+├── execution/
+├── recovery/
+│
+├── finance_agent/
+├── treasury_agent/
+├── accounting_agent/
+├── payment_agent/
+├── procurement_agent/
+├── supplier_agent/
+├── payroll_agent/
+├── sales_agent/
+├── customer_agent/
+├── compliance_agent/
+├── risk_agent/
+├── tax_agent/
+├── operations_agent/
+├── reporting_agent/
+└── executive_agent/
+
+Chaque agent doit implémenter :
+
+identity
+capabilities
+tools
+policy
+input contract
+output contract
+execution policy
+risk policy
+evidence policy
+recovery policy
+11. COUNTRY PACK IMPLEMENTATION
+
+V1 initiale :
+
+09_COUNTRY_PACKS/
+└── CI/
+    ├── identity/
+    ├── legal/
+    ├── tax/
+    ├── accounting/
+    ├── currency/
+    ├── banking/
+    ├── mobile_money/
+    ├── payroll/
+    ├── invoicing/
+    ├── compliance/
+    ├── regulatory/
+    └── integrations/
+
+Les autres pays doivent être introduits comme extensions conformes au même contrat.
+
+12. SECTOR ENGINE IMPLEMENTATION
+
+V1 initiale recommandée :
+
+08_SECTOR_ENGINES/
+├── enterprise/
+├── ngo/
+├── microfinance/
+├── retail/
+├── education/
+├── construction/
+├── industry/
+├── toll/
+├── restaurant/
+├── ecommerce/
+├── travel/
+├── healthcare/
+└── money_transfer/
+
+Chaque secteur possède au minimum :
+
+manifest
+domain
+workflows
+rules
+kpis
+documents
+agents
+tests
+13. API IMPLEMENTATION
+10_API_PLATFORM/
+├── rest/
+├── graphql/
+├── commands/
+├── queries/
+├── events/
+├── webhooks/
+├── oauth/
+├── api_keys/
+├── service_accounts/
+├── rate_limiting/
+├── idempotency/
+├── versioning/
+├── sdk/
+├── sandbox/
+└── developer_portal/
+14. MARKETPLACE IMPLEMENTATION
+11_MARKETPLACE/
+├── registry/
+├── catalog/
+├── manifests/
+├── validation/
+├── compatibility/
+├── security/
+├── installation/
+├── lifecycle/
+└── extensions/
+
+V1 doit au minimum permettre :
+
+register
+validate
+install
+activate
+disable
+upgrade
+rollback
+uninstall
+15. DATABASE IMPLEMENTATION
+12_DATA/
+├── postgres/
+│   ├── core/
+│   ├── money/
+│   ├── finance/
+│   ├── graph/
+│   ├── ai/
+│   ├── agents/
+│   ├── sectors/
+│   ├── countries/
+│   └── marketplace/
+│
+├── migrations/
+├── seeds/
+├── fixtures/
+├── partitioning/
+├── rls/
+└── indexes/
+16. REQUIRED DATABASE FEATURES
+
+V1 :
+
+UUID
+Foreign Keys
+Unique Constraints
+Check Constraints
+Indexes
+RLS
+Tenant Isolation
+Audit Metadata
+Optimistic Concurrency
+Migration Versioning
+17. INTEGRATIONS
+13_INTEGRATIONS/
+├── banking/
+├── mobile_money/
+├── payment_providers/
+├── accounting/
+├── payroll/
+├── tax/
+├── government/
+├── crm/
+├── erp/
+├── ecommerce/
+└── messaging/
+
+Toutes les intégrations doivent utiliser des ports/adapters.
+
+18. SECURITY IMPLEMENTATION
+14_SECURITY/
+├── identity/
+├── authentication/
+├── authorization/
+├── rbac/
+├── abac/
+├── resource_policies/
+├── transaction_policies/
+├── agent_policies/
+├── ai_policies/
+├── secrets/
+├── encryption/
+└── threat_model/
+19. AUDIT AND EVIDENCE
+15_AUDIT_EVIDENCE/
+├── audit/
+├── evidence/
+├── lineage/
+├── replay/
+├── decision_records/
+├── agent_evidence/
+└── compliance_evidence/
+20. OBSERVABILITY
+16_OBSERVABILITY/
+├── logging/
+├── metrics/
+├── tracing/
+├── health/
+├── alerts/
+└── dashboards/
+21. WORKFLOW IMPLEMENTATION
+17_WORKFLOWS/
+├── payment/
+├── procurement/
+├── payroll/
+├── accounting/
+├── collections/
+├── approvals/
+├── reconciliation/
+└── agent/
+22. FRONTEND IMPLEMENTATION
+18_FRONTENDS/
+├── web/
+├── admin/
+├── customer_portal/
+├── supplier_portal/
+└── executive/
+
+Le frontend ne contient aucune règle métier critique.
+
+23. TEST MANIFEST
+19_TESTS/
+├── unit/
+├── integration/
+├── contract/
+├── api/
+├── security/
+├── rls/
+├── financial_integrity/
+├── ai/
+├── agents/
+├── marketplace/
+├── country_packs/
+├── sector_engines/
+├── resilience/
+└── end_to_end/
+24. REQUIRED ACCEPTANCE TESTS
+
+Avant validation V1 :
+
+TENANT ISOLATION
+RBAC
+ABAC
+POLICY ENFORCEMENT
+PAYMENT IDEMPOTENCY
+DOUBLE ENTRY
+RECONCILIATION
+EVENT IDEMPOTENCY
+GRAPH RECONSTRUCTION
+AI TRACEABILITY
+AGENT AUTHORIZATION
+HUMAN APPROVAL
+COUNTRY ISOLATION
+SECTOR ISOLATION
+API VERSIONING
+MARKETPLACE SECURITY
+AUDIT
+EVIDENCE
+RECOVERY
+25. DEPLOYMENT
+20_DEVOPS/
+├── docker/
+├── compose/
+├── kubernetes/
+├── helm/
+├── terraform/
+├── environments/
+└── scripts/
+26. IMPLEMENTATION STATUS MODEL
+
+Chaque artefact doit avoir un état :
+
+PLANNED
+SPECIFIED
+CONTRACTED
+IMPLEMENTING
+IMPLEMENTED
+TESTED
+VALIDATED
+ACCEPTED
+FROZEN
+DEPRECATED
+27. FILE OWNERSHIP
+
+Chaque fichier doit avoir :
+
+domain
+bounded_context
+layer
+owner
+dependencies
+contracts
+invariants
+tests
+status
+28. GENERATION RULE
+
+Un agent de codage ne doit générer un fichier que si :
+
+FILE
+ ↓
+MANIFEST ENTRY
+ ↓
+DEPENDENCIES VALID
+ ↓
+CONTRACT EXISTS
+ ↓
+INVARIANTS KNOWN
+ ↓
+TEST TARGET EXISTS
+
+Sinon :
+
+GENERATION BLOCKED
+29. IMPLEMENTATION PRIORITY
+P0 — Foundation
+Governance
+Contracts
+Core
+Security
+Tenant
+Identity
+Policy
+Database
+Audit
+Evidence
+P1 — Business Foundation
+Money
+Finance
+Business Graph
+API
+Integrations
+P2 — Intelligence
+AI
+RAG
+Risk
+Forecasting
+Agents
+P3 — Extensions
+Country Packs
+Sector Engines
+Marketplace
+P4 — Experience
+Frontends
+Executive
+Customer Portal
+Supplier Portal
+Developer Portal
+30. V1 DEFINITION OF DONE
+
+YAHRIA BUSINESS OS V1 est accepté lorsque :
+
+ARCHITECTURE
+✓
+
+DEPENDENCY GRAPH
+✓
+
+INVARIANTS
+✓
+
+CONTRACTS
+✓
+
+CORE
+✓
+
+MONEY
+✓
+
+FINANCE
+✓
+
+BUSINESS GRAPH
+✓
+
+AI FOUNDATION
+✓
+
+AGENT FOUNDATION
+✓
+
+COUNTRY PACK FOUNDATION
+✓
+
+SECTOR ENGINE FOUNDATION
+✓
+
+API
+✓
+
+SECURITY
+✓
+
+AUDIT
+✓
+
+EVIDENCE
+✓
+
+TESTS
+✓
+
+DEPLOYMENT
+✓
+
+et lorsque tous les invariants critiques sont validés automatiquement.
+
+31. FINAL IMPLEMENTATION LAW
+
+Le code n'est pas la source de vérité.
+
+L'ordre de vérité est :
+
+GOVERNANCE
+    ↓
+ARCHITECTURE
+    ↓
+DEPENDENCY GRAPH
+    ↓
+CONTRACTS
+    ↓
+INVARIANTS
+    ↓
+IMPLEMENTATION MANIFEST
+    ↓
+SOURCE CODE
+    ↓
+TESTS
+    ↓
+EVIDENCE
+    ↓
+ACCEPTANCE
+
+Toute implémentation qui contredit un artefact supérieur est invalide.
+
+END OF IMPLEMENTATION MANIFEST
+
+Ce que nous venons de verrouiller
+
+Nous avons maintenant le triangle de contrôle V1 :
+
+                 ARCHITECTURE
+                     ▲
+                     │
+                     │
+          DEPENDENCY GRAPH
+                     │
+                     ▼
+                 CONTRACTS
+                     │
+                     ▼
+                INVARIANTS
+                     │
+                     ▼
+          IMPLEMENTATION MANIFEST
+                     │
+                     ▼
+                   CODE
+                     │
+                     ▼
+                  TESTS
+                     │
+                     ▼
+                 EVIDENCE
+
+La prochaine étape devrait être particulièrement importante : FILE_GENERATION_MANIFEST.md.
+
+C'est lui qui transformera le manifeste d'implémentation en une liste déterministe fichier par fichier : chemin exact, type de fichier, bounded context, responsabilité, dépendances autorisées, classes/fonctions attendues, contrats consommés, invariants applicables et tests associés. C'est à ce niveau que nous pourrons réellement préparer le codage autonome de YAHRIA BUSINESS OS V1 sans dérive architecturale.
