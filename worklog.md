@@ -181,3 +181,27 @@ Stage Summary:
 - Toute session morte (expiration, révocation, rejeu) → redirection /login automatique ≤15 s, aucune vue cassée
 - 2FA obligatoire sur les 6 rôles par vagues configurables (YAHRIA_MFA_WAVE), mur structurel côté shell + verrou whitelist côté API
 - Fichiers clés : src/lib/yahria/client-api.ts (nouveau), src/lib/yahria/auth.ts, src/app/page.tsx, src/components/yahria/{cockpit,ui,security,...}.tsx, scripts/test_iter5_mfa_wall.ts, scripts/test_ui_mfa_wall.js
+
+---
+Task ID: 7
+Agent: main (Super Z)
+Task: Mode démo 2FA — « comment gérer la double authentification en mode démo »
+
+Work Log:
+- Nouveau src/lib/yahria/demo.ts : YAHRIA_DEMO_2FA = assist (défaut) | off | strict — la 2FA TOTP reste RÉELLE dans tous les modes (secret, QR, vérification, recovery codes) ; seule l'assistance de saisie change
+- assist : le code TOTP courant est affiché + auto-rempli dans l'UI (login étape 2 : encart ambre « MODE DÉMO — CODE ACTUEL » avec compte à rebours 30 s + bouton « Nouveau code (re-défi) » ; enrôlement : bouton « Remplir (démo) » + légende avec countdown)
+- off : 2FA court-circuitée — login mot de passe seul (login route + MFA_REQUIRED_ROLES vide + mfaRequired=false), mur MFA jamais actif
+- strict : aucune assistance ; /auth/2fa/demo-code répond erreur → aucune fuite de code en production
+- Nouvelle route POST /api/v1/auth/2fa/demo-code (withAuth, whiteliste mur MFA) : code courant + remainingSec, seulement en assist ; anonyme → 401 (testé)
+- login/route.ts : défi 2FA + demoAssist {code, period, remainingSec} en assist ; skip défi si off
+- auth.ts : intégration isDemo2faOff (MFA_REQUIRED_ROLES, resolveSession) + whitelist /2fa/demo-code pour l'enrôlement via mur
+- UI : src/app/login/page.tsx (encart démo + auto-remplissage + countdown + mention panneau marque), src/components/yahria/security.tsx (bouton « Remplir (démo) » + hint countdown, reset hint à l'activation/annulation)
+- .env + .env.example : YAHRIA_DEMO_2FA documenté (assist/off/strict)
+- Tests : scripts/test_ui_demo_2fa.js 17/17 PASS (401 anonyme, mur MFA, enrôlement assisté QR→code rempli→8 recovery→mur levé, cockpit KPI, demo-code 200 authentifié, re-login étape 2 auto-remplie → cockpit, reset état 0 enrôlé, zéro erreur console)
+- Non-régression : test_iter4_sessions_2fa_export.ts 32/32 PASS ; test_iter5_mfa_wall.ts 22/22 PASS (cleanup rendu idempotent : 403 MFA_ENROLLMENT_REQUIRED sur /2fa/disable d'un compte déjà non-enrôlé = restauration déjà atteinte, vérifiée via /me)
+- tsc src : 0 erreur · eslint src : 0 erreur ; état final démo : tous comptes non enrôlés (démo vierge)
+
+Stage Summary:
+- Réponse au besoin démo : 3 modes — assist (défaut, code affiché/auto-rempli, fonctionnalité démontrée de bout en bout sans app authenticator), off (démo fluide sans 2FA), strict (production)
+- Le parcours démo naturel : login chip → mur MFA → « Configurer la 2FA » → « Remplir (démo) » → activer → recovery codes → débloqué ; connexions suivantes → étape 2 avec code visible auto-rempli
+- Fichiers clés : src/lib/yahria/demo.ts, api/v1/auth/2fa/demo-code/route.ts, api/v1/auth/login/route.ts, lib/yahria/auth.ts, app/login/page.tsx, components/yahria/security.tsx, scripts/test_ui_demo_2fa.js

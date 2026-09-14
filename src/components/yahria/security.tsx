@@ -14,8 +14,10 @@ import { SectionTitle, LoadError, fmtDateTime } from './ui'
 import { apiJson, ApiFail, isAuthLoss, toApiFail, ME_REFRESH_EVENT } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
 import {
-  KeyRound, RefreshCw, Trash2, ShieldCheck, Smartphone, QrCode, ShieldOff, Timer, Lock,
+  KeyRound, RefreshCw, Trash2, ShieldCheck, Smartphone, QrCode, ShieldOff, Timer, Lock, Sparkles,
 } from 'lucide-react'
+
+interface DemoCodeHint { code: string; remainingSec: number }
 
 interface SessionRow {
   id: string
@@ -57,6 +59,8 @@ export function SecurityView() {
   const [disablePassword, setDisablePassword] = useState('')
   const [showDisable, setShowDisable] = useState(false)
   const [error, setError] = useState<ApiFail | null>(null)
+  // Assistance MODE DÉMO : code TOTP courant pour l'enrôlement sans app authenticator
+  const [demoHint, setDemoHint] = useState<DemoCodeHint | null>(null)
 
   const load = useCallback(() => {
     apiJson<{ sessions?: SessionRow[] }>('/api/v1/auth/sessions')
@@ -73,6 +77,28 @@ export function SecurityView() {
   const notifyMeChanged = useCallback(() => {
     window.dispatchEvent(new CustomEvent(ME_REFRESH_EVENT))
   }, [])
+
+  // Compte à rebours du code démo affiché
+  useEffect(() => {
+    if (!demoHint) return
+    const t = setInterval(() => {
+      setDemoHint((d) => (d ? { ...d, remainingSec: d.remainingSec - 1 } : d))
+    }, 1000)
+    return () => clearInterval(t)
+  }, [demoHint?.code])
+
+  /** Mode démo (YAHRIA_DEMO_2FA=assist) : récupère le code TOTP courant et pré-remplit la saisie. */
+  async function fillDemoCode() {
+    try {
+      const res = await fetch('/api/v1/auth/2fa/demo-code', { method: 'POST' })
+      const d = await res.json()
+      if (!res.ok) { toast({ title: 'Assistance démo indisponible', description: d.error }); return }
+      setDemoHint({ code: d.code, remainingSec: d.remainingSec })
+      setCode(d.code)
+    } catch {
+      toast({ title: 'Serveur injoignable' })
+    }
+  }
 
   async function revoke(id: string) {
     const res = await fetch('/api/v1/auth/sessions', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
@@ -117,6 +143,7 @@ export function SecurityView() {
     setRecovery(d.recoveryCodes)
     setSetup(null)
     setCode('')
+    setDemoHint(null)
     toast({ title: '2FA activée', description: 'Conservez les codes de récupération en lieu sûr.' })
     notifyMeChanged()
     load()
@@ -195,11 +222,22 @@ export function SecurityView() {
                   <span className="block mt-1 font-mono text-xs bg-muted rounded px-2 py-1 select-all">{setup.secret}</span>
                 </p>
                 <p className="text-sm font-medium">2. Saisissez le code à 6 chiffres</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="123456" maxLength={6} inputMode="numeric" className="w-32 font-mono tracking-widest text-center" />
                   <Button size="sm" onClick={enable2fa} disabled={busy || code.length !== 6}>Vérifier & activer</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setSetup(null)}>Annuler</Button>
+                  <Button size="sm" variant="outline" onClick={fillDemoCode} className="gap-1.5 border-amber-500/40 text-amber-300 hover:bg-amber-500/10">
+                    <Sparkles className="h-3.5 w-3.5" /> Remplir (démo)
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => { setSetup(null); setDemoHint(null) }}>Annuler</Button>
                 </div>
+                {demoHint && (
+                  <p className="text-[11px] text-amber-300/90">
+                    Mode démo — code actuel : <span className="font-mono font-bold tracking-widest select-all">{demoHint.code}</span>{' '}
+                    <span className={`font-mono ${demoHint.remainingSec > 5 ? 'text-muted-foreground' : 'text-red-400'}`}>
+                      ({demoHint.remainingSec > 0 ? `${demoHint.remainingSec}s` : 'roté — re-cliquez'})
+                    </span>
+                  </p>
+                )}
               </div>
             </div>
           )}

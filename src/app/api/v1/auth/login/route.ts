@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dbUnscoped } from '@/lib/db'
 import { verifyPassword, createSession, setSessionCookie, SESSION_COOKIE } from '@/lib/yahria/auth'
-import { issueMfaChallenge } from '@/lib/yahria/totp'
+import { issueMfaChallenge, totpAt } from '@/lib/yahria/totp'
+import { isDemoAssist, isDemo2faOff, totpRemainingSeconds } from '@/lib/yahria/demo'
 import { ensureSeeded } from '@/lib/yahria/seed'
 import { audit } from '@/lib/yahria/audit'
 
@@ -27,9 +28,15 @@ export async function POST(req: NextRequest) {
 
   // Étape 2 (SEC-003) — 2FA activée : pas de session tant que le code TOTP
   // n'est pas validé. Un défi signé (5 min, usage unique) relie les deux étapes.
-  if (user.totpEnabledAt && user.totpSecret) {
+  // Mode démo « off » : la 2FA est court-circuitée (connexion mot de passe seul).
+  if (!isDemo2faOff() && user.totpEnabledAt && user.totpSecret) {
     const { challenge, expiresIn } = issueMfaChallenge(user.id)
-    return NextResponse.json({ mfaRequired: true, challenge, expiresIn })
+    // Mode démo « assist » : le code TOTP courant est retourné à l'UI pour
+    // affichage/auto-remplissage (environnement de démonstration uniquement).
+    const demoAssist = isDemoAssist()
+      ? { code: totpAt(user.totpSecret), period: 30, remainingSec: totpRemainingSeconds() }
+      : undefined
+    return NextResponse.json({ mfaRequired: true, challenge, expiresIn, demoAssist })
   }
 
   const { token, expiresAt } = await createSession(user.id, req.headers.get('user-agent') ?? undefined)

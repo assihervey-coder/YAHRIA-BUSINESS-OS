@@ -164,7 +164,16 @@ async function main() {
     console.log('  ℹ️  CFO encore enrôlé (héritage itération 4) — impossible de désactiver sans le secret TOTP ; état laissé tel quel.')
   } else {
     const st2 = await disable2fa(cfo)
-    check('icoulibaly (CFO) : 2FA désactivée (état démo restauré)', st2 === 200, `status=${st2}`)
+    // 200 = désactivée maintenant · 403 MFA_ENROLLMENT_REQUIRED = déjà désactivée
+    // (le verrou PAR CONSTRUCTION refuse /2fa/disable à un compte non enrôlé —
+    //  l'objectif de restauration est déjà atteint). Vérification d'état réel via /me.
+    const meR = await call(cfo, 'GET', '/api/v1/auth/me')
+    const meB = (await meR.json().catch(() => ({}))) as { user?: { totpEnabled?: boolean } }
+    check(
+      'icoulibaly (CFO) : état démo restauré (2FA désactivée)',
+      meB.user?.totpEnabled === false && (st2 === 200 || st2 === 403),
+      `disable=${st2}`
+    )
   }
 
   console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)

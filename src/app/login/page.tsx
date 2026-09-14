@@ -1,11 +1,16 @@
 'use client'
 
 // YAHRIA BUSINESS OS V1 — Page de connexion (RBAC multi-tenant + 2FA TOTP en 2 étapes)
+// Mode démo (YAHRIA_DEMO_2FA=assist) : le code TOTP courant est affiché et
+// auto-rempli — la double authentification est démontrée de bout en bout sans
+// application authentificatrice. En 'strict' : aucune assistance.
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { LogIn, ShieldCheck, Lock, Smartphone, KeyRound } from 'lucide-react'
+import { LogIn, ShieldCheck, Lock, Smartphone, KeyRound, RefreshCw, Sparkles } from 'lucide-react'
+
+interface DemoAssist { code: string; period: number; remainingSec: number }
 
 interface DemoAccount {
   name: string
@@ -30,6 +35,16 @@ export default function LoginPage() {
   // Étape 2 — défi 2FA émis après validation du mot de passe
   const [mfaChallenge, setMfaChallenge] = useState<string | null>(null)
   const [mfaCode, setMfaCode] = useState('')
+  // Assistance démo : code TOTP courant affiché + compte à rebours
+  const [demoAssist, setDemoAssist] = useState<DemoAssist | null>(null)
+
+  useEffect(() => {
+    if (!demoAssist) return
+    const t = setInterval(() => {
+      setDemoAssist((d) => (d ? { ...d, remainingSec: d.remainingSec - 1 } : d))
+    }, 1000)
+    return () => clearInterval(t)
+  }, [demoAssist?.code])
 
   useEffect(() => {
     fetch('/api/v1/auth/demo').then((r) => r.json()).then((d) => {
@@ -57,6 +72,12 @@ export default function LoginPage() {
         // Étape 2 : vérification TOTP (le défi relie les deux étapes)
         setMfaChallenge(data.challenge)
         setMfaCode('')
+        if (data.demoAssist) {
+          setDemoAssist(data.demoAssist)
+          setMfaCode(data.demoAssist.code) // auto-remplissage mode démo
+        } else {
+          setDemoAssist(null)
+        }
         setBusy(false)
         return
       }
@@ -118,6 +139,7 @@ export default function LoginPage() {
             <p className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> Session chiffrée · rotation · détection de rejeu · scrypt</p>
             <p className="flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-primary" /> Chaque requête bornée à votre tenant (INV-001)</p>
             <p className="flex items-center gap-2"><Smartphone className="h-3.5 w-3.5 text-primary" /> 2FA TOTP obligatoire — verrouillage progressif sur tous les rôles (vagues)</p>
+            <p className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" /> Mode démo : le code TOTP courant est affiché à l&apos;écran (assist)</p>
             <p className="font-mono pt-3 border-t border-border/60">YBOS-ARCH-V1 · baseline 1.2.0 · multi-tenant</p>
           </div>
         </div>
@@ -143,6 +165,29 @@ export default function LoginPage() {
                   authentificatrice — ou un code de récupération (XXXX-XXXX).
                 </p>
               </div>
+              {demoAssist && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-bold tracking-wider text-amber-400">MODE DÉMO — CODE ACTUEL</p>
+                    <span className={`text-[10px] font-mono ${demoAssist.remainingSec > 5 ? 'text-amber-300' : 'text-red-400'}`}>
+                      {demoAssist.remainingSec > 0 ? `${demoAssist.remainingSec}s` : 'roté — renouvelez'}
+                    </span>
+                  </div>
+                  <p className="mt-1 font-mono text-2xl font-bold tracking-[0.35em] text-amber-200 text-center select-all">
+                    {demoAssist.code}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2 h-7 text-[11px] border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+                    disabled={busy}
+                    onClick={() => login(email, password)}
+                  >
+                    <RefreshCw className="h-3 w-3" /> Nouveau code (re-défi)
+                  </Button>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Code de vérification</label>
                 <input

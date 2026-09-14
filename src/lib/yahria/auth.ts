@@ -17,6 +17,7 @@ import {
   rotateSession,
   listActiveSessions,
 } from './sessions'
+import { isDemo2faOff } from './demo'
 
 export { hashPassword, verifyPassword }
 
@@ -38,9 +39,11 @@ export const CURRENT_MFA_WAVE = Math.min(
   MFA_WAVES.length,
   Math.max(1, Number(process.env.YAHRIA_MFA_WAVE ?? 3))
 )
-export const MFA_REQUIRED_ROLES: ReadonlySet<string> = new Set(
-  MFA_WAVES.filter((w) => w.wave <= CURRENT_MFA_WAVE).flatMap((w) => w.roles)
-)
+// YAHRIA_DEMO_2FA=off → 2FA désactivée (démo fluide) : aucun rôle requis,
+// le mur MFA ne s'active jamais (voir src/lib/yahria/demo.ts).
+export const MFA_REQUIRED_ROLES: ReadonlySet<string> = isDemo2faOff()
+  ? new Set<string>()
+  : new Set(MFA_WAVES.filter((w) => w.wave <= CURRENT_MFA_WAVE).flatMap((w) => w.roles))
 export function mfaWaveOfRole(role: string): number | null {
   const w = MFA_WAVES.find((x) => x.roles.includes(role))
   return w ? w.wave : null
@@ -136,7 +139,7 @@ async function resolveSession(token: string | undefined): Promise<SessionUser | 
     sessionId: live.id,
     sessionExpiresAt: live.expiresAt,
     totpEnabled,
-    mfaRequired: !totpEnabled && MFA_REQUIRED_ROLES.has(live.user.role),
+    mfaRequired: !isDemo2faOff() && !totpEnabled && MFA_REQUIRED_ROLES.has(live.user.role),
     org: {
       name: live.user.org.name, legalName: live.user.org.legalName, countryCode: live.user.org.countryCode,
       city: live.user.org.city, currencyCode: live.user.org.currencyCode,
@@ -198,6 +201,7 @@ export async function withAuth<T>(
     '/api/v1/auth/session/rotate',
     '/api/v1/auth/2fa/setup',
     '/api/v1/auth/2fa/enable',
+    '/api/v1/auth/2fa/demo-code',
     '/api/v1/auth/logout',
   ]
   const path = req.nextUrl.pathname
