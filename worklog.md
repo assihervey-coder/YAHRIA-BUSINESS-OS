@@ -297,3 +297,19 @@ Stage Summary:
 - Nouvelle capacité de gouvernance : re-scellement de ledger après rotation de clé, avec refus garanti en cas de falsification réelle (jamais d'effacement d'incident)
 - Le diagnostic INV-008 est désormais auto-explicatif dans l'UI (ROTATION DE CLÉ vs FALSIFICATION) et dans le détail de l'invariant
 - Suites durables : scripts/test_inv008_reseal.cjs (24 checks idempotents) ; PUBLIC_ROUTES INV-002 consolidé avec justifications
+
+---
+Task ID: 11
+Agent: Super Z (main)
+Task: Commit + push complet vers GitHub (assihervey-coder/YAHRIA-BUSINESS-OS)
+
+Work Log:
+- État des lieux : 6 commits locaux en attente (INV-008 re-scellement, SYSCOHADA + échantillons) + DB démo modifiée
+- Amend chore(db) → 29e7ccc (état démo neutre re-capturé : 0 enrôlement, 17 preuves valides, 36 écritures)
+- Scan secrets : DB sans pattern PAT/EVIDENCE_SIGNING_KEY ; .env non suivi (gitignore OK)
+- Push 15a8117..29e7ccc via PAT fourni en chat, usage ponctuel (URL inline, non persistée : remote URL propre, aucune credential stockée)
+
+Stage Summary:
+- GitHub synchrone : origin/main = 29e7ccc, working tree clean
+- Contenu poussé : export SYSCOHADA bout en bout, INV-008 re-scellement + UI gouvernance, échantillons PDF/XLSX, état DB démo neutre
+- Rappel sécurité : PAT ghp_Ur3i… réutilisé et de nouveau exposé en chat → à révoquer/rotater après usage
