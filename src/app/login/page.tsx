@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TotpEnrollmentGate } from '@/components/yahria/totp-enrollment-gate'
 import { LogIn, ShieldCheck, Lock, Smartphone, KeyRound, RefreshCw, Sparkles, ChevronLeft } from 'lucide-react'
 
 interface DemoAssist { code: string; period: number; remainingSec: number }
@@ -36,6 +37,9 @@ export default function LoginPage() {
   // Étape 2 — défi 2FA émis après validation du mot de passe
   const [mfaChallenge, setMfaChallenge] = useState<string | null>(null)
   const [mfaCode, setMfaCode] = useState('')
+  // SEC-003 — compte d'une vague active NON enrôlé : la 2FA s'active ICI,
+  // sur la page de connexion, avant toute navigation vers la plateforme /app.
+  const [enrollGate, setEnrollGate] = useState(false)
   // Assistance démo : code TOTP courant affiché + compte à rebours
   const [demoAssist, setDemoAssist] = useState<DemoAssist | null>(null)
 
@@ -82,6 +86,16 @@ export default function LoginPage() {
         setBusy(false)
         return
       }
+      if (data.mfaEnrollmentRequired) {
+        // SEC-003 — parcours « 2FA AVANT la plateforme » : la session émise est
+        // provisionnelle (côté serveur, seules les routes d'auth répondent).
+        // La porte d'enrôlement s'affiche ICI — aucun router.push('/app').
+        setEnrollGate(true)
+        setMfaChallenge(null)
+        setDemoAssist(null)
+        setBusy(false)
+        return
+      }
       router.push('/app')
       router.refresh()
     } catch {
@@ -114,6 +128,14 @@ export default function LoginPage() {
     }
   }
 
+  /** Fin du parcours : la 2FA est réellement validée (activation ou code TOTP)
+   *  — SEULEMENT ENSUITE la plateforme /app est rejointe. */
+  function enterPlatform() {
+    setEnrollGate(false)
+    router.push('/app')
+    router.refresh()
+  }
+
   return (
     <div className="min-h-dvh dark bg-background text-foreground flex items-center justify-center p-4" style={{ colorScheme: 'dark' }}>
       <div className="w-full max-w-4xl grid md:grid-cols-2 gap-6 items-stretch">
@@ -139,7 +161,7 @@ export default function LoginPage() {
           <div className="space-y-2 text-[11px] text-muted-foreground">
             <p className="flex items-center gap-2"><ShieldCheck className="h-3.5 w-3.5 text-primary" /> Session chiffrée · rotation · détection de rejeu · scrypt</p>
             <p className="flex items-center gap-2"><Lock className="h-3.5 w-3.5 text-primary" /> Chaque requête bornée à votre tenant (INV-001)</p>
-            <p className="flex items-center gap-2"><Smartphone className="h-3.5 w-3.5 text-primary" /> 2FA TOTP obligatoire — verrouillage progressif sur tous les rôles (vagues)</p>
+            <p className="flex items-center gap-2"><Smartphone className="h-3.5 w-3.5 text-primary" /> 2FA TOTP obligatoire — validée à la connexion, avant l&apos;accès à la plateforme</p>
             <p className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-primary" /> Mode démo : le code TOTP courant est affiché à l&apos;écran (assist)</p>
             <p className="font-mono pt-3 border-t border-border/60">YBOS-ARCH-V1 · baseline 1.2.0 · multi-tenant</p>
           </div>
@@ -151,13 +173,17 @@ export default function LoginPage() {
             <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[oklch(0.8_0.12_220)] to-[oklch(0.6_0.14_240)] flex items-center justify-center font-black text-[13px] text-[oklch(0.16_0.04_255)]">Y</div>
             <p className="font-bold">YAHRIA BUSINESS OS</p>
           </div>
-          <h2 className="text-lg font-bold">Connexion</h2>
-          <p className="text-xs text-muted-foreground mt-1">Accédez à votre espace tenant.</p>
+          <h2 className="text-lg font-bold">{enrollGate ? 'Sécurisation du compte' : 'Connexion'}</h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            {enrollGate ? 'Activez la 2FA pour déverrouiller l’accès à la plateforme.' : 'Accédez à votre espace tenant.'}
+          </p>
           <a href="/" className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors mt-2">
             <ChevronLeft className="h-3 w-3" /> Retour au site vitrine
           </a>
 
-          {mfaChallenge ? (
+          {enrollGate ? (
+            <TotpEnrollmentGate onEnterPlatform={enterPlatform} />
+          ) : mfaChallenge ? (
             <form
               className="mt-5 space-y-3"
               onSubmit={(e) => { e.preventDefault(); verifyMfa() }}
@@ -250,8 +276,8 @@ export default function LoginPage() {
           </form>
           )}
 
-          {/* ── Comptes de démonstration ── */}
-          <div className="mt-6 border-t border-border pt-4">
+          {/* ── Comptes de démonstration (masqués pendant l'enrôlement) ── */}
+          <div className={enrollGate ? 'hidden' : 'mt-6 border-t border-border pt-4'}>
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
               Comptes de démonstration — mot de passe : <span className="font-mono text-foreground">{demoPassword}</span>
             </p>

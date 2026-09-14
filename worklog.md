@@ -227,3 +227,24 @@ Stage Summary:
 - Site vitrine 10 pages intégré à l'app (même thème OKLCH dark), publicly accessible, SEO metadata par page
 - Flux demandé livré : de la page principale (accueil vitrine), « Accéder à la plateforme » → /login (auth 2 étapes, 2FA assistée en démo) → /app (plateforme protégée)
 - Fichiers clés : src/lib/vitrine/content.ts, src/components/vitrine/{shell,contact-form}.tsx, src/app/{page,solution,fonctionnalites,secteurs,pays,securite,tarifs,annonces,a-propos,contacts}/page.tsx, src/app/app/page.tsx, src/app/api/v1/contact/route.ts, src/middleware.ts
+
+---
+Task ID: 9
+Agent: Super Z (main)
+Task: « il serait plus intéressant que ce soit juste après la validation du login que la double authentification soit validée avant la connexion à la plateforme/YAHRIA OS réellement » — parcours « 2FA AVANT plateforme »
+
+Work Log:
+- Diagnostic : les non-enrôlés d'une vague active atterrissaient dans /app (mur in-app) APRÈS le login — l'utilisateur « entrait » dans la plateforme avant de valider la 2FA. Les enrôlés avaient déjà le bon ordre (password → TOTP → /app).
+- Backend (src/app/api/v1/auth/login/route.ts) : la branche session ajoute `mfaEnrollmentRequired = !isDemo2faOff() && MFA_REQUIRED_ROLES.has(user.role)` — l'UI sait qu'il faut enrôler SUR /login. Import MFA_REQUIRED_ROLES ajouté.
+- Nouveau composant src/components/yahria/totp-enrollment-gate.tsx : porte d'enrôlement auto-démarrée au montage (POST /2fa/setup → QR + secret), assistance démo (auto-remplissage via /2fa/demo-code + « Nouveau code (démo) » + compte à rebours), « Vérifier & activer » → dialog 8 codes de récupération → « J'ai noté mes codes — Accéder à la plateforme ». Pattern .then() (règle react-hooks/set-state-in-effect), AbortController StrictMode-safe.
+- src/app/login/page.tsx : 3e étape `enrollGate` — séquence identifiants → 2FA (TOTP si enrôlé / porte d'activation si non-enrôlé) → /app. Zéro router.push('/app') avant validation 2FA. Titre « Sécurisation du compte », comptes démo masqués pendant l'enrôlement, copie panneau marque mise à jour (« 2FA TOTP obligatoire — validée à la connexion, avant l'accès à la plateforme »).
+- Défense en profondeur conservée : mur MFA in-app intact (session provisionnelle bloquée côté serveur par whitelist withAuth), bannière précisée (« celui-ci se fait normalement dès la connexion »).
+- Test scripts/test_ui_demo_2fa.js réécrit (23 checks) : réponse mfaEnrollmentRequired=true, cookie provisionnelle émis, API métier 403 MFA_ENROLLMENT_REQUIRED, /app muré en direct (défense), QR sur /login + URL reste /login + aucun KPI rendu, activation assistée → /app Cockpit, re-login enrôlé étape 2 démo → Cockpit, reset OWNER.
+- Debug d'un faux échec intermittent : le sélecteur flou `text=Accès restreint` matchait la ligne d'audit du Cockpit « …accès restreint jusqu'au ré-enrôlement » (summary de /2fa/disable). Sélecteur précisé `text=Accès restreint : votre rôle`. Script debug supprimé.
+- Régressions : test_iter4_sessions_2fa_export.ts 32/32 ; test_iter5_mfa_wall.ts 22/22. tsc src : 0 erreur ; eslint fichiers modifiés : 0 problème.
+
+Stage Summary:
+- PARCOURS EXIGÉ LIVRÉ : validation du login → validation 2FA (code TOTP ou activation) → SEULEMENT ENSUITE connexion à /app. Aucune navigation plateforme avant 2FA validée.
+- Garanties inchangées : TOTP réel, session provisionnelle sans accès métier (serveur), mur in-app en profondeur, modes démo off/assist/strict compatibles.
+- Fichiers : src/app/api/v1/auth/login/route.ts, src/components/yahria/totp-enrollment-gate.tsx (nouveau), src/app/login/page.tsx, src/app/app/page.tsx, scripts/test_ui_demo_2fa.js.
+- État démo : OWNER désenrôlé ; admin@yahria.africa et fdiomande restent enrôlés (inscrits hors de ce task — non touchés, demoable via assist).

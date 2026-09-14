@@ -243,7 +243,8 @@ export default function Home() {
               <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0" />
               <p className="text-xs text-amber-200 flex-1">
                 Accès restreint : votre rôle <span className="font-semibold">{me?.role}</span> exige la double authentification.
-                Toutes les autres vues restent verrouillées jusqu&apos;à l&apos;enrôlement.
+                Toutes les autres vues restent verrouillées jusqu&apos;à l&apos;enrôlement — celui-ci se fait normalement
+                dès la connexion, avant l&apos;entrée dans la plateforme.
               </p>
             </div>
           )}

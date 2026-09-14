@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { dbUnscoped } from '@/lib/db'
-import { verifyPassword, createSession, setSessionCookie, SESSION_COOKIE } from '@/lib/yahria/auth'
+import { verifyPassword, createSession, setSessionCookie, SESSION_COOKIE, MFA_REQUIRED_ROLES } from '@/lib/yahria/auth'
 import { issueMfaChallenge, totpAt } from '@/lib/yahria/totp'
 import { isDemoAssist, isDemo2faOff, totpRemainingSeconds } from '@/lib/yahria/demo'
 import { ensureSeeded } from '@/lib/yahria/seed'
@@ -51,8 +51,15 @@ export async function POST(req: NextRequest) {
     summary: `Connexion de ${user.name} (${user.role}) — ${user.tenant.name}`,
   })
 
+  // SEC-003 — parcours « 2FA AVANT la plateforme » : si le compte relève d'une
+  // vague active sans enrôlement, la session émise est PROVISIONNELLE (côté
+  // serveur, withAuth ne laisse ouverte que la whitelist d'authentification).
+  // L'UI termine l'enrôlement SUR LA PAGE DE CONNEXION — aucune navigation
+  // vers /app n'est autorisée avant que la 2FA soit réellement validée.
+  const mfaEnrollmentRequired = !isDemo2faOff() && MFA_REQUIRED_ROLES.has(user.role)
   const res = NextResponse.json({
     ok: true,
+    mfaEnrollmentRequired,
     user: { name: user.name, email: user.email, role: user.role, org: user.org.legalName, tenant: user.tenant.name },
   })
   return setSessionCookie(res, token, expiresAt)
