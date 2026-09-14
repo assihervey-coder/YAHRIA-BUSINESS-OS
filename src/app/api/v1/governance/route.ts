@@ -3,7 +3,7 @@ import { db, dbUnscoped } from '@/lib/db'
 import { withAuth, can } from '@/lib/yahria/auth'
 import { jparse } from '@/lib/yahria/core'
 import { rebuildGraphProjection } from '@/lib/yahria/graph'
-import { audit, verifyEvidenceChain } from '@/lib/yahria/audit'
+import { audit, verifyEvidenceChain, resealEvidenceChain } from '@/lib/yahria/audit'
 import { checkPackIsolation } from '@/lib/yahria/packs'
 import { runConstructionProofs } from '@/lib/yahria/invariants'
 import { API_CONTRACT, EVIDENCE_LEDGER_SPEC, PACK_MANIFEST_SPEC, SECTOR_CONTRACT, contractsOverview } from '@/lib/yahria/contracts'
@@ -79,6 +79,14 @@ export async function GET(req: NextRequest) {
 
     const chain = await verifyEvidenceChain(orgId)
 
+    // Diagnostic du mode d'échec de la chaîne : signatures seules invalides = rotation
+    // de clé (contenu intact) ; hash/chaînage invalides = falsification réelle.
+    const chainDiag = chain.chainIntact
+      ? null
+      : chain.hashFails === 0 && chain.linkFails === 0 && chain.sigFails > 0
+        ? 'ROTATION DE CLÉ — contenu intact, signatures antérieures à la clé courante → re-scellement requis (OWNER/ADMIN)'
+        : 'FALSIFICATION SUSPECTÉE — hash ou chaînage altéré → investigation, PAS de re-scellement'
+
     // ── Invariants PAR CONSTRUCTION : sondes runtime (INV-001/002/007/011/012/013) ──
     const construction = await runConstructionProofs(orgId)
 
@@ -89,7 +97,7 @@ export async function GET(req: NextRequest) {
       'INV-004': { status: 'PASS', detail: `${executedPayments.length} mouvements financiers liés à une Evidence signée` },
       'INV-005': { status: accBalanced ? 'PASS' : 'FAIL', detail: accBalanced ? `Grand-livre équilibré : D=${totalDebit.toLocaleString('fr-FR')} = C=${totalCredit.toLocaleString('fr-FR')}` : `DÉSÉQUILIBRE détecté : D=${totalDebit} vs C=${totalCredit}` },
       'INV-006': { status: idempotent ? 'PASS' : 'FAIL', detail: idempotent ? `${uniqueKeys.size} clés d'idempotence uniques sur ${payments.length} paiements` : 'Clés dupliquées détectées' },
-      'INV-008': { status: chain.chainIntact && runsEvidence ? 'PASS' : 'FAIL', detail: `${aiEvidence} réponse(s) IA avec Evidence + chaîne ${chain.total ? `${chain.valid}/${chain.total} signatures valides` : 'vide'} + ${governedRuns.length}/${governedRuns.length} runs gouvernés prouvés` },
+      'INV-008': { status: chain.chainIntact && runsEvidence ? 'PASS' : 'FAIL', detail: `${aiEvidence} réponse(s) IA avec Evidence + chaîne ${chain.total ? `${chain.valid}/${chain.total} signatures valides` : 'vide'} + ${governedRuns.length}/${governedRuns.length} runs gouvernés prouvés${chainDiag ? ' — ' + chainDiag : ''}` },
       'INV-009': { status: 'PASS', detail: `${await db.approval.count({ where: { orgId } })} approbations humaines enregistrées et auditées` },
       'INV-010': { status: leastPrivilege ? 'PASS' : 'FAIL', detail: leastPrivilege ? 'Tous les agents actifs déclarent leurs outils (moindre privilège)' : 'Agent actif sans outils déclarés' },
       'INV-011': { status: inv11Violations === 0 ? 'PASS' : 'FAIL', detail: inv11Violations === 0 ? `Aucune fuite exécutée — ${inv11Blocked} tentative(s) hors pack bloquée(s) (pack ${org?.countryCode})` : `${inv11Violations} paiement(s) exécuté(s) via un rail hors pack` },
@@ -106,7 +114,7 @@ export async function GET(req: NextRequest) {
         action: a.action, resourceType: a.resourceType, summary: a.summary,
       })),
       evidence: evidence.map((e) => ({ id: e.id, ref: e.ref, kind: e.kind, title: e.title, hash: e.hash, signature: e.signature, prevHash: e.prevHash, seq: e.seq, algo: e.algo, createdAt: e.createdAt, payload: jparse<Record<string, unknown>>(e.payloadJson, {}) })),
-      evidenceChain: { total: chain.total, valid: chain.valid, invalid: chain.invalid, chainIntact: chain.chainIntact, brokenAtSeq: chain.brokenAtSeq, algo: chain.algo, brokenRefs: chain.brokenRefs, checkedAt: chain.checkedAt },
+      evidenceChain: { total: chain.total, valid: chain.valid, invalid: chain.invalid, chainIntact: chain.chainIntact, brokenAtSeq: chain.brokenAtSeq, algo: chain.algo, brokenRefs: chain.brokenRefs, hashFails: chain.hashFails, sigFails: chain.sigFails, linkFails: chain.linkFails, checkedAt: chain.checkedAt },
       construction: {
         allPass: construction.allPass,
         proofs: construction.proofs,
@@ -154,6 +162,23 @@ export async function POST(req: NextRequest) {
       const chain = await verifyEvidenceChain(orgId)
       await audit({ orgId, actorType: 'HUMAN', actorId: s.userId, actorName: s.name, action: 'EVIDENCE_CHAIN_VERIFIED', resourceType: 'EVIDENCE', summary: `Vérification de la chaîne de preuves : ${chain.valid}/${chain.total} valides — ${chain.chainIntact ? 'INTACTE' : 'ROMPUE à la séquence ' + chain.brokenAtSeq}` })
       return NextResponse.json({ chain })
+    }
+
+    if (body.action === 'RESEAL_EVIDENCE') {
+      if (!can(s.role, 'governance.admin')) return NextResponse.json({ error: 'Permission governance.admin requise (réservé OWNER/ADMIN)' }, { status: 403 })
+      // Re-scellement = rotation de clé : re-signer les ledgers de preuves avec la
+      // clé courante SANS toucher au contenu (hashs + chaînage inchangés). Le
+      // pré-contrôle de resealEvidenceChain REFUSE toute chaîne dont le contenu
+      // est altéré (falsification réelle → investigation, pas d'effacement).
+      const orgIds: string[] = body.allOrgs
+        ? (await dbUnscoped.evidence.findMany({ distinct: ['orgId'], select: { orgId: true } })).map((r) => r.orgId)
+        : [orgId]
+      const reports: ((Awaited<ReturnType<typeof resealEvidenceChain>>) & { orgId: string })[] = []
+      for (const o of orgIds) reports.push({ orgId: o, ...(await resealEvidenceChain(o)) })
+      const resealed = reports.reduce((sum, r) => sum + r.resealed, 0)
+      const allOk = reports.every((r) => r.ok)
+      await audit({ orgId, actorType: 'HUMAN', actorId: s.userId, actorName: s.name, action: 'EVIDENCE_RESEALED', resourceType: 'EVIDENCE', summary: `Re-scellement de la chaîne de preuves (rotation de clé) : ${resealed} signature(s) recalculée(s) sur ${reports.length} organisation(s) — contenu intouché, post-vérification ${allOk ? 'INTACTE' : 'ÉCHOUÉE'}`, meta: { invariant: 'INV-008', allOrgs: !!body.allOrgs, resealed } })
+      return NextResponse.json({ ok: allOk, resealed, orgs: reports.length, reports })
     }
 
     if (body.action === 'RUN_INVARIANT_PROOFS') {

@@ -11,14 +11,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { StatusBadge, SectionTitle, LoadError, fmtDateTime } from './ui'
 import { apiJson, ApiFail, isAuthLoss, toApiFail } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
-import { ShieldCheck, ScrollText, Fingerprint, Scale, Lock, KeyRound, Globe2, PlayCircle, Braces, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { ShieldCheck, ScrollText, Fingerprint, Scale, Lock, KeyRound, Globe2, PlayCircle, Braces, CheckCircle2, XCircle, Loader2, RotateCcw, AlertTriangle } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface Policy { id: string; code: string; name: string; category: string; description: string; active: boolean; version: number; rule: Record<string, unknown> }
 interface Invariant { id: string; name: string; desc: string; check: string; checkResult: { status: string; detail: string } | null }
 interface AuditRow { id: string; ts: string; traceId: string; actorType: string; actorName: string; action: string; resourceType: string; summary: string }
 interface EvidenceRow { id: string; ref: string; kind: string; title: string; hash: string; signature: string; prevHash: string; seq: number; algo: string; createdAt: string; payload: Record<string, unknown> }
-interface ChainInfo { total: number; valid: number; invalid: number; chainIntact: boolean; brokenAtSeq: number | null; algo: string; brokenRefs: string[]; checkedAt: string }
+interface ChainInfo { total: number; valid: number; invalid: number; chainIntact: boolean; brokenAtSeq: number | null; algo: string; brokenRefs: string[]; hashFails: number; sigFails: number; linkFails: number; checkedAt: string }
 interface RlsInfo { mode: string; tenantCount: number; orgCount: number; scope: { tenantId: string; orgId: string; role: string }; enforcement: string[] }
 interface PermsInfo { role: string; canManagePolicies: boolean; canRebuildGraph: boolean; canTestIsolation: boolean }
 interface ProofCheck { label: string; ok: boolean; detail: string }
@@ -31,6 +31,7 @@ export function GovernanceView() {
   const [data, setData] = useState<{ policies: Policy[]; invariants: Invariant[]; audit: AuditRow[]; evidence: EvidenceRow[]; evidenceChain: ChainInfo; rls: RlsInfo; permissions: PermsInfo; construction: ConstructionInfo; stats: { auditCount: number; evidenceCount: number; policyCount: number } } | null>(null)
   const [testing, setTesting] = useState(false)
   const [runningProofs, setRunningProofs] = useState(false)
+  const [resealing, setResealing] = useState(false)
   const [isoResult, setIsoResult] = useState<{ orgCountry: string; foreignPack: string; results: { rail: string; railLabel: string; allowed: boolean; detail: string }[] } | null>(null)
   const [error, setError] = useState<ApiFail | null>(null)
 
@@ -59,6 +60,28 @@ export function GovernanceView() {
     toast({
       title: d.chain.chainIntact ? 'Chaîne de preuves INTACTE' : 'CHAÎNE ROMPUE',
       description: `${d.chain.valid}/${d.chain.total} signatures HMAC-SHA256 valides${d.chain.brokenAtSeq ? ' — rupture à la séquence ' + d.chain.brokenAtSeq : ''}`,
+    })
+    load()
+  }
+
+  async function resealChain() {
+    const c = data?.evidenceChain
+    const isRotation = c && c.hashFails === 0 && c.linkFails === 0 && c.sigFails > 0
+    const confirmed = window.confirm(
+      isRotation
+        ? `Re-sceller la chaîne de preuves (rotation de clé) ?\n\n${c.sigFails} signature(s) datent d'une clé antérieure — le contenu (hashs + chaînage) est INTACT. L'opération recalcule les signatures avec la clé courante et reste audité.`
+        : 'ATTENTION : le hash ou le chaînage de la chaîne est altéré. Un re-scellement masquerait une falsification — il sera REFUSÉ par le système. Continuer quand même ?'
+    )
+    if (!confirmed) return
+    setResealing(true)
+    const res = await fetch('/api/v1/governance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'RESEAL_EVIDENCE' }) })
+    const d = await res.json()
+    setResealing(false)
+    if (!res.ok) { toast({ title: 'Re-scellement refusé', description: d.error }); return }
+    const first = (d.reports ?? [])[0]
+    toast({
+      title: d.ok ? 'Chaîne re-scellée' : 'Re-scellement REFUSÉ',
+      description: first?.message ?? `${d.resealed} signature(s) recalculée(s)`,
     })
     load()
   }
@@ -295,19 +318,35 @@ export function GovernanceView() {
               </CardContent>
             </Card>
 
-            <Card className={data.evidenceChain.chainIntact ? 'border-emerald-500/40' : 'border-red-500/60'}>
+            <Card className={data.evidenceChain.chainIntact ? 'border-emerald-500/40' : data.evidenceChain.hashFails === 0 && data.evidenceChain.linkFails === 0 ? 'border-amber-500/50' : 'border-red-500/60'}>
               <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><KeyRound className="h-4 w-4 text-primary" /> Chaîne de signatures Evidence — HMAC-SHA256</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-xs text-muted-foreground leading-relaxed">
                 <div className="flex items-center gap-2">
                   {data.evidenceChain.chainIntact
                     ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/40 text-[10px]">CHAÎNE INTACTE</Badge>
-                    : <Badge className="bg-red-500/15 text-red-400 border-red-500/40 text-[10px]">ROMPUE — séquence {data.evidenceChain.brokenAtSeq}</Badge>}
+                    : data.evidenceChain.hashFails === 0 && data.evidenceChain.linkFails === 0
+                      ? <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/40 text-[10px]"><RotateCcw className="h-3 w-3 mr-1" />ROTATION DE CLÉ</Badge>
+                      : <Badge className="bg-red-500/15 text-red-400 border-red-500/40 text-[10px]">ROMPUE — séquence {data.evidenceChain.brokenAtSeq}</Badge>}
                   <span>{data.evidenceChain.valid}/{data.evidenceChain.total} signatures valides</span>
                 </div>
+                {!data.evidenceChain.chainIntact && data.evidenceChain.hashFails === 0 && data.evidenceChain.linkFails === 0 && (
+                  <p className="flex items-start gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-amber-300">
+                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>Contenu intact (0 hash altéré, 0 lien rompu) mais {data.evidenceChain.sigFails} signature(s) datent d&apos;une clé antérieure — typique après rotation de <span className="font-mono">EVIDENCE_SIGNING_KEY</span>. Le re-scellement recalcule les signatures avec la clé courante, sans toucher au contenu.</span>
+                  </p>
+                )}
                 <p>Algorithme : <span className="font-mono text-foreground">{data.evidenceChain.algo}</span>. Chaque preuve signe le hash de la précédente : toute altération casse toute la chaîne aval.</p>
-                <Button size="sm" variant="outline" className="gap-1.5 h-7 text-[11px]" onClick={verifyChain}>
-                  <ShieldCheck className="h-3 w-3" /> Vérifier toute la chaîne maintenant
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" className="gap-1.5 h-7 text-[11px]" onClick={verifyChain}>
+                    <ShieldCheck className="h-3 w-3" /> Vérifier toute la chaîne maintenant
+                  </Button>
+                  {data.permissions.canTestIsolation && !data.evidenceChain.chainIntact && (
+                    <Button size="sm" variant="outline" className="gap-1.5 h-7 text-[11px] border-amber-500/50 text-amber-300 hover:bg-amber-500/10" onClick={resealChain} disabled={resealing}>
+                      {resealing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                      {resealing ? 'Re-scellement…' : 'Re-sceller (rotation de clé)'}
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>

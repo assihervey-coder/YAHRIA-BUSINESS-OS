@@ -275,3 +275,25 @@ Stage Summary:
 - Correctif PDF pieds de page livré ; suites de validation durables : scripts/test_syscohada_export.py (63 checks), scripts/test_ui_export_syscohada.js (15 checks)
 - Échantillons téléchargeables dans download/syscohada_export_samples/
 - Rappel : PAT GitHub divulgué toujours à révoquer côté compte
+
+---
+Task ID: 10
+Agent: Super Z (main)
+Task: Diagnostic + correction INV-008 FAIL (« 1 réponse(s) IA avec Evidence + chaîne 0/7 signatures valides »)
+
+Work Log:
+- Diagnostic scripts/diag_inv008.ts + diag_inv008_raw.ts : 17 preuves (7 CI / 1 SN / 9 BJ), TOUS les hashs SHA-256 valides, chaînage prevHash intact, mais 0 signature HMAC vérifiable avec la clé .env courante OU le fallback
+- Cause racine confirmée via worklog committé (tool-results/...) : la purge de secrets pré-push GitHub a écrasé/recréé .env avec une NOUVELLE EVIDENCE_SIGNING_KEY ; les preuves du 13/09 21:40 étaient signées avec l'ancienne clé (irrécupérable — purge effective, vérifiée : blobs git + dangling commits sans .env) → ROTATION DE CLÉ, pas une falsification
+- audit.ts : ChainReport enrichi (hashFails/sigFails/linkFails) + resealEvidenceChain(orgId) — re-scellement type rotation KMS : pré-contrôle REFUS (TAMPERING) si 1 seul hash/lien altéré, re-signature HMAC uniquement (hashs/chaînage intouchés) via $executeRaw (chemin privilégié documenté, seul contournement d'INV-007), post-vérification obligatoire
+- governance route : action RESEAL_EVIDENCE (governance.admin, option allOrgs) + audit EVIDENCE_RESEALED ; détail INV-008 diagnostique le mode d'échec (ROTATION DE CLÉ vs FALSIFICATION SUSPECTÉE)
+- governance.tsx : badge ROTATION DE CLÉ (ambre) + bandeau explicatif + bouton « Re-sceller (rotation de clé) » OWNER/ADMIN avec confirm contextuel
+- invariants.ts : PUBLIC_ROUTES documenté avec justification par entrée (2fa/verify = défi MFA signé pré-session, session/rotate = garde live + piège rejeu SEC-002, contact = vitrine publique honeypot) → INV-002 re-PASS (la route vitrine /api/v1/contact avait fait échouer le scan)
+- .env.example : procédure de rotation documentée (RESEAL_EVIDENCE allOrgs)
+- Test de bout en bout scripts/test_inv008_reseal.cjs : 24/24 PASS (idempotent) — ①état 0/17 ②login+2FA OWNER ③INV-008 FAIL diag ROTATION ④permission ⑤reseal allOrgs 17/3 orgs ⑥INV-008 PASS 7/7 ⑦17 hashs + payloads strictement inchangés ⑧falsification simulée → REFUS TAMPERING puis restauration 17/17 ⑨audit + preuves construction 6/6 ⑩nettoyage
+- Régression iter5 mur MFA : 22/22 PASS ; tsc src/ = 0 erreur ; eslint clean ; 2 enrôlements résiduels (admin@yahria.africa, ladjovi@golfetrading.bj) désenrolés → base démo neutre (0 enrôlé)
+
+Stage Summary:
+- INV-008 : PASS permanent — chaîne 17/17 signatures valides sur les 3 organisations, contenu cryptographiquement inchangé (hashs vérifiés avant/après)
+- Nouvelle capacité de gouvernance : re-scellement de ledger après rotation de clé, avec refus garanti en cas de falsification réelle (jamais d'effacement d'incident)
+- Le diagnostic INV-008 est désormais auto-explicatif dans l'UI (ROTATION DE CLÉ vs FALSIFICATION) et dans le détail de l'invariant
+- Suites durables : scripts/test_inv008_reseal.cjs (24 checks idempotents) ; PUBLIC_ROUTES INV-002 consolidé avec justifications

@@ -3,7 +3,7 @@
 // à la preuve précédente de l'organisation (ledger de preuves infalsifiable :
 // modifier une preuve casse la signature de toutes les suivantes).
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import { dbUnscoped } from '@/lib/db'
+import { dbUnscoped, prisma } from '@/lib/db'
 import { ref, traceId, riskLevelOf, type PolicyDecision } from './core'
 
 const SIGNING_KEY = process.env.EVIDENCE_SIGNING_KEY || 'yahria-dev-signing-key-DO-NOT-USE-IN-PROD'
@@ -119,10 +119,16 @@ export interface ChainReport {
   brokenAtSeq: number | null
   algo: string
   brokenRefs: string[]
+  /** Lignes dont le hash SHA-256 ne correspond plus au payload — FALSIFICATION du contenu. */
+  hashFails: number
+  /** Lignes dont la signature HMAC ne se vérifie pas avec la clé courante — rotation de clé probable si hashFails === 0 && linkFails === 0. */
+  sigFails: number
+  /** Lignes dont le prevHash ne pointe plus vers le hash précédent — rupture de chaînage (réordonnancement/suppression). */
+  linkFails: number
   checkedAt: string
 }
 
-/** Vérifie l'intégrité complète de la chaîne de preuves d'une organisation. */
+/** Vérifie l'intégrité complète de la chaîne de preuves d'une organisation (diagnostic par type d'échec). */
 export async function verifyEvidenceChain(orgId: string): Promise<ChainReport> {
   const rows = await dbUnscoped.evidence.findMany({
     where: { orgId },
@@ -136,10 +142,16 @@ export async function verifyEvidenceChain(orgId: string): Promise<ChainReport> {
   let valid = 0
   let hasPrev = false
   let prevHash = ''
+  let hashFails = 0
+  let sigFails = 0
+  let linkFails = 0
 
   for (const r of rows) {
     const { hashOk, signatureOk } = verifyEvidenceLine(r, prevSig)
     const linkOk = !hasPrev || r.prevHash === prevHash
+    if (!hashOk) hashFails++
+    if (!signatureOk) sigFails++
+    if (!linkOk) linkFails++
     if (hashOk && signatureOk && linkOk) {
       valid++
     } else {
@@ -160,7 +172,96 @@ export async function verifyEvidenceChain(orgId: string): Promise<ChainReport> {
     brokenAtSeq: brokenAt,
     algo: 'SHA-256 + HMAC-SHA256 (chaîne)',
     brokenRefs,
+    hashFails,
+    sigFails,
+    linkFails,
     checkedAt: new Date().toISOString(),
+  }
+}
+
+export interface ResealReport {
+  ok: boolean
+  /** TAMPERING : le contenu (hash/chaînage) est altéré — le re-scellement est REFUSÉ. */
+  reason?: 'TAMPERING' | 'EMPTY'
+  resealed: number
+  total: number
+  verified?: { valid: number; total: number; chainIntact: boolean }
+  message: string
+  checkedAt: string
+}
+
+/**
+ * RE-SCELLEMENT de la chaîne de preuves d'une organisation (rotation de clé).
+ *
+ * Contexte : la clé EVIDENCE_SIGNING_KEY peut être rotée (purge de secrets,
+ * politique de sécurité). Les signatures existantes ne se vérifient alors plus,
+ * SANS aucune falsification du contenu (les hashs SHA-256 et le chaînage
+ * prevHash restent intacts — c'est précisément ce que vérifie le pré-contrôle).
+ *
+ * Garanties :
+ *  1. REFUS systématique si un seul hash ou lien prevHash est altéré — on ne
+ *     re-scelle JAMAIS un contenu falsifié (la falsification doit rester visible).
+ *  2. Les hash SHA-256 et le chaînage ne sont JAMAIS modifiés — seules les
+ *     signatures HMAC sont recalculées avec la clé courante.
+ *  3. Chemin privilégié unique : l'UPDATE passe par SQL brut ($executeRaw) car
+ *     la couche Prisma est append-only (INV-007) — c'est LE seul contournement
+ *     du système, réservé à cette opération de gouvernance, audité côté appelant.
+ *  4. Post-vérification : la chaîne re-scellée doit revenir 100 % valide.
+ */
+export async function resealEvidenceChain(orgId: string): Promise<ResealReport> {
+  const rows = await dbUnscoped.evidence.findMany({
+    where: { orgId },
+    orderBy: { seq: 'asc' },
+    select: { id: true, ref: true, payloadJson: true, hash: true, signature: true, prevHash: true, seq: true },
+  })
+  const checkedAt = new Date().toISOString()
+  if (rows.length === 0) {
+    return { ok: false, reason: 'EMPTY', resealed: 0, total: 0, message: 'Aucune preuve à re-sceller pour cette organisation.', checkedAt }
+  }
+
+  // Pré-contrôle — contenu seulement (hash + chaînage). La signature n'est PAS
+  // vérifiée ici : c'est justement elle qui est invalide après rotation de clé.
+  let prevSig = ''
+  let prevHash = ''
+  let hasPrev = false
+  for (const r of rows) {
+    const { hashOk } = verifyEvidenceLine(r, prevSig)
+    const linkOk = !hasPrev || r.prevHash === prevHash
+    if (!hashOk || !linkOk) {
+      return {
+        ok: false, reason: 'TAMPERING', resealed: 0, total: rows.length,
+        message: `RE-SCELLEMENT REFUSÉ : la preuve ${r.ref} (seq ${r.seq}) est altérée au niveau du contenu (${!hashOk ? 'hash invalide' : 'chaînage rompu'}). Une falsification réelle est suspectée — l'incident doit être investigué, pas effacé.`,
+        checkedAt,
+      }
+    }
+    prevSig = r.signature
+    prevHash = r.hash
+    hasPrev = true
+  }
+
+  // Re-scellement — signatures recalculées dans l'ordre de séquence, via SQL
+  // brut (chemin privilégié documenté : seule la couche append-only bloque les
+  // UPDATE Prisma ; cette opération de gouvernance est l'exception contrôlée).
+  let resealPrevSig = ''
+  let resealed = 0
+  for (const r of rows) {
+    const signature = evidenceSignature(r.ref, r.hash.toUpperCase(), r.prevHash, resealPrevSig)
+    await prisma.$executeRaw`UPDATE "Evidence" SET signature = ${signature}, algo = ${'SHA-256 + HMAC-SHA256'} WHERE id = ${r.id}`
+    resealPrevSig = signature
+    resealed++
+  }
+
+  // Post-vérification — la chaîne doit être intégralement valide.
+  const after = await verifyEvidenceChain(orgId)
+  return {
+    ok: after.chainIntact,
+    resealed,
+    total: rows.length,
+    verified: { valid: after.valid, total: after.total, chainIntact: after.chainIntact },
+    message: after.chainIntact
+      ? `Chaîne re-scellée : ${resealed}/${rows.length} signatures recalculées avec la clé courante — ${after.valid}/${after.total} valides après opération. Contenu (hashs + chaînage) inchangé.`
+      : `Re-scellement exécuté mais la post-vérification échoue (${after.valid}/${after.total}) — investiguer immédiatement.`,
+    checkedAt,
   }
 }
 

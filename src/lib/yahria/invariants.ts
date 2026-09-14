@@ -36,8 +36,20 @@ const ROOT = process.cwd()
 const API_DIR = path.join(ROOT, 'src', 'app', 'api', 'v1')
 const LIB_DIR = path.join(ROOT, 'src', 'lib', 'yahria')
 
-/** Routes publiques (authentification elle-même) — exceptions à INV-002. */
-const PUBLIC_ROUTES = new Set(['auth/login/route.ts', 'auth/demo/route.ts', 'auth/logout/route.ts'])
+/** Exceptions à INV-002 — routes sans withAuth mais dont la protection est PAR CONSTRUCTION différente (chaque entrée est justifiée) :
+ *  · auth/*  : l'authentification elle-même (scrypt + défi MFA signé) ne peut pas exiger une session ;
+ *  · 2fa/verify : étape 2 du login — garde par DÉFI MFA signé (5 min, usage unique), pré-session par nature ;
+ *  · session/rotate : garde par résolution de session live + piège de rejeu → révocation familiale (SEC-002) ;
+ *  · contact : vitrine publique — formulaire de contact avec honeypot anti-spam, POST unique.
+ */
+const PUBLIC_ROUTES = new Set([
+  'auth/login/route.ts',
+  'auth/demo/route.ts',
+  'auth/logout/route.ts',
+  'auth/2fa/verify/route.ts',
+  'auth/session/rotate/route.ts',
+  'contact/route.ts',
+])
 
 // ── INV-001 : Tenant Isolation ───────────────────────────────────────────────
 async function probeInv001(orgId: string): Promise<ConstructionProof> {
@@ -102,7 +114,7 @@ async function probeInv002(): Promise<ConstructionProof> {
       label: 'Toutes les routes API derrière withAuth',
       ok: violations.length === 0,
       detail: violations.length === 0
-        ? `${protectedCount}/${files.length} routes protégées (session + permission + RLS) — exceptions publiques : ${[...PUBLIC_ROUTES].length} routes d'authentification`
+        ? `${protectedCount}/${files.length} routes protégées (session + permission + RLS) — exceptions justifiées : ${[...PUBLIC_ROUTES].length} routes d'auth/2FA et vitrine publique`
         : `Routes non protégées détectées : ${violations.join(', ')}`,
     })
 
