@@ -43,6 +43,7 @@ interface TableCtx {
   pageNum: number
   font: PDFFont
   bold: PDFFont
+  footerPages: Set<PDFPage>
   drawFooter: () => void
 }
 
@@ -111,7 +112,11 @@ async function newDoc(meta: ExportMeta, title: string) {
   banner(page, font, bold, meta, title)
   const ctx: TableCtx = {
     doc, page, y: A4[1] - M - 52, pageNum: 1, font, bold,
+    footerPages: new Set<PDFPage>(),
     drawFooter: () => {
+      // Garde anti-doublon : chaque page reçoit exactement un pied de page
+      if (ctx.footerPages.has(ctx.page)) return
+      ctx.footerPages.add(ctx.page)
       ctx.page.drawText('Document généré par YAHRIA Business OS — modèle SYSCOHADA révisé, système normal', {
         x: M, y: M - 8, size: 6.5, font: ctx.font, color: MUTED,
       })
@@ -119,6 +124,8 @@ async function newDoc(meta: ExportMeta, title: string) {
       ctx.page.drawText(pn, { x: A4[0] - M - ctx.bold.widthOfTextAtSize(pn, 7), y: M - 8, size: 7, font: ctx.bold, color: MUTED })
     },
   }
+  // La page 1 porte aussi son pied de page (sinon absent sur documents multi-pages)
+  ctx.drawFooter()
   return { doc, ctx }
 }
 

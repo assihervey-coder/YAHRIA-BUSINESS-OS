@@ -248,3 +248,30 @@ Stage Summary:
 - Garanties inchangées : TOTP réel, session provisionnelle sans accès métier (serveur), mur in-app en profondeur, modes démo off/assist/strict compatibles.
 - Fichiers : src/app/api/v1/auth/login/route.ts, src/components/yahria/totp-enrollment-gate.tsx (nouveau), src/app/login/page.tsx, src/app/app/page.tsx, scripts/test_ui_demo_2fa.js.
 - État démo : OWNER désenrôlé ; admin@yahria.africa et fdiomande restent enrôlés (inscrits hors de ce task — non touchés, demoable via assist).
+
+---
+Task ID: 8
+Agent: main (Super Z)
+Task: Lancement de l'export SYSCOHADA (balance, grand livre, journaux — 3ᵉ du trio confirmé) : validation profonde de bout en bout + correctif PDF
+
+Work Log:
+- État des lieux : backend déjà livré à l'itération 4 (ohada.ts / ohada-xlsx.ts / ohada-pdf.ts + GET /api/v1/finance/export + ExportPanel dans FinanceView) ; « lancer » = revalider après les évolutions login/2FA et corriger les écarts
+- Régression iter4 rejouée : 32/32 PASS (sessions rotatives, 2FA TOTP, 6 exports 3 docs × 2 formats avec signatures binaires, 401 anonyme, nettoyage 2FA)
+- Nouveau harnais scripts/test_syscohada_export.py (validation CONTENU vs vérité terrain SQLite) : 63/63 PASS après corrections
+  · Garde-fous : 401 anonyme, 403 MFA_ENROLLMENT_REQUIRED (session provisionnelle), 400 (type/format/date/from>to)
+  · Balance CI : 13 comptes exacts, INV-ACC-001 (Σ mvt D=C, Σ soldes D=C), solde D−C = mvt D−C par ligne, XOF entiers, classes 1..8, en-tête NCC/RCCM/pays/monnaie
+  · Journaux : VTE/ACH/TRE/PAIE, totaux par journal = SQLite, Σ lignes = total journal, cohérence transverse Σ journaux = Σ balance
+  · Grand livre : solde progressif recalculé ligne à ligne, « À nouveau » = antériorité réelle (export août→déc), sens SD/SC
+  · Lettrage 411 : ORACLE EXACT (réplication computeLettrage) — 10 pièces lettrées, 5 lettres A→E, chaque lettre rapproche débit = crédit ; 401 non mouvementé (dépenses payées comptant en 521) — attendu
+  · RLS : SN et BJ exportent UNIQUEMENT leurs comptes/entités (aucune fuite CI), totaux propres et équilibrés
+  · Filtrage de période : balance sept. = vérité terrain sept.
+- BUG FIX (src/lib/yahria/ohada-pdf.ts) : page 1 des documents multi-pages sans pied de page/numéro + double pied de page sur la dernière page → garde anti-doublon (footerPages Set) + pied de page posé dès la création du ctx ; validé par « exactement un Page N par page » (balance 1 p., grand livre 3 p., journaux 2 p.)
+- Test UI Playwright scripts/test_ui_export_syscohada.js : 15/15 PASS — passerelle 2FA sur /login (QR → auto-rempli démo → Vérifier & activer → codes → /app), Finance → onglet Export SYSCOHADA, téléchargements réels PDF (200 application/pdf + toast) et XLSX (200 + corps PK validé via context.request), grand livre via Select, capture i6_export_syscohada.png, OWNER désenrôlé en fin de run
+- 6 échantillons réels copiés dans download/syscohada_export_samples/ (balance / grand-livre-lettre / journaux × PDF / XLSX, Ivoire Distribution 2026)
+- tsc 0 erreur, eslint 0 erreur, état démo restauré (enrôlés = baseline, 36 écritures intactes)
+
+Stage Summary:
+- Export SYSCOHADA OFFICIELLEMENT LANCÉ : 3 états × 2 formats, lettrage validé par oracle exact, RLS multi-orgs prouvé, INVAR-ACC-001 respecté, UI démontrable (Finance → Export SYSCOHADA)
+- Correctif PDF pieds de page livré ; suites de validation durables : scripts/test_syscohada_export.py (63 checks), scripts/test_ui_export_syscohada.js (15 checks)
+- Échantillons téléchargeables dans download/syscohada_export_samples/
+- Rappel : PAT GitHub divulgué toujours à révoquer côté compte
