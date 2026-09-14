@@ -47,7 +47,7 @@ async function main() {
   await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' })
   const chip = page.locator('button', { hasText: OWNER }).first()
   await chip.click()
-  await page.waitForURL(`${BASE}/`)
+  await page.waitForURL(`${BASE}/app`)
   await page.waitForSelector('text=Accès restreint', { timeout: 30000 })
   check('mur MFA affiché (Accès restreint)', true)
   const wallView = await page.waitForSelector('text=Configurer la 2FA', { timeout: 30000 })
@@ -103,7 +103,7 @@ async function main() {
   const code2 = await page.inputValue('input[placeholder="123456 ou AB12-CD34"]')
   check('étape 2 : code auto-rempli', /^\d{6}$/.test(code2), `value=${code2}`)
   await page.click('text=Vérifier et se connecter')
-  await page.waitForURL(`${BASE}/`)
+  await page.waitForURL(`${BASE}/app`)
   await page.waitForSelector('text=Trésorerie totale', { timeout: 30000 })
   check('connexion 2 étapes (TOTP démo) → Cockpit OK', true)
 

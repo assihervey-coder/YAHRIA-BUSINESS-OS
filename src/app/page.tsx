@@ -1,295 +1,247 @@
-'use client'
-
-// YAHRIA BUSINESS OS V1 — OS Shell
-// YAHRIA PLATFORM (Identity/Tenant/Policy/Audit/Evidence) ───── YAHRIA BUSINESS OS (10 domaines)
-import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { apiJson, SESSION_EXPIRED_EVENT, ME_REFRESH_EVENT } from '@/lib/yahria/client-api'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import type { Metadata } from 'next'
+import Link from 'next/link'
 import {
-  LayoutDashboard, Building2, Wallet, BookOpenCheck, Network, BrainCircuit,
-  Bot, Globe2, Scale, ShieldAlert, ChevronLeft, ChevronRight, Users, LogOut,
-  ShieldCheck
+  ArrowRight, Gauge, Landmark, ShieldCheck, Users, Workflow, FileText, Globe2,
+  Bot, Layers, TrendingUp, Wallet, BellRing, Megaphone,
 } from 'lucide-react'
+import { VitrineShell } from '@/components/vitrine/shell'
+import { MODULES, COUNTRY_PACKS, latestAnnonces, CATEGORIE_LABELS } from '@/lib/vitrine/content'
 
-const NAV = [
-  { id: 'cockpit', label: 'Cockpit', sub: 'Executive Intelligence', icon: LayoutDashboard, perm: null },
-  { id: 'core', label: 'Core', sub: '00 — noyau métier', icon: Building2, perm: 'core.read' },
-  { id: 'money', label: 'Money', sub: '01 — paiements & trésorerie', icon: Wallet, perm: 'money.read' },
-  { id: 'finance', label: 'Finance', sub: '02 — OHADA SYSCOHADA', icon: BookOpenCheck, perm: 'finance.read' },
-  { id: 'graph', label: 'Business Graph', sub: '03 — contexte de l\'IA', icon: Network, perm: null },
-  { id: 'copilot', label: 'Copilot IA', sub: '04 — intelligence exécutive', icon: BrainCircuit, perm: 'copilot.use' },
-  { id: 'agents', label: 'Agents', sub: '05 — sous gouvernance', icon: Bot, perm: null },
-  { id: 'pays', label: 'Pays & Secteurs', sub: '06/07 — packs & engines', icon: Globe2, perm: null },
-  { id: 'governance', label: 'Gouvernance', sub: '99 — policy · audit · evidence', icon: Scale, perm: 'governance.read' },
-  { id: 'security', label: 'Sécurité', sub: 'sessions & 2FA', icon: ShieldCheck, perm: null },
-  { id: 'users', label: 'Utilisateurs', sub: 'RBAC — comptes & rôles', icon: Users, perm: 'users.read' },
-] as const
-
-type ViewId = (typeof NAV)[number]['id']
-
-interface Me {
-  name: string
-  email: string
-  role: string
-  permissions: string[]
-  totpEnabled?: boolean
-  mfaRequired?: boolean
+export const metadata: Metadata = {
+  title: 'YAHRIA BUSINESS OS — Le système d\u2019exploitation intelligent des entreprises africaines',
+  description:
+    'Pilotez trésorerie, paiements Mobile Money, finance OHADA et agents IA sous gouvernance. Cockpit décisionnel, multi-tenant, Côte d\u2019Ivoire · Sénégal · Bénin.',
 }
 
-function navAllowed(perm: string | null, permissions: string[]): boolean {
-  if (!perm) return true
-  return permissions.some((p) => p === '*' || p === perm || (p.endsWith('.*') && perm.startsWith(p.slice(0, -1))) || (p.startsWith('*.') && perm.endsWith(p.slice(1))))
+const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  cockpit: Gauge, core: Layers, money: Wallet, finance: Landmark, graph: TrendingUp, agents: Bot,
 }
 
-interface Meta {
-  org: { name: string; legalName: string; city: string; countryCode: string; currencyCode: string; sectorCode: string; taxId: string } | null
-  tenant: { name: string; plan: string } | null
-}
+const STATS = [
+  { valeur: '6', label: 'invariants PAR CONSTRUCTION', detail: 'garantis par la structure du code, prouvés en runtime' },
+  { valeur: '3', label: 'pays couverts', detail: 'Country Packs CI · SN · BJ, rails Mobile Money isolés' },
+  { valeur: '13', label: 'secteurs d\u2019activité', detail: 'extensions sectorielles auto-contenues et versionnées' },
+  { valeur: '6', label: 'rôles RBAC', detail: 'séparation des pouvoirs : la saisie n\u2019approuve jamais' },
+]
 
-export default function Home() {
-  const router = useRouter()
-  const [view, setView] = useState<ViewId>('cockpit')
-  const [collapsed, setCollapsed] = useState(false)
-  const [meta, setMeta] = useState<Meta | null>(null)
-  const [approvals, setApprovals] = useState(0)
-  const [me, setMe] = useState<Me | null>(null)
-  // Machine à états du mur MFA :
-  //  · 'never'  — jamais muré (ou clic explicite après levée) → navigation normale
-  //  · 'active' — 2FA manquante → SEULE la vue Sécurité est rendue (structurel)
-  //  · 'lifted' — enrôlement terminé : on RESTE sur Sécurité (les codes de
-  //    récupération s'affichent) jusqu'à un clic de navigation post-levée.
-  //    Les clics effectués À TRAVERS le mur ('active') ne lèvent jamais le mur.
-  const [wall, setWall] = useState<'never' | 'active' | 'lifted'>('never')
-
-  const goTo = useCallback((id: ViewId) => {
-    setWall((w) => (w === 'lifted' ? 'never' : w))
-    setView(id)
-  }, [])
-
-  useEffect(() => {
-    let alive = true
-    fetch('/api/v1/auth/me').then((r) => {
-      if (r.status === 401) { router.push('/login'); return null }
-      return r.json()
-    }).then((d) => { if (alive && d?.user) setMe(d.user) }).catch(() => {})
-    fetch('/api/v1/meta').then((r) => r.json()).then((d) => { if (alive) setMeta(d) }).catch(() => {})
-    return () => { alive = false }
-  }, [router])
-
-  // Robustesse PAR CONSTRUCTION : tout 401 émis par la couche client apiJson()
-  // (session expirée, révoquée, famille tuée par détection de rejeu) redirige
-  // instantanément vers /login — aucune vue ne reste sur un écran cassé.
-  useEffect(() => {
-    const onExpired = () => router.push('/login')
-    window.addEventListener(SESSION_EXPIRED_EVENT, onExpired)
-    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onExpired)
-  }, [router])
-
-  // Mur MFA : après enrôlement/désactivation 2FA dans le panneau Sécurité,
-  // l'état « me » du shell est rechargé pour lever/poser le mur à jour.
-  useEffect(() => {
-    let alive = true
-    const refreshMe = () => {
-      fetch('/api/v1/auth/me').then((r) => (r.ok ? r.json() : null)).then((d) => {
-        if (alive && d?.user) setMe(d.user)
-      }).catch(() => {})
-    }
-    window.addEventListener(ME_REFRESH_EVENT, refreshMe)
-    return () => { alive = false; window.removeEventListener(ME_REFRESH_EVENT, refreshMe) }
-  }, [])
-
-  useEffect(() => {
-    const poll = () =>
-      apiJson<{ items?: { status: string }[] }>('/api/v1/agents/approvals')
-        .then((d) => setApprovals((d.items ?? []).filter((a) => a.status === 'PENDING').length))
-        .catch(() => {})
-    const t = setInterval(poll, 15000)
-    poll()
-    return () => clearInterval(t)
-  }, [])
-
-  const active = NAV.find((n) => n.id === view)!
-  const perms = me?.permissions ?? []
-  const visibleNav = NAV.filter((n) => navAllowed(n.perm as string | null, perms))
-  const viewAllowed = (id: ViewId) => { const n = NAV.find((x) => x.id === id); return n ? navAllowed(n.perm as string | null, perms) : false }
-  // SEC-003 — Mur 2FA structurel : tant que l'enrôlement TOTP n'est pas fait
-  // (rôles des vagues actives), la SEULE vue rendue est « Sécurité ». Ce n'est
-  // pas un conseil affiché, c'est la structure du shell qui verrouille.
-  const mfaWall = !!me?.mfaRequired && !me.totpEnabled
-  // Transition d'état du mur calculée PENDANT le rendu (pattern React officiel
-  // « adjusting state when props change ») — pas d'effet, pas de rendu en cascade :
-  //  · levée du mur (active → lifted) : on reste sur Sécurité jusqu'à un clic
-  //  · re-verrouillage (2FA désactivée) : retour immédiat à 'active'
-  const [prevMfaWall, setPrevMfaWall] = useState(mfaWall)
-  if (mfaWall !== prevMfaWall) {
-    setPrevMfaWall(mfaWall)
-    setWall((w) => (mfaWall ? 'active' : w === 'active' ? 'lifted' : w))
-  }
-  const effectiveView: ViewId = wall !== 'never' ? 'security' : (viewAllowed(view) ? view : 'cockpit')
-
-  async function logout() {
-    await fetch('/api/v1/auth/logout', { method: 'POST' }).catch(() => {})
-    router.push('/login')
-    router.refresh()
-  }
+export default function AccueilPage() {
+  const annonces = latestAnnonces(3)
 
   return (
-    <div className="dark h-dvh overflow-hidden flex bg-background text-foreground" style={{ colorScheme: 'dark' }}>
-      {/* Shell verrouillé à la hauteur de l'écran : chaque bande gère son propre scroll */}
-      {/* ── SIDEBAR (bande de gauche — scroll indépendant) ── */}
-      <aside className={cn('hidden md:flex h-full min-h-0 flex-col overflow-hidden border-r bg-sidebar transition-all duration-200 shrink-0', collapsed ? 'w-[68px]' : 'w-60')}>
-        <div className="flex items-center gap-2.5 px-4 h-16 border-b shrink-0">
-          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-[oklch(0.8_0.12_220)] to-[oklch(0.6_0.14_240)] flex items-center justify-center font-black text-[13px] text-[oklch(0.16_0.04_255)] shrink-0">Y</div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <p className="font-bold text-sm leading-tight tracking-tight">YAHRIA</p>
-              <p className="text-[10px] text-muted-foreground leading-tight">BUSINESS OS · V1</p>
-            </div>
-          )}
-        </div>
-
-        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain os-scroll py-3 px-2 space-y-0.5">
-          {visibleNav.map((n) => {
-            const Icon = n.icon
-            const isActive = view === n.id
-            return (
-              <button
-                key={n.id}
-                onClick={() => goTo(n.id)}
-                title={collapsed ? n.label : undefined}
-                className={cn(
-                  'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
-                  isActive ? 'bg-primary/15 text-primary border border-primary/25' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground border border-transparent'
-                )}
-              >
-                <Icon className="h-4.5 w-4.5 shrink-0" style={{ width: 18, height: 18 }} />
-                {!collapsed && (
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium leading-tight truncate">{n.label}</span>
-                    <span className="block text-[10px] text-muted-foreground leading-tight truncate">{n.sub}</span>
-                  </span>
-                )}
-                {!collapsed && n.id === 'agents' && approvals > 0 && (
-                  <span className="ml-auto text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-full px-1.5 py-0.5">{approvals}</span>
-                )}
-              </button>
-            )
-          })}
-        </nav>
-
-        <div className="border-t p-2 shrink-0">
-          <button onClick={() => setCollapsed((c) => !c)} className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-accent/50">
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <><ChevronLeft className="h-4 w-4" /> Réduire</>}
-          </button>
-          {!collapsed && (
-            <p className="text-[10px] text-muted-foreground text-center pt-2 pb-1 leading-relaxed">
-              DATA → GRAPH → INTELLIGENCE → DÉCISION<br />→ POLICY → AGENTS → EXÉCUTION → EVIDENCE
+    <VitrineShell>
+      {/* ── Hero ── */}
+      <section className="relative overflow-hidden border-b border-border/60">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent" aria-hidden />
+        <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-24 grid md:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">
+              <ShieldCheck className="h-3.5 w-3.5" /> V1 · multi-tenant · conforme OHADA
             </p>
-          )}
-        </div>
-      </aside>
-
-      {/* ── MAIN (grande bande de droite — scroll indépendant) ── */}
-      <div className="flex-1 flex flex-col min-w-0 h-full min-h-0 overflow-y-auto overscroll-contain os-scroll">
-        <header className="h-16 border-b bg-background/80 backdrop-blur flex items-center gap-3 px-4 md:px-6 sticky top-0 z-20 shrink-0">
-          <div className="md:hidden h-8 w-8 rounded-lg bg-gradient-to-br from-[oklch(0.8_0.12_220)] to-[oklch(0.6_0.14_240)] flex items-center justify-center font-black text-xs text-[oklch(0.16_0.04_255)]">Y</div>
-          <div className="min-w-0 hidden sm:block">
-            <h1 className="text-sm font-semibold leading-tight truncate">{active.label}</h1>
-            <p className="text-[11px] text-muted-foreground leading-tight truncate">{active.sub}</p>
+            <h1 className="mt-5 text-3xl md:text-5xl font-black tracking-tight leading-[1.08]">
+              Le système d&apos;exploitation<br />
+              <span className="bg-gradient-to-r from-[oklch(0.8_0.12_220)] to-[oklch(0.65_0.15_250)] bg-clip-text text-transparent">
+                intelligent
+              </span>{' '}des entreprises<br className="hidden md:block" /> africaines.
+            </h1>
+            <p className="mt-5 text-sm md:text-base text-muted-foreground leading-relaxed max-w-xl">
+              Données → Intelligence → Décision → Exécution, sous gouvernance.
+              Trésorerie, paiements Mobile Money, finance OHADA et agents IA :
+              une seule plateforme, bornée à votre périmètre par construction.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+              >
+                Accéder à la plateforme <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/solution"
+                className="inline-flex items-center gap-2 h-11 px-5 rounded-lg border border-border text-sm font-medium hover:bg-accent/60 transition-colors"
+              >
+                Découvrir la solution
+              </Link>
+            </div>
+            <p className="mt-4 text-[11px] text-muted-foreground">
+              Authentification obligatoire · sessions rotatives · 2FA TOTP · comptes de démonstration disponibles.
+            </p>
           </div>
-          <div className="ml-auto flex items-center gap-2">
-            {approvals > 0 && (
-              <Badge variant="outline" className="border-amber-500/40 text-amber-300 text-[10px] gap-1">
-                <ShieldAlert className="h-3 w-3" /> {approvals} approbation{approvals > 1 ? 's' : ''}
-              </Badge>
-            )}
-            {meta?.org && (
-              <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                🇨🇮 {meta.org.legalName} · {meta.org.currencyCode}
-              </Badge>
-            )}
-            {meta?.tenant && (
-              <Badge variant="outline" className="text-[10px] text-muted-foreground hidden lg:inline-flex">
-                tenant : {meta.tenant.name} · {meta.tenant.plan}
-              </Badge>
-            )}
-            {me && (
-              <Badge variant="outline" className="text-[10px] gap-1.5 border-primary/30 text-primary">
-                {me.name.split(' ').map((w) => w[0]).slice(0, 2).join('')} · {me.role}
-              </Badge>
-            )}
-            <Button size="sm" variant="ghost" onClick={logout} className="h-8 px-2 text-muted-foreground hover:text-foreground" title="Déconnexion">
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </header>
 
-        {/* mobile nav */}
-        <div className="md:hidden border-b px-3 py-2 flex gap-1.5 overflow-x-auto">
-          {visibleNav.map((n) => (
-            <button key={n.id} onClick={() => goTo(n.id)}
-              className={cn('text-xs px-3 py-1.5 rounded-full border whitespace-nowrap', view === n.id ? 'bg-primary/15 border-primary/30 text-primary' : 'border-border text-muted-foreground')}>
-              {n.label}
-            </button>
-          ))}
-        </div>
-
-        <main className="flex-1 p-4 md:p-6 max-w-[1400px] w-full mx-auto">
-          {mfaWall && (
-            <div className="mb-4 flex items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3">
-              <ShieldAlert className="h-4 w-4 text-amber-400 shrink-0" />
-              <p className="text-xs text-amber-200 flex-1">
-                Accès restreint : votre rôle <span className="font-semibold">{me?.role}</span> exige la double authentification.
-                Toutes les autres vues restent verrouillées jusqu&apos;à l&apos;enrôlement.
+          {/* Aperçu cockpit */}
+          <div className="rounded-2xl border border-border bg-card p-4 shadow-2xl shadow-primary/5" aria-hidden>
+            <div className="flex items-center justify-between px-1 pb-3">
+              <p className="text-[11px] font-bold tracking-wide text-muted-foreground">COCKPIT — IVOIRE DISTRIBUTION</p>
+              <span className="flex gap-1">{[0, 1, 2].map((i) => <span key={i} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />)}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="rounded-xl border border-border bg-background p-3">
+                <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><Wallet className="h-3 w-3 text-emerald-400" /> Trésorerie totale</p>
+                <p className="mt-1 text-lg font-black">84 250 000</p>
+                <p className="text-[9px] text-muted-foreground">FCFA · 6 comptes actifs</p>
+              </div>
+              <div className="rounded-xl border border-border bg-background p-3">
+                <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><TrendingUp className="h-3 w-3 text-amber-400" /> Créances clients</p>
+                <p className="mt-1 text-lg font-black">12 480 000</p>
+                <p className="text-[9px] text-muted-foreground">dont 2,1 M en retard</p>
+              </div>
+              <div className="rounded-xl border border-border bg-background p-3">
+                <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><Landmark className="h-3 w-3 text-red-400" /> Dettes à régler</p>
+                <p className="mt-1 text-lg font-black">7 940 000</p>
+                <p className="text-[9px] text-muted-foreground">dépenses non soldées</p>
+              </div>
+              <div className="rounded-xl border border-border bg-background p-3">
+                <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><FileText className="h-3 w-3 text-primary" /> TVA nette estimée</p>
+                <p className="mt-1 text-lg font-black">3 118 000</p>
+                <p className="text-[9px] text-muted-foreground">collectée · récupérable</p>
+              </div>
+            </div>
+            <div className="mt-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 flex items-start gap-2">
+              <BellRing className="h-3.5 w-3.5 text-amber-400 mt-0.5" />
+              <p className="text-[10px] text-amber-200 leading-relaxed">
+                3 factures clients échues à plus de 30 jours — relance recommandée avant clôture.
               </p>
             </div>
-          )}
-          {effectiveView === 'cockpit' && <CockpitLazy />}
-          {effectiveView === 'core' && <CoreLazy />}
-          {effectiveView === 'money' && <MoneyLazy />}
-          {effectiveView === 'finance' && <FinanceLazy />}
-          {effectiveView === 'graph' && <GraphLazy />}
-          {effectiveView === 'copilot' && <CopilotLazy />}
-          {effectiveView === 'agents' && <AgentsLazy />}
-          {effectiveView === 'pays' && <PaysLazy />}
-          {effectiveView === 'governance' && <GovernanceLazy />}
-          {effectiveView === 'security' && <SecurityLazy />}
-          {effectiveView === 'users' && <UsersLazy />}
-        </main>
+          </div>
+        </div>
+      </section>
 
-        <footer className="mt-auto border-t py-3 px-6 text-[11px] text-muted-foreground flex flex-wrap items-center justify-between gap-2">
-          <span>YAHRIA BUSINESS OS V1 — The Intelligent Operating System for African Business</span>
-          <span className="font-mono">YBOS-ARCH-V1 · baseline 1.1.0 · multi-tenant · policy-controlled · AI-governed · financially-consistent</span>
-        </footer>
-      </div>
-    </div>
+      {/* ── Chiffres clés ── */}
+      <section className="border-b border-border/60">
+        <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {STATS.map((s) => (
+            <div key={s.label}>
+              <p className="text-3xl font-black text-primary">{s.valeur}</p>
+              <p className="text-xs font-semibold mt-1">{s.label}</p>
+              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{s.detail}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Modules ── */}
+      <section className="border-b border-border/60">
+        <div className="max-w-6xl mx-auto px-4 py-16">
+          <p className="text-[11px] font-bold tracking-widest text-primary">LA PLATEFORME</p>
+          <h2 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight">Six modules, un seul système</h2>
+          <p className="mt-3 text-sm text-muted-foreground max-w-2xl leading-relaxed">
+            Chaque module partage les mêmes données, les mêmes rôles et le même journal d&apos;audit.
+            Aucun export manuel, aucune ressaisie : la décision et l&apos;exécution vivent au même endroit.
+          </p>
+          <div className="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {MODULES.map((m) => {
+              const Icon = MODULE_ICONS[m.id] ?? Layers
+              return (
+                <div key={m.id} className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-colors">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                    <Icon className="h-4.5 w-4.5 text-primary" />
+                  </div>
+                  <h3 className="mt-3 text-sm font-bold">{m.titre}</h3>
+                  <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">{m.description}</p>
+                  <ul className="mt-3 space-y-1">
+                    {m.points.map((pt) => (
+                      <li key={pt} className="text-[11px] text-muted-foreground flex items-start gap-1.5">
+                        <span className="text-primary mt-px">▸</span> {pt}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
+          <div className="mt-6">
+            <Link href="/solution" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
+              Explorer la solution en détail <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pays ── */}
+      <section className="border-b border-border/60 bg-sidebar/30">
+        <div className="max-w-6xl mx-auto px-4 py-16">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-bold tracking-widest text-primary">COUVERTURE</p>
+              <h2 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight">Trois marchés nationaux, une isolation totale</h2>
+            </div>
+            <Link href="/pays" className="text-xs font-semibold text-primary hover:underline">Voir les Country Packs</Link>
+          </div>
+          <div className="mt-8 grid md:grid-cols-3 gap-4">
+            {COUNTRY_PACKS.map((c) => (
+              <div key={c.code} className="rounded-xl border border-border bg-card p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-2xl">{c.drapeau}</p>
+                  <span className="text-[10px] font-semibold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 rounded-full px-2 py-0.5">{c.statut}</span>
+                </div>
+                <h3 className="mt-3 text-sm font-bold">{c.nom}</h3>
+                <p className="text-[11px] text-muted-foreground">{c.ville} · {c.devise}</p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {c.rails.map((r) => (
+                    <span key={r} className="text-[10px] rounded-full border border-border bg-background px-2 py-0.5 text-muted-foreground">{r}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Dernières annonces ── */}
+      <section className="border-b border-border/60">
+        <div className="max-w-6xl mx-auto px-4 py-16">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-2 text-[11px] font-bold tracking-widest text-primary"><Megaphone className="h-3.5 w-3.5" /> ANNONCES</p>
+              <h2 className="mt-2 text-2xl md:text-3xl font-bold tracking-tight">Dernières actualités</h2>
+            </div>
+            <Link href="/annonces" className="text-xs font-semibold text-primary hover:underline">Toutes les annonces</Link>
+          </div>
+          <div className="mt-8 grid md:grid-cols-3 gap-4">
+            {annonces.map((a) => (
+              <Link key={a.slug} href="/annonces" className="rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-colors block">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold text-primary border border-primary/30 bg-primary/10 rounded-full px-2 py-0.5">
+                    {CATEGORIE_LABELS[a.categorie]}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {new Date(a.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+                <h3 className="mt-3 text-sm font-bold leading-snug">{a.titre}</h3>
+                <p className="mt-2 text-xs text-muted-foreground leading-relaxed line-clamp-3">{a.extrait}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA final ── */}
+      <section>
+        <div className="max-w-6xl mx-auto px-4 py-16">
+          <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-8 md:p-12 text-center">
+            <Globe2 className="h-8 w-8 text-primary mx-auto" aria-hidden />
+            <h2 className="mt-4 text-2xl md:text-3xl font-bold tracking-tight">Prêt à gouverner votre croissance ?</h2>
+            <p className="mt-3 text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
+              Connectez-vous à la plateforme avec un compte de démonstration et explorez le Cockpit,
+              les paiements sous policy, la finance OHADA et la Gouvernance — en conditions réelles.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/login"
+                className="inline-flex items-center gap-2 h-11 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
+              >
+                Se connecter à la plateforme <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/contacts"
+                className="inline-flex items-center gap-2 h-11 px-6 rounded-lg border border-border text-sm font-medium hover:bg-accent/60 transition-colors"
+              >
+                Demander une démonstration
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    </VitrineShell>
   )
 }
-
-// Lazy imports keep first paint fast
-import { Cockpit } from '@/components/yahria/cockpit'
-import { CoreView } from '@/components/yahria/core'
-import { MoneyView } from '@/components/yahria/money'
-import { FinanceView } from '@/components/yahria/finance'
-import { GraphView } from '@/components/yahria/graph'
-import { CopilotView } from '@/components/yahria/copilot'
-import { AgentsView } from '@/components/yahria/agents'
-import { PaysSecteursView } from '@/components/yahria/pays'
-import { GovernanceView } from '@/components/yahria/governance'
-import { SecurityView } from '@/components/yahria/security'
-import { UsersView } from '@/components/yahria/users'
-
-function CockpitLazy() { return <Cockpit /> }
-function CoreLazy() { return <CoreView /> }
-function MoneyLazy() { return <MoneyView /> }
-function FinanceLazy() { return <FinanceView /> }
-function GraphLazy() { return <GraphView /> }
-function CopilotLazy() { return <CopilotView /> }
-function AgentsLazy() { return <AgentsView /> }
-function PaysLazy() { return <PaysSecteursView /> }
-function GovernanceLazy() { return <GovernanceView /> }
-function SecurityLazy() { return <SecurityView /> }
-function UsersLazy() { return <UsersView /> }

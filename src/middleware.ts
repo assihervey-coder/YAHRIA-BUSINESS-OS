@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // YAHRIA BUSINESS OS V1 — Middleware d'accès (INV-002 Authorization)
-// Vérification légère de présence du cookie de session (edge-safe) ;
-// la validation complète (session en base + RBAC + RLS) est faite par
+// Site vitrine : public (10 pages, racine /).
+// Plateforme applicative : /app — session obligatoire (cookie présence, edge-safe) ;
+// la validation complète (session en base + RBAC + RLS + mur 2FA) est faite par
 // withAuth() dans chaque route API.
+// API métier : /api/* hors whitelist → 401 JSON sans session.
 
-const PUBLIC_PATHS = ['/login', '/api/v1/auth']
+const PUBLIC_API_PREFIXES = ['/api/v1/auth', '/api/v1/contact']
 
 // INV-013 : TOUTE réponse API porte la version du contrat public — y compris
 // celles du middleware (401 avant l'entrée dans la route).
@@ -18,20 +20,31 @@ function contractHeaders(res: NextResponse): NextResponse {
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/')) || pathname.startsWith('/api/v1/auth')) {
+  // ── APIs publiques (auth, contact vitrine) ──
+  if (PUBLIC_API_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
     return NextResponse.next()
   }
 
-  const hasSession = req.cookies.has('yahria_session')
-  if (!hasSession) {
-    if (pathname.startsWith('/api/')) {
+  // ── API métier : session requise ──
+  if (pathname.startsWith('/api/')) {
+    if (!req.cookies.has('yahria_session')) {
       return contractHeaders(NextResponse.json({ error: 'Authentification requise' }, { status: 401 }))
     }
-    const url = req.nextUrl.clone()
-    url.pathname = '/login'
-    url.searchParams.set('from', pathname)
-    return NextResponse.redirect(url)
+    return NextResponse.next()
   }
+
+  // ── Plateforme /app : redirection vers l'authentification ──
+  if (pathname === '/app' || pathname.startsWith('/app/')) {
+    if (!req.cookies.has('yahria_session')) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('from', pathname)
+      return NextResponse.redirect(url)
+    }
+    return NextResponse.next()
+  }
+
+  // ── Site vitrine : public ──
   return NextResponse.next()
 }
 

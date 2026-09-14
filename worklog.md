@@ -205,3 +205,25 @@ Stage Summary:
 - Réponse au besoin démo : 3 modes — assist (défaut, code affiché/auto-rempli, fonctionnalité démontrée de bout en bout sans app authenticator), off (démo fluide sans 2FA), strict (production)
 - Le parcours démo naturel : login chip → mur MFA → « Configurer la 2FA » → « Remplir (démo) » → activer → recovery codes → débloqué ; connexions suivantes → étape 2 avec code visible auto-rempli
 - Fichiers clés : src/lib/yahria/demo.ts, api/v1/auth/2fa/demo-code/route.ts, api/v1/auth/login/route.ts, lib/yahria/auth.ts, app/login/page.tsx, components/yahria/security.tsx, scripts/test_ui_demo_2fa.js
+
+---
+Task ID: 8
+Agent: main (Super Z)
+Task: Site vitrine 10 pages (dont Annonces + Contacts) + accès plateforme par authentification
+
+Work Log:
+- Architecture : vitrine publique à la racine (10 pages server components avec metadata SEO), plateforme déplacée de / vers /app (src/app/app/page.tsx), /login = porte d'authentification, après login → router.push('/app')
+- Middleware réécrit : vitrine publique ; /app sans cookie → redirection /login?from=<path> ; API métier /api/* sans session → 401 JSON ; whitelist API publique élargie à /api/v1/contact
+- Contenu : src/lib/vitrine/content.ts — 10 annonces datées (webinaire, baseline 1.2.0, packs BJ/SN/CI, sessions rotatives, invariants, SYSCOHADA, recrutement, lancement V1), 6 modules réels, 3 Country Packs réels, 3 plans FCFA, 13 secteurs RÉELS du registre (extensions.ts), bureaux + sujets contact
+- Shell vitrine : src/components/vitrine/shell.tsx (header sticky blur + nav desktop/mobile horizontale + CTA « Accéder à la plateforme » → /login ; footer mt-auto 4 colonnes, plan du site, sticky-bottom garanti)
+- 10 pages : / (hero + cockpit preview + 4 stats + 6 modules + pays + 3 dernières annonces + CTA), /solution (pipeline 5 étapes + modules détaillés), /fonctionnalites (6 groupes × 4 items), /secteurs (13 cartes + mécanique extensions), /pays (3 packs + INV-011 expliqué ALLOW/DENY), /securite (6 invariants + 3 couches + mock INVARIANT_PROOFS_RUN), /tarifs (3 plans + FAQ details/summary), /annonces (à la une + fil complet avec détails dépliables), /a-propos (valeurs + timeline 6 jalons + présence), /contacts (formulaire + 3 bureaux + bandeau démo)
+- Contact : modèle Prisma ContactMessage + db push ; API POST /api/v1/contact publique (validation longueurs + regex email, honeypot « website » silencieux, headers contrat INV-013) ; formulaire client src/components/vitrine/contact-form.tsx (états busy/sent/error, confirmation + reset)
+- /login : lien « Retour au site vitrine » (ChevronLeft → /) ; les 2 router.push('/') → '/app'
+- Tests : scripts/test_ui_vitrine.js 26/26 PASS (10 pages 200+contenu+shell, 10 annonces, nav 9 liens + CTA href, footer, garde /app→/login?from=%2Fapp, honeypot + 400 + soumission UI + persistance +1 en base, login chip → /app + mur MFA, logout → /login → retour vitrine, zéro erreur console)
+- MAJ test_ui_demo_2fa.js (waitForURL BASE/ → BASE/app) : 17/17 PASS ; régression API iter5 : 22/22 PASS ; curl : dashboard anonyme 401, GET contact 405, login OK ; tsc src 0 erreur ; eslint src 0 erreur
+- Captures : scripts/vitrine_{accueil,annonces,contacts,securite}.png — design dark premium cohérent plateforme, header/footer OK
+
+Stage Summary:
+- Site vitrine 10 pages intégré à l'app (même thème OKLCH dark), publicly accessible, SEO metadata par page
+- Flux demandé livré : de la page principale (accueil vitrine), « Accéder à la plateforme » → /login (auth 2 étapes, 2FA assistée en démo) → /app (plateforme protégée)
+- Fichiers clés : src/lib/vitrine/content.ts, src/components/vitrine/{shell,contact-form}.tsx, src/app/{page,solution,fonctionnalites,secteurs,pays,securite,tarifs,annonces,a-propos,contacts}/page.tsx, src/app/app/page.tsx, src/app/api/v1/contact/route.ts, src/middleware.ts

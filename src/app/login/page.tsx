@@ -1,6 +1,7 @@
 'use client'
 
 // YAHRIA BUSINESS OS V1 — Page de connexion (RBAC multi-tenant + 2FA TOTP en 2 étapes)
+// Porte d'accès à la PLATEFORME (/app) depuis le site vitrine.
 // Mode démo (YAHRIA_DEMO_2FA=assist) : le code TOTP courant est affiché et
 // auto-rempli — la double authentification est démontrée de bout en bout sans
 // application authentificatrice. En 'strict' : aucune assistance.
@@ -8,7 +9,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { LogIn, ShieldCheck, Lock, Smartphone, KeyRound, RefreshCw, Sparkles } from 'lucide-react'
+import { LogIn, ShieldCheck, Lock, Smartphone, KeyRound, RefreshCw, Sparkles, ChevronLeft } from 'lucide-react'
 
 interface DemoAssist { code: string; period: number; remainingSec: number }
 
@@ -81,7 +82,7 @@ export default function LoginPage() {
         setBusy(false)
         return
       }
-      router.push('/')
+      router.push('/app')
       router.refresh()
     } catch {
       setError('Serveur injoignable')
@@ -105,7 +106,7 @@ export default function LoginPage() {
         setBusy(false)
         return
       }
-      router.push('/')
+      router.push('/app')
       router.refresh()
     } catch {
       setError('Serveur injoignable')
@@ -152,6 +153,9 @@ export default function LoginPage() {
           </div>
           <h2 className="text-lg font-bold">Connexion</h2>
           <p className="text-xs text-muted-foreground mt-1">Accédez à votre espace tenant.</p>
+          <a href="/" className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors mt-2">
+            <ChevronLeft className="h-3 w-3" /> Retour au site vitrine
+          </a>
 
           {mfaChallenge ? (
             <form
