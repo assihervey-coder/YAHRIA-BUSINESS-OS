@@ -1,0 +1,63 @@
+{
+  "date": "2026-09-14T23:28:14.445Z",
+  "org": "Charge Lab 50k",
+  "entries": 11000,
+  "lines": 2537236000,
+  "phaseA": {
+    "loadEntries (11k écritures + 30k lignes, RLS)": {
+      "min": 598,
+      "med": 598,
+      "max": 656
+    },
+    "balance XLSX": {
+      "min": 8,
+      "med": 10,
+      "max": 51,
+      "size": 8021
+    },
+    "balance PDF": {
+      "min": 6,
+      "med": 7,
+      "max": 64,
+      "size": 3454
+    },
+    "lettrage (match facture↔règlement)": {
+      "min": 66,
+      "med": 67,
+      "max": 86
+    },
+    "grand livre XLSX": {
+      "min": 1504,
+      "med": 1552,
+      "max": 1642,
+      "size": 1157714
+    },
+    "grand livre PDF": {
+      "min": 10414,
+      "med": 10585,
+      "max": 11148,
+      "size": 5487829
+    },
+    "journaux XLSX": {
+      "min": 1153,
+      "med": 1197,
+      "max": 1267,
+      "size": 769379
+    },
+    "journaux PDF": {
+      "min": 8305,
+      "med": 8311,
+      "max": 8499,
+      "size": 4443975
+    }
+  },
+  "phaseB": {
+    "requests": 60,
+    "p50": 361,
+    "p95": 1157,
+    "max": 1178,
+    "errors": 0,
+    "rps": 23.48,
+    "bytes": 670482
+  }
+}

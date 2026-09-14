@@ -28,7 +28,7 @@ function banner(ws: ExcelJS.Worksheet, meta: ExportMeta, title: string, cols: nu
   t.alignment = { horizontal: 'center' }
   ws.mergeCells(2, 1, 2, cols)
   const e = ws.getCell(2, 1)
-  e.value = `${meta.legalName} · NCC ${meta.taxId} · RCCM ${meta.rccm} · ${meta.countryCode} · Monnaie : ${meta.currencyCode}`
+  e.value = `${meta.legalName} · ${meta.taxIdLabel} ${meta.taxId} · RCCM ${meta.rccm} · ${meta.countryCode} · Monnaie : ${meta.currencyCode}`
   e.font = { size: 9, color: { argb: 'FF475569' } }
   e.alignment = { horizontal: 'center' }
   ws.mergeCells(3, 1, 3, cols)

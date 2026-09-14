@@ -93,7 +93,7 @@ function banner(page: PDFPage, font: PDFFont, bold: PDFFont, meta: ExportMeta, t
   page.drawText('YAHRIA BUSINESS OS — ÉTATS FINANCIERS SYSCOHADA (SYSTÈME NORMAL)', {
     x: M, y: A4[1] - M - 8, size: 11, font: bold, color: HEAD_BG,
   })
-  page.drawText(win(`${meta.legalName} · NCC ${meta.taxId} · RCCM ${meta.rccm} · ${meta.countryCode} · Monnaie : ${meta.currencyCode}`), {
+  page.drawText(win(`${meta.legalName} · ${meta.taxIdLabel} ${meta.taxId} · RCCM ${meta.rccm} · ${meta.countryCode} · Monnaie : ${meta.currencyCode}`), {
     x: M, y: A4[1] - M - 22, size: 7.5, font, color: MUTED,
   })
   page.drawText(win(`${title} — Période : ${meta.periodLabel}`), {

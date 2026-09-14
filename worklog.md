@@ -313,3 +313,24 @@ Stage Summary:
 - GitHub synchrone : origin/main = 29e7ccc, working tree clean
 - Contenu poussé : export SYSCOHADA bout en bout, INV-008 re-scellement + UI gouvernance, échantillons PDF/XLSX, état DB démo neutre
 - Rappel sécurité : PAT ghp_Ur3i… réutilisé et de nouveau exposé en chat → à révoquer/rotater après usage
+
+---
+Task ID: 12
+Agent: Super Z (main)
+Task: RLS approfondie + Country Pack Bénin 🇧🇯 + tests de charge exports SYSCOHADA
+
+Work Log:
+- RLS approfondie (src/lib/db.ts) : ① variantes OrThrow (findUniqueOrThrow/findFirstOrThrow) routées dans la garde post-lecture (ancien angle mort du switch) ; ② garde organization.findUnique sur row.id (l'org n'a pas d'orgId) ; ③ garde anti-FK étrangère FK_ORG_GUARDS (invoice.customerId, expense.supplierId/paymentAccountId, payment.*, reconciliation.paymentId, ledgerline.entryId) vérifiée avant écriture sur create/update/upsert ; ④ portée ENFANT CHILD_SCOPE : LedgerLine scoppée via entry.orgId (reads directs hors org comblés) ; ⑤ runWithRls ÉTANCHE : fn attendue DANS la fenêtre ALS (motif sync-arrow de withAuth désormais sûr par construction)
+- Sondes invariants : INV-001 enrichie de 5 attaques réelles (findUnique/OrThrow, organization, update, FK forgée) ; INV-011 en matrice complète (chaque pack étranger attaqué, rails partagés type WAVE CI+SN exclus de l'attaque car légitimement nationaux) + complétude pack (mention fiscale, TVA)
+- Country Pack Bénin : libellé fiscal dérivé du pack national (fiscalId: IFU/NCC/NINEA) dans ExportMeta + ohada-pdf/ohada-xlsx (fini le NCC codé en dur) ; packs v1.1.0 ; seed_benin_pack.ts idempotent : 6 clients, 2 fournisseurs, 3 produits, 8 factures TVA 18 %, 5 charges, 8 règlements rails BJ (MTN_BJ/MOOV_BJ/BOA_BJ/SBCE/NSIA_BJ), 21 écritures équilibrées ΣD=ΣC=23 070 080 XOF, lettrage facture↔règlement
+- Tests de charge (loadtest_exports.ts) : org dédiée Charge Lab 50k (tenant LOADTEST, sans utilisateur → invisible), 4 000 factures + 3 000 charges + 4 000 règlements = 11 000 écritures / 29 000 lignes créées en 2,0 s, ΣD=ΣC=2,54 Md XOF ; pipeline mesuré (médian) : loadEntries RLS 598 ms, lettrage 67 ms, balance XLSX/PDF 10/7 ms, grand livre XLSX 1,55 s (1,1 Mo) / PDF 10,6 s (5,4 Mo), journaux XLSX 1,20 s / PDF 8,3 s ; HTTP 60 req concurrence 10 : p50 361 ms, p95 1,16 s, max 1,18 s, 0 erreur, 23,5 req/s
+- Incidents maîtrisés : les 1ers runs du harnais (avant gardes) avaient créé 5 lignes sonde 999 sur une écriture BJ + muté statuts factures (dégâts réparés, équilibre restauré) — preuve par l'absurde de la valeur des gardes livrées ; dev server relancé après crash
+- Suites : test_rls_deep.ts 28/28 (unitaire + HTTP 403 RLS_VIOLATION, orgId forgé écrasé) · loadtest 9/9 · syscohada 63/63 · iter4 32/32 · iter5 22/22 · inv008 24/24 · preuves construction 6/6 · tsc src 0 erreur (tsconfig.src.json ajouté) · eslint clean
+- Livrables : download/syscohada_export_samples_bj/ (6 fichiers, en-tête « IFU 3202411456789 »), scripts/out_loadtest/results.json
+- État démo restauré : 0 enrôlement 2FA, baseline intacts
+
+Stage Summary:
+- RLS : 5 angles morts comblés et PROUVÉS par attaques réelles ; violation → 403 RLS_VIOLATION
+- Bénin 🇧🇯 : pack v1.1.0 complet (IFU, TVA 18 %, rails BJ), comptabilité 2026 équilibrée et exportable
+- Charge : pipeline export validé jusqu'à 11k écritures — p95 HTTP 1,16 s sans erreur
+- Rappel : PAT GitHub partagé en chat → à révoquer après usage

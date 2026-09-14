@@ -292,18 +292,35 @@ export interface ExportMeta {
   orgName: string
   legalName: string
   taxId: string
+  taxIdLabel: string // IFU (Bénin) | NCC (Côte d'Ivoire) | NINEA (Sénégal) — dérivé du Country Pack national
   rccm: string
   countryCode: string
   currencyCode: string
   periodLabel: string
 }
 
+/** Libellé de l'identifiant fiscal national — PAR CONSTRUCTION depuis le pack (INV-011/013), avec repli déterministe. */
+const TAX_ID_FALLBACK: Record<string, string> = { CI: 'NCC', SN: 'NINEA', BJ: 'IFU' }
+function taxIdLabelOf(countryCode: string, invoicingJson: string | null): string {
+  try {
+    const inv = JSON.parse(invoicingJson ?? '{}') as { fiscalId?: string; mentions?: string[] }
+    const canonical = ['IFU', 'NCC', 'NINEA']
+    const fromFiscal = inv.fiscalId && canonical.includes(inv.fiscalId) ? inv.fiscalId : undefined
+    const fromMentions = inv.mentions?.find((m) => canonical.includes(m))
+    return fromFiscal ?? fromMentions ?? TAX_ID_FALLBACK[countryCode] ?? 'ID FISCAL'
+  } catch {
+    return TAX_ID_FALLBACK[countryCode] ?? 'ID FISCAL'
+  }
+}
+
 export async function loadExportMeta(orgId: string, from: Date, to: Date): Promise<ExportMeta> {
   const org = await db.organization.findUnique({ where: { id: orgId } })
+  const pack = await db.countryPack.findUnique({ where: { code: org?.countryCode ?? '' } })
   return {
     orgName: org?.name ?? '',
     legalName: org?.legalName ?? '',
     taxId: org?.taxId ?? '',
+    taxIdLabel: taxIdLabelOf(org?.countryCode ?? '', pack?.invoicingJson ?? null),
     rccm: org?.rccm ?? '',
     countryCode: org?.countryCode ?? '',
     currencyCode: org?.currencyCode ?? 'XOF',

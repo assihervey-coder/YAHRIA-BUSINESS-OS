@@ -74,12 +74,51 @@ async function probeInv001(orgId: string): Promise<ConstructionProof> {
     ok: unscoped >= scoped,
     detail: `Lecture NON scopée = ${unscoped} lignes → l'écart (${unscoped - scoped}) appartient aux autres tenants et reste inaccessible via l'API`,
   })
+
+  // ── RLS approfondie : attaques réelles hors périmètre ──
+  const foreignOrg = await dbUnscoped.organization.findFirst({ where: { id: { not: orgId } } })
+  if (foreignOrg) {
+    const foreignCustomer = await dbUnscoped.customer.findFirst({ where: { orgId: foreignOrg.id } })
+    const foreignInvoice = await dbUnscoped.invoice.findFirst({ where: { orgId: foreignOrg.id } })
+    const attacks: { label: string; attack: () => Promise<unknown> }[] = [
+      {
+        label: 'Lecture ciblée hors org (findUnique)',
+        attack: () => runWithRls({ tenantId: 'probe', orgId, userId: 'probe-inv', role: 'PROBE' }, () => db.customer.findUnique({ where: { id: foreignCustomer!.id } })),
+      },
+      {
+        label: 'Lecture ciblée hors org (findUniqueOrThrow)',
+        attack: () => runWithRls({ tenantId: 'probe', orgId, userId: 'probe-inv', role: 'PROBE' }, () => db.customer.findUniqueOrThrow({ where: { id: foreignCustomer!.id } })),
+      },
+      {
+        label: "Lecture de l'organisation étrangère par id",
+        attack: () => runWithRls({ tenantId: 'probe', orgId, userId: 'probe-inv', role: 'PROBE' }, () => db.organization.findUnique({ where: { id: foreignOrg.id } })),
+      },
+      {
+        label: "Mutation d'un tiers hors org (update)",
+        attack: () => runWithRls({ tenantId: 'probe', orgId, userId: 'probe-inv', role: 'PROBE' }, () => db.customer.update({ where: { id: foreignCustomer!.id }, data: { name: 'DÉTournÉ' } })),
+      },
+      ...(foreignInvoice ? [{
+        label: "Création avec FK étrangère (customerId d'une autre org)",
+        attack: () => runWithRls({ tenantId: 'probe', orgId, userId: 'probe-inv', role: 'PROBE' }, () => db.invoice.create({ data: { number: `PROBE-INV-001-${Date.now()}`, customerId: foreignCustomer!.id, dueDate: new Date('2030-01-01'), status: 'DRAFT' } as any })),
+      }] : []),
+    ]
+    for (const a of attacks) {
+      try {
+        await a.attack()
+        checks.push({ label: a.label, ok: false, detail: "L'attaque a ABOUTI — invariant rompu !" })
+      } catch (e) {
+        const msg = (e as Error).message ?? ''
+        const refused = msg.includes('RLS_VIOLATION')
+        checks.push({ label: a.label, ok: refused, detail: refused ? 'Refusée : RLS_VIOLATION levé avant tout accès' : `Refusée (autre garde) : ${msg.slice(0, 90)}` })
+      }
+    }
+  }
   const passed = checks.every((c) => c.ok)
   return {
     id: 'INV-001', name: 'Tenant Isolation', mode: 'PAR CONSTRUCTION',
     status: passed ? 'PASS' : 'FAIL',
     proof: passed
-      ? 'Chaque requête traverse une couche Prisma qui INJECTE le périmètre {tenantId, orgId} : lire, écrire, modifier ou supprimer hors périmètre est structurellement impossible depuis une route authentifiée.'
+      ? 'Chaque requête traverse une couche Prisma qui INJECTE le périmètre {tenantId, orgId} : lire (même ciblé), écrire, référencer une FK étrangère, modifier ou supprimer hors périmètre est structurellement impossible depuis une route authentifiée.'
       : 'Un contrôle d\u2019isolation a échoué — voir les checks.',
     checks, checkedAt: new Date().toISOString(),
   }
@@ -184,13 +223,28 @@ async function probeInv011(orgId: string): Promise<ConstructionProof> {
     const p = packs.find((x) => x.code === code)
     try { return JSON.parse(p?.mobileMoneyJson ?? '[]') as { provider: string }[] } catch { return [] }
   }
-  const foreignPack = packs.find((p) => p.code !== org.countryCode)
-  const foreignRail = railsOf(foreignPack?.code ?? 'XX')[0]?.provider
   const nationalRail = railsOf(org.countryCode)[0]?.provider ?? 'CAISSE'
+  const ownAllowed = new Set(await checkPackIsolation(orgId, null).then((r) => r.allowedProviders))
+  const foreignPacks = packs.filter((p) => p.code !== org.countryCode)
+  for (const fp of foreignPacks) {
+    const rails = railsOf(fp.code).map((r) => r.provider).filter((r) => !ownAllowed.has(r))
+    const targets = [...new Set([rails[0], rails[rails.length - 1]].filter(Boolean) as string[])]
+    for (const rail of targets) {
+      const iso = await checkPackIsolation(orgId, rail)
+      checks.push({ label: `Rail étranger « ${rail} » (${fp.code})`, ok: !iso.ok, detail: iso.detail })
+    }
+  }
 
-  if (foreignRail) {
-    const iso = await checkPackIsolation(orgId, foreignRail)
-    checks.push({ label: `Rail étranger « ${foreignRail} » (${foreignPack?.code})`, ok: !iso.ok, detail: iso.detail })
+  // Complétude du pack national (mention fiscale — IFU pour le Bénin, NCC CI, NINEA SN)
+  const ownPack = packs.find((p) => p.code === org.countryCode)
+  let fiscalMention = ''
+  try {
+    const inv = JSON.parse(ownPack?.invoicingJson ?? '{}') as { fiscalId?: string; mentions?: string[]; vatLabel?: string }
+    fiscalMention = inv.fiscalId ?? (inv.mentions ?? [''])[0] ?? ''
+    checks.push({ label: `Mention fiscale du pack ${org.countryCode}`, ok: !!fiscalMention, detail: fiscalMention ? `Identifiant fiscal national : ${fiscalMention} — libellé appliqué aux exports SYSCOHADA` : 'Aucune mention fiscale dans invoicingJson' })
+    checks.push({ label: `TVA du pack ${org.countryCode}`, ok: (ownPack?.vatRate ?? 0) > 0 && !!inv.vatLabel, detail: `${inv.vatLabel ?? '—'} (${Math.round((ownPack?.vatRate ?? 0) * 100)}%)` })
+  } catch {
+    checks.push({ label: `Mention fiscale du pack ${org.countryCode}`, ok: false, detail: 'invoicingJson illisible' })
   }
   const nat = await checkPackIsolation(orgId, nationalRail)
   checks.push({ label: `Rail national « ${nationalRail} » (${org.countryCode})`, ok: nat.ok, detail: nat.detail })
@@ -204,7 +258,7 @@ async function probeInv011(orgId: string): Promise<ConstructionProof> {
     id: 'INV-011', name: 'Country Isolation', mode: 'PAR CONSTRUCTION',
     status: passed ? 'PASS' : 'FAIL',
     proof: passed
-      ? `Les rails autorisés d'une organisation sont DÉRIVÉS de son pack national (${org.countryCode}) à l'exécution — une org ne peut ni choisir ni contourner les rails d'un autre pays (${foreignPack?.code ?? '—'}).`
+      ? `Les rails autorisés d'une organisation sont DÉRIVÉS de son pack national (${org.countryCode}) à l'exécution — matrice complète testée : chaque pack étranger (${foreignPacks.map((p) => p.code).join(', ')}) est refusé sur ses rails principaux et secondaires.`
       : 'Le test d\u2019isolation nationale a échoué — voir les checks.',
     checks, checkedAt: new Date().toISOString(),
   }
