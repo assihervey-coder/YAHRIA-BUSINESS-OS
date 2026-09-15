@@ -13,6 +13,7 @@ export const SYSCOHADA_JOURNALS: Record<string, { code: string; label: string }>
   EXPENSE: { code: 'ACH', label: 'Journal des achats et charges' },
   PAYMENT: { code: 'TRE', label: 'Journal de trésorerie' },
   PAYROLL: { code: 'PAIE', label: 'Journal de paie' },
+  PAYROLL_REVERSAL: { code: 'PAIE', label: 'Journal de paie — contre-passation' },
   MANUAL: { code: 'OD', label: 'Opérations diverses' },
 }
 

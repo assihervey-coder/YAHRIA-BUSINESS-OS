@@ -124,12 +124,13 @@ async function main() {
   const beforeRows = await prisma.evidence.findMany({ select: { id: true, hash: true, payloadJson: true, prevHash: true, seq: true, orgId: true } })
   const hashSnapshot = new Map(beforeRows.map((r) => [r.id, r.hash]))
   const totalBefore = Object.values(before).reduce((s, o) => s + o.total, 0)
+  const TOTAL_EVIDENCE = beforeRows.length // dynamique : la DB gagne une preuve par scellement (ex. contre-passation paie)
   const validBefore = Object.values(before).reduce((s, o) => s + o.valid, 0)
   const wasBroken = validBefore < totalBefore
   if (wasBroken) {
-    check(`chaîne initiale invalide : ${validBefore}/${totalBefore} valides (rotation de clé attendue)`, validBefore === 0 && totalBefore === 17, JSON.stringify(before))
+    check(`chaîne initiale invalide : ${validBefore}/${totalBefore} valides (rotation de clé attendue)`, validBefore === 0 && totalBefore === TOTAL_EVIDENCE, JSON.stringify(before))
   } else {
-    check(`chaîne déjà re-scellée (re-run idempotent) : ${validBefore}/${totalBefore} valides`, totalBefore === 17, JSON.stringify(before))
+    check(`chaîne déjà re-scellée (re-run idempotent) : ${validBefore}/${totalBefore} valides`, totalBefore === TOTAL_EVIDENCE, JSON.stringify(before))
   }
 
   // ── ② LOGIN OWNER + ENRÔLEMENT 2FA (le mur MFA restreint governance sinon) ──
@@ -171,7 +172,7 @@ async function main() {
   r = await call(j, 'POST', '/api/v1/governance', { action: 'RESEAL_EVIDENCE', allOrgs: true })
   const reseal = await jsonOf(r)
   check('RESEAL_EVIDENCE allOrgs → ok:true', r.status === 200 && reseal.ok === true, `status=${r.status} ${JSON.stringify(reseal).slice(0, 200)}`)
-  check('17 signatures recalculées sur 3 organisations', reseal.resealed === 17 && reseal.orgs === 3, `resealed=${reseal.resealed} orgs=${reseal.orgs}`)
+  check(`signatures recalculées sur 3 organisations (${TOTAL_EVIDENCE} attendues)`, reseal.resealed === TOTAL_EVIDENCE && reseal.orgs === 3, `resealed=${reseal.resealed} orgs=${reseal.orgs}`)
   check('post-vérification INTACTE pour chaque org', (reseal.reports ?? []).every((x) => x.ok && x.verified?.chainIntact), '')
 
   // ── ⑥ GOVERNANCE APRÈS : INV-008 PASS ──
@@ -180,7 +181,7 @@ async function main() {
   const govAfter = await jsonOf(r)
   const inv8After = (govAfter.invariants ?? []).find((i) => i.id === 'INV-008')
   check('INV-008 → PASS après re-scellement', inv8After?.checkResult?.status === 'PASS', JSON.stringify(inv8After?.checkResult ?? {}))
-  check('chaîne org1 : 7/7 signatures valides', govAfter.evidenceChain?.valid === 7 && govAfter.evidenceChain?.total === 7, JSON.stringify(govAfter.evidenceChain))
+  check(`chaîne org1 : ${govAfter.evidenceChain?.total ?? 0}/${govAfter.evidenceChain?.total ?? 0} signatures valides`, govAfter.evidenceChain?.valid === govAfter.evidenceChain?.total && govAfter.evidenceChain?.total > 0, JSON.stringify(govAfter.evidenceChain))
   check('détail = 1 réponse IA avec Evidence (inchangé)', /1 réponse\(s\) IA avec Evidence/.test(inv8After?.checkResult?.detail ?? ''), inv8After?.checkResult?.detail ?? '')
 
   // ── ⑦ INTÉGRITÉ DU CONTENU : hashs strictement inchangés ──
@@ -191,11 +192,11 @@ async function main() {
     const b = beforeRows.find((x) => x.id === r0.id)
     return b && b.payloadJson === r0.payloadJson && b.prevHash === r0.prevHash
   })
-  check('17/17 hashs SHA-256 strictement identiques', hashUnchanged, '')
+  check(`${TOTAL_EVIDENCE}/${TOTAL_EVIDENCE} hashs SHA-256 strictement identiques`, hashUnchanged, '')
   check('payloads + chaînage prevHash inchangés', payloadUnchanged, '')
   const allOrgsAfter = await verifyAllOrgs()
   const validAfter = Object.values(allOrgsAfter).reduce((s, o) => s + o.valid, 0)
-  check(`plateforme entière : ${validAfter}/17 signatures valides`, validAfter === 17, JSON.stringify(allOrgsAfter))
+  check(`plateforme entière : ${validAfter}/${TOTAL_EVIDENCE} signatures valides`, validAfter === TOTAL_EVIDENCE, JSON.stringify(allOrgsAfter))
 
   // ── ⑧ REFUS EN CAS DE FALSIFICATION RÉELLE ──
   section('⑧ ANTI-FALSIFICATION — re-scellement REFUSÉ si contenu altéré')
@@ -212,7 +213,7 @@ async function main() {
   await prisma.$executeRawUnsafe(`UPDATE Evidence SET payloadJson = ? WHERE id = ?`, originalPayload, target.id)
   const restored = await verifyAllOrgs()
   const validRestored = Object.values(restored).reduce((s, o) => s + o.valid, 0)
-  check('chaîne restaurée après annulation de la falsification : 17/17', validRestored === 17, JSON.stringify(restored))
+  check(`chaîne restaurée après annulation de la falsification : ${validRestored}/${TOTAL_EVIDENCE}`, validRestored === TOTAL_EVIDENCE, JSON.stringify(restored))
 
   // ── ⑨ AUDIT + INV-007 : le chemin append-only reste intact ──
   section('⑨ AUDIT & INV-007 — opération tracée, append-only intact')

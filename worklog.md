@@ -388,3 +388,25 @@ Stage Summary:
 - IMMEXA-ERP restauré à l'identique (+ v3.2 légitime de l'autre session) : 0 trace YAHRIA
 - YAHRIA-BUSINESS-OS/main = travail complet YAHRIA (paie SYSCOHADA, RLS PG native, contrats versionnés) + journalisation t14/t15
 - Leçon : valider le repo cible AVANT tout push multi-cibles ; branche dédiée systématique si cible inconnue
+
+---
+Task ID: 16
+Agent: Super Z (main)
+Task: Bulletin de paie PDF par salarié + contre-passation de paie GUIDÉE (commit + push)
+
+Work Log:
+- Bulletin PDF : src/lib/yahria/payslip-pdf.ts (pdf-lib, A4, en-tête employeur NCC/RCCM, cadre salarié, rubriques Gains/Retenues/Charge patronale depuis linesJson figé, NET À PAYER encadré, mentions pack national, sceau d'audit, bandeau ANNULÉ si run REVERSED) ; GET /api/v1/finance/payroll/payslip/[id]/pdf (double garde RLS slip+run orgId, règles FIGÉES du rulesJson, filename bulletin-paie_<matricule>_<période>[_ANNULE].pdf) ; bouton PDF par bulletin dans le dialog détail
+- Contre-passation GUIDÉE : helpers payroll.ts (reversalLinesOf/reversalPaymentLines/linesBalanced/reversalCancelsOrigin + EXPENSE_ACCOUNT_NAMES — extourne MIROIR EXACT, datée du jour, INV-007) ; POST /api/v1/finance/payroll/reverse (motif ≥ 10 car, re-saisie exacte de la référence, statut POSTED exigé → INV-PAIE-REV 409, double extourne impossible ; transaction append-only ; audit PAYROLL_REVERSAL_POSTED ; scellement Evidence ACCOUNTING) ; dialog UI 3 étapes (avertissement conséquences → motif+confirmation → résultat avec preuve)
+- Design re-clôture : @@unique(orgId,period) SQL retiré (db push + DROP INDEX manuel) → unicité APPLICATIVE (1 seul POSTED/période, INV-PAIE) ; re-clôture corrigée autorisée après contre-passation, référence suffixée -R2/-R3… (PAIE-2026-08-CMU0C857-R2) ; runs REVERSED historisés à vie
+- PAYROLL_REVERSAL → journal PAIE (SYSCOHADA_JOURNALS + map harnais Python) : les extournes atterrissent au bon journal, balance générale inchangée (origine+extourne s'annulent)
+- Fix API : Response.json retourné depuis withAuth était re-enveloppé en 200 (instanceof NextResponse) → NextResponse.json partout dans reverse (404/400/409 honorés)
+- WinAnsi : U+202F (toLocaleString fr-FR) non encodable en PDF → fmtXOF (purge) dans le bulletin
+- Harnais scripts/test_payroll_pdf_reversal.ts : 38/38 (moteur miroir 6, PDF 4, HTTP+RLS 6, gardes 4, scellement E2E 13, cleanup ; chaîne Evidence 8/8 sigFails=0) — état démo : 2026-07 POSTED · 2026-08 REVERSED · 2026-08-R2 POSTED · 18 preuves · 0 enrôlement 2FA
+- INV-008 re-scellé (clé courante ≠ clé du commit : sigFails 17, hashFails 0) → 17/17 puis 18/18 valides après scellement contre-passation ; harnais inv008 compteurs DYNAMIQUES (17 figé → TOTAL_EVIDENCE) : 24/24
+- Régressions : paie 37/37 · SYSCOHADA export 63/63 · RLS deep 28/28 · sectoriels 35/35 · UI iter6 12/12 · iter5 MFA wall 22/22 · iter4 sessions 32/32 · tsc 0 erreur · eslint clean ; screenshots i16_paie_*.png
+- Incident évité : 1er run du harnais a contre-passé 2026-07 par accident (motif 11 car ≥ garde) → DB restaurée depuis git + re-scellement + gardes re-ciblées sur 2026-08 ; serveur démo redémarré (npx next dev, chemin binaire)
+
+Stage Summary:
+- Bulletin de paie PDF par salarié : endpoint RLS + rendu OHADA + estampille ANNULÉ automatique
+- Contre-passation guidée : extourne miroir scellée Evidence, 3 gardes, re-clôture corrigée -R2, audit complet
+- 9 suites vertes (38+37+63+24+28+35+12+22+32), tsc/eslint clean, démo enrichie (REVERSED + -R2 visibles à l'onglet Paie)

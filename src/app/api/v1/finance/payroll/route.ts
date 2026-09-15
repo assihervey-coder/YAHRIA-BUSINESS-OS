@@ -37,10 +37,15 @@ export async function POST(req: NextRequest) {
     const period = String((body as { period?: string }).period ?? '').trim()
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) throw new Error('Période invalide (format attendu : YYYY-MM)')
 
-    const existing = await db.payRun.findUnique({ where: { orgId_period: { orgId: s.orgId, period } } })
-    if (existing) {
-      throw new Error(`INV-PAIE : la paie ${periodLabel(period)} est déjà clôturée (${existing.reference}) — une clôture est immuable, toute correction passe par une contre-passation`)
+    const runsOfPeriod = await db.payRun.findMany({ where: { orgId: s.orgId, period } })
+    const posted = runsOfPeriod.find((r) => r.status === 'POSTED')
+    if (posted) {
+      throw new Error(`INV-PAIE : la paie ${periodLabel(period)} est déjà clôturée (${posted.reference}) — une clôture est immuable, toute correction passe par une contre-passation`)
     }
+    // Période contre-passée (runs REVERSED historisés) : re-clôture corrigée
+    // autorisée — nouveau run, référence suffixée -R2, -R3… (INV-PAIE-REV2)
+    const reversalCount = runsOfPeriod.length
+    const suffix = reversalCount > 0 ? `-R${reversalCount + 1}` : ''
 
     const rules = await payrollRulesFor(s.orgId)
     const employees = await db.employee.findMany({ where: { status: 'ACTIVE' }, orderBy: { code: 'asc' } })
@@ -61,7 +66,7 @@ export async function POST(req: NextRequest) {
       net: slips.reduce((a, p) => a + p.net, 0),
     }
     const entryDate = periodDate(period)
-    const reference = `PAIE-${period}-${s.orgId.slice(0, 8).toUpperCase()}`
+    const reference = `PAIE-${period}-${s.orgId.slice(0, 8).toUpperCase()}${suffix}`
 
     // Hook sectoriel v2 (INV-012/013) : constats consultatifs — jamais bloquants
     const sectorFindings = evaluateSectorPayroll(rules.sectorCode, {

@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge, SectionTitle, LoadError, fcfa, fmtDate, fmt } from './ui'
 import { apiJson, ApiFail } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
-import { Plus, Send, Ban, BellRing, CheckCircle2, Scale, FileDown, FileSpreadsheet, Users, Percent, Landmark } from 'lucide-react'
+import { Plus, Send, Ban, BellRing, CheckCircle2, Scale, FileDown, FileSpreadsheet, Users, Percent, Landmark, Undo2, TriangleAlert } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface InvLine { description: string; quantity: number; unitPrice: number; vatRate: number; lineTotal: number }
@@ -39,10 +39,11 @@ function PayrollPanel({ data, onDone }: { data: PayrollData; onDone: () => void 
   const [open, setOpen] = useState(false)
   const [period, setPeriod] = useState(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)
   const [detailRun, setDetailRun] = useState<PayRunRow | null>(null)
+  const [reverseRun, setReverseRun] = useState<PayRunRow | null>(null)
   const { rules, runs, employees } = data
   const pct = (r: number) => `${(r * 100).toFixed(1).replace(/\.0$/, '')} %`
   const cumul = runs.reduce((a, r) => ({ gross: a.gross + r.grossTotal, social: a.social + r.cnssEmployeeTotal + r.cnssEmployerTotal, tax: a.tax + r.taxTotal, net: a.net + r.netTotal }), { gross: 0, social: 0, tax: 0, net: 0 })
-  const alreadyClosed = runs.some((r) => r.period === period)
+  const alreadyClosed = runs.some((r) => r.period === period && r.status === 'POSTED')
 
   async function close() {
     setBusy(true)
@@ -54,6 +55,10 @@ function PayrollPanel({ data, onDone }: { data: PayrollData; onDone: () => void 
       toast({ title: `Paie clôturée — journal PAIE`, description: `${d.item.headcount} bulletins · net ${fcfa(d.item.net)} — écritures 661x / 6641 / 4311 / 4321 / 4221 postées.` })
       onDone()
     } else toast({ title: 'Clôture refusée', description: d.error, variant: 'destructive' })
+  }
+
+  function openPdf(payslipId: string) {
+    window.open(`/api/v1/finance/payroll/payslip/${payslipId}/pdf`, '_blank')
   }
 
   return (
@@ -156,7 +161,7 @@ function PayrollPanel({ data, onDone }: { data: PayrollData; onDone: () => void 
                   <TableHeader className="sticky top-0 bg-card z-10">
                     <TableRow>
                       <TableHead>Matricule</TableHead><TableHead>Salarié</TableHead><TableHead>Compte</TableHead>
-                      <TableHead>Brut</TableHead><TableHead>{rules.socialLabel} sal.</TableHead><TableHead>{rules.taxLabel}</TableHead><TableHead>Net</TableHead>
+                      <TableHead>Brut</TableHead><TableHead>{rules.socialLabel} sal.</TableHead><TableHead>{rules.taxLabel}</TableHead><TableHead>Net</TableHead><TableHead className="w-16">Bulletin</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -169,16 +174,122 @@ function PayrollPanel({ data, onDone }: { data: PayrollData; onDone: () => void 
                         <TableCell className="text-xs tabular-nums text-muted-foreground">{fcfa(p.cnssEmployee)}</TableCell>
                         <TableCell className="text-xs tabular-nums text-muted-foreground">{fcfa(p.tax)}</TableCell>
                         <TableCell className="text-sm tabular-nums font-semibold">{fcfa(p.net)}</TableCell>
+                        <TableCell><Button variant="ghost" size="sm" className="h-7 px-2" title="Bulletin de paie PDF" onClick={() => openPdf(p.id)}><FileDown className="h-4 w-4 text-primary" /></Button></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
+              {detailRun.status === 'POSTED' && (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+                  <p className="text-xs text-muted-foreground">Erreur dans cette clôture ? La correction passe par une <span className="font-medium text-foreground">contre-passation guidée</span> : écritures inversées au journal PAIE, bulletins annulés, opération scellée Evidence.</p>
+                  <Button size="sm" variant="outline" className="shrink-0 border-amber-500/40 text-amber-300 hover:bg-amber-500/10" onClick={() => setReverseRun(detailRun)}><Undo2 className="h-4 w-4 mr-1" /> Contre-passation guidée</Button>
+                </div>
+              )}
             </>
           )}
         </DialogContent>
       </Dialog>
+
+      <ReversalDialog key={reverseRun?.id ?? 'none'} run={reverseRun} onClose={() => setReverseRun(null)} onDone={onDone} />
     </div>
+  )
+}
+
+// ── Contre-passation GUIDÉE (3 étapes : avertissement → motif + confirmation → résultat) ──
+function ReversalDialog({ run, onClose, onDone }: { run: PayRunRow | null; onClose: () => void; onDone: () => void }) {
+  const { toast } = useToast()
+  const [step, setStep] = useState(1)
+  const [busy, setBusy] = useState(false)
+  const [ack, setAck] = useState(false)
+  const [reason, setReason] = useState('')
+  const [confirmRef, setConfirmRef] = useState('')
+  const [result, setResult] = useState<{ item: { reference: string; reversalTotal: number; headcount: number; evidence: { ref: string; seq: number } } } | null>(null)
+
+  if (!run) return null
+
+  async function submit() {
+    setBusy(true)
+    const d = await apiJson<{ item: { reference: string; reversalTotal: number; headcount: number; evidence: { ref: string; seq: number } } }>('/api/v1/finance/payroll/reverse', {
+      method: 'POST', body: JSON.stringify({ payRunId: run!.id, reason: reason.trim(), confirmRef: confirmRef.trim() }),
+    }).catch((e: ApiFail) => { toast({ title: 'Contre-passation refusée', description: e.message, variant: 'destructive' }); return null })
+    setBusy(false)
+    if (d) {
+      setResult(d)
+      setStep(3)
+      toast({ title: 'Contre-passation scellée', description: `Extourne D=C=${fcfa(d.item.reversalTotal)} postée au journal PAIE · preuve ${d.item.evidence.ref}` })
+      onDone()
+    }
+  }
+
+  return (
+    <Dialog open={!!run} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Undo2 className="h-4 w-4 text-amber-300" /> Contre-passation guidée — {run.period}</DialogTitle>
+          <DialogDescription>{run.reference} · {run.headcount} bulletins · net {fcfa(run.netTotal)}</DialogDescription>
+        </DialogHeader>
+
+        {step === 1 && (
+          <div className="space-y-3 py-1">
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 flex gap-2">
+              <TriangleAlert className="h-4 w-4 shrink-0 mt-0.5 text-amber-300" />
+              <div className="text-xs leading-relaxed">
+                <p className="font-medium text-amber-200">Ce que fera l&apos;extourne (irréversible)</p>
+                <ul className="list-disc pl-4 mt-1 space-y-0.5 text-muted-foreground">
+                  <li>Écritures inversées au journal PAIE (miroir exact : {run.payslips.length} constatations + 1 paiement) — D=C={fcfa(run.grossTotal + run.cnssEmployerTotal + run.netTotal)}</li>
+                  <li>Soldes 661x / 6641 / 4311 / 4321 / 4221 / 5211 ramenés à zéro pour cette paie</li>
+                  <li>{run.headcount} bulletins marqués ANNULÉ (PDF estampillé, sans valideur comptable)</li>
+                  <li>Opération scellée dans la chaîne Evidence (INV-008) + audit PAYROLL_REVERSAL_POSTED</li>
+                </ul>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="h-4 w-4 accent-primary" />
+              J&apos;ai compris les conséquences comptables de cette contre-passation
+            </label>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={onClose}>Annuler</Button>
+              <Button size="sm" disabled={!ack} onClick={() => setStep(2)}>Continuer</Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="space-y-3 py-1">
+            <div className="grid gap-2">
+              <Label>Motif de la contre-passation (≥ 10 caractères — scellé à vie)</Label>
+              <textarea
+                className="min-h-[64px] rounded-md border bg-transparent px-3 py-2 text-sm"
+                placeholder="Ex. : double comptabilisation de la prime de transport — clôture à refaire après correction du personnel"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Confirmation : retapez exactement <span className="font-mono text-foreground">{run.reference}</span></Label>
+              <Input value={confirmRef} onChange={(e) => setConfirmRef(e.target.value)} placeholder={run.reference} className="font-mono" />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setStep(1)} disabled={busy}>Retour</Button>
+              <Button size="sm" disabled={busy || reason.trim().length < 10 || confirmRef.trim() !== run.reference} onClick={submit}>{busy ? 'Extourne…' : 'Valider et sceller l' + "'" + 'extourne'}</Button>
+            </DialogFooter>
+          </div>
+        )}
+
+        {step === 3 && result && (
+          <div className="space-y-3 py-1">
+            <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm space-y-1">
+              <p className="flex items-center gap-2 font-medium text-emerald-300"><CheckCircle2 className="h-4 w-4" /> Extourne postée au journal PAIE</p>
+              <p className="text-xs text-muted-foreground">{result.item.headcount} bulletin(s) annulé(s) · extourne D=C={fcfa(result.item.reversalTotal)} · {run.reference} → statut REVERSED</p>
+              <p className="text-xs text-muted-foreground">Preuve scellée : <span className="font-mono text-foreground">{result.item.evidence.ref}</span> (séquence {result.item.evidence.seq})</p>
+            </div>
+            <p className="text-xs text-muted-foreground">La paie {run.period} est contre-passée et immuable : les bulletins PDF portent l&apos;estampille ANNULÉ, le run reste historisé pour l&apos;audit. Vous pouvez désormais lancer une <span className="text-foreground">clôture corrigée</span> pour la même période — elle créera un nouveau run (l&apos;ancien, REVERSED, n&apos;est jamais effacé).</p>
+            <DialogFooter><Button size="sm" onClick={onClose}>Terminer</Button></DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   )
 }
 

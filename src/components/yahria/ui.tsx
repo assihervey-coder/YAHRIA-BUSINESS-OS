@@ -71,6 +71,7 @@ export function StatusBadge({ status, className }: { status: string; className?:
     DRAFT: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
     SUSPENDED: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
     CANCELLED: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
+    REVERSED: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
     PLANNED: 'bg-slate-500/15 text-slate-400 border-slate-500/30',
     INFO: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
     OK: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',

@@ -106,7 +106,7 @@ def disable_2fa(c: Client) -> int:
 
 
 # ── Vérité terrain SQLite ────────────────────────────────────────────────────
-JOURNALS = {'INVOICE': 'VTE', 'EXPENSE': 'ACH', 'PAYMENT': 'TRE', 'PAYROLL': 'PAIE', 'MANUAL': 'OD'}
+JOURNALS = {'INVOICE': 'VTE', 'EXPENSE': 'ACH', 'PAYMENT': 'TRE', 'PAYROLL': 'PAIE', 'PAYROLL_REVERSAL': 'PAIE', 'MANUAL': 'OD'}
 
 
 def epoch_ms(date_str, end=False):

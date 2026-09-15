@@ -192,3 +192,63 @@ export function periodLabel(period: string): string {
   const mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
   return `${mois[Number(m[2]) - 1]} ${m[1]}`
 }
+
+// ── Contre-passation guidée (extourne SYSCOHADA — INV-007) ──────────────────
+// La clôture est immuable : corriger une paie = contre-passation guidée.
+// L'extourne est le MIROIR EXACT des écritures d'origine (même découpage,
+// débits et crédits inversés) : le solde de chaque compte 661x/6641/4311/
+// 4321/4221/5211 revient à zéro pour la paie contre-passée. Les écritures
+// d'extourne sont datées du jour (opération nouvelle, jamais rétrodatée)
+// et scellées dans la chaîne Evidence (INV-008).
+export interface JournalLineInput { accountCode: string; accountName: string; debit: number; credit: number }
+
+/** Intitulés des comptes de charge 661x (référentiel OHADA, map stable). */
+export const EXPENSE_ACCOUNT_NAMES: Record<string, string> = {
+  '6611': 'Salaires des ouvriers',
+  '6612': 'Salaires des employés',
+  '6613': 'Salaires des chefs d\u2019exploitation et de main-d\u2019œuvre',
+  '6615': 'Honoraires',
+}
+
+/** Lignes d'extourne de l'écriture de CONSTATATION d'un bulletin (miroir exact). */
+export function reversalLinesOf(slip: {
+  gross: number; cnssEmployee: number; cnssEmployer: number; tax: number; net: number; accountCode: string
+}): JournalLineInput[] {
+  const chargeName = EXPENSE_ACCOUNT_NAMES[slip.accountCode] ?? 'Charges de personnel'
+  return [
+    { accountCode: PAYROLL_ACCOUNTS.social.code, accountName: PAYROLL_ACCOUNTS.social.name, debit: slip.cnssEmployee + slip.cnssEmployer, credit: 0 },
+    { accountCode: PAYROLL_ACCOUNTS.taxWithheld.code, accountName: PAYROLL_ACCOUNTS.taxWithheld.name, debit: slip.tax, credit: 0 },
+    { accountCode: PAYROLL_ACCOUNTS.salaryDue.code, accountName: PAYROLL_ACCOUNTS.salaryDue.name, debit: slip.net, credit: 0 },
+    { accountCode: slip.accountCode, accountName: chargeName, debit: 0, credit: slip.gross },
+    { accountCode: PAYROLL_ACCOUNTS.employerSocial.code, accountName: PAYROLL_ACCOUNTS.employerSocial.name, debit: 0, credit: slip.cnssEmployer },
+  ]
+}
+
+/** Lignes d'extourne de l'écriture de PAIEMENT agrégé (miroir exact). */
+export function reversalPaymentLines(netTotal: number): JournalLineInput[] {
+  return [
+    { accountCode: PAYROLL_ACCOUNTS.bank.code, accountName: PAYROLL_ACCOUNTS.bank.name, debit: netTotal, credit: 0 },
+    { accountCode: PAYROLL_ACCOUNTS.salaryDue.code, accountName: PAYROLL_ACCOUNTS.salaryDue.name, debit: 0, credit: netTotal },
+  ]
+}
+
+/** Équilibre d'un jeu de lignes (INV-ACC-001 appliqué à l'extourne). */
+export function linesBalanced(lines: JournalLineInput[]): boolean {
+  return lines.reduce((s, l) => s + l.debit, 0) === lines.reduce((s, l) => s + l.credit, 0)
+}
+
+/** Garde de cohérence du miroir : l'extourne doit annuler EXACTEMENT l'origine, compte par compte. */
+export function reversalCancelsOrigin(origin: JournalLineInput[], extourne: JournalLineInput[]): boolean {
+  if (origin.length !== extourne.length) return false
+  const key = (l: JournalLineInput) => l.accountCode
+  const orig = new Map<string, { d: number; c: number }>()
+  for (const l of origin) orig.set(key(l), { d: (orig.get(key(l))?.d ?? 0) + l.debit, c: (orig.get(key(l))?.c ?? 0) + l.credit })
+  const rev = new Map<string, { d: number; c: number }>()
+  for (const l of extourne) rev.set(key(l), { d: (rev.get(key(l))?.d ?? 0) + l.debit, c: (rev.get(key(l))?.c ?? 0) + l.credit })
+  for (const [code, o] of orig) {
+    const r = rev.get(code)
+    if (!r) return false
+    if (Math.abs(o.d - r.c) > 0 || Math.abs(o.c - r.d) > 0) return false
+  }
+  return true
+}

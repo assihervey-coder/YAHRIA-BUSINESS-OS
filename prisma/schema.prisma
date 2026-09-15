@@ -362,7 +362,10 @@ model PayRun {
   createdAt         DateTime @default(now())
   payslips          Payslip[]
 
-  @@unique([orgId, period])
+  // Unicité (orgId, period) gérée APPLICATIVEMENT : un seul run POSTED par
+  // org/période (INV-PAIE) — les runs REVERSED (contre-passation) restent
+  // historisés et une clôture corrigée peut créer un nouveau run de la même
+  // période (référence suffixée -R2, -R3…).
 }
 
 model Payslip {
