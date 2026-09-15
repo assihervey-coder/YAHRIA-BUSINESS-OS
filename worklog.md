@@ -355,3 +355,19 @@ Stage Summary:
 - RLS Postgres native : chemin production PROUVÉ sur Postgres réel (37 attaques refusées) + carte Gouvernance ; bug latent du SQL corrigé
 - Contrats : sectoriel v2.0.0 versionné avec coexistence v1/v2 par construction + nouveau contrat public YBOS-PAY
 - Suites : commit local ; push en attente d'un PAT frais (l'ancien ghp_Ur3i… doit être révoqué — exposé 2× en chat)
+
+---
+Task ID: 14
+Agent: Super Z (main)
+Task: Push multi-cibles — origin (YAHRIA-BUSINESS-OS) + IMMEXA-ERP (PAT fourni en chat)
+
+Work Log:
+- État : 3 commits non poussés (ec454fb worklog t11, 8ee4507 RLS approfondie+Bénin+perf, 1111b3c paie SYSCOHADA+RLS PG native+contrats versionnés) ; 47 fichiers en bruit de mode 644→755 (0 insertion/0 suppression) → neutralisé via core.fileMode false
+- Découverte repo cible IMMEXA-ERP : historique DISTINCT et substantiel (a581644 saas v3.1 invitations/RBAC tenant/plans/i18n EN-PT poussé aujourd'hui 01:20 UTC ; 3150950 multi-tenant V3.0 36 modèles org-scopés) — PAS notre historique YAHRIA → force push refusé par prudence (écrasement destructif)
+- Push non destructif : origin/main ← ec454fb..1111b3c (fast-forward) ; IMMEXA-ERP ← main:yahria-main (branche dédiée, saas v3.1 préservé sur main)
+- PAT ghp_g4qe… utilisé en URL inline one-time, non persisté (remote.origin.url propre, pas de ~/.git-credentials) ; exposé en chat → à révoquer/rotater après usage
+
+Stage Summary:
+- YAHRIA-BUSINESS-OS/main à jour (1111b3c) : paie SYSCOHADA + RLS PG native + contrats versionnés
+- IMMEXA-ERP/yahria-main = notre travail complet ; IMMEXA-ERP/main = saas v3.1 intact
+- En attente de décision utilisateur : remplacer IMMEXA-ERP/main par yahria-main (force, destructif) OU conserver les deux lignées en parallèle
