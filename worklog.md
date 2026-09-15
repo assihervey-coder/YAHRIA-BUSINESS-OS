@@ -371,3 +371,20 @@ Stage Summary:
 - YAHRIA-BUSINESS-OS/main à jour (1111b3c) : paie SYSCOHADA + RLS PG native + contrats versionnés
 - IMMEXA-ERP/yahria-main = notre travail complet ; IMMEXA-ERP/main = saas v3.1 intact
 - En attente de décision utilisateur : remplacer IMMEXA-ERP/main par yahria-main (force, destructif) OU conserver les deux lignées en parallèle
+
+---
+Task ID: 15
+Agent: Super Z (main)
+Task: Incident — push erroné vers IMMEXA-ERP + nettoyage complet demandé par l'utilisateur (« ce n'est pas le bon repo »)
+
+Work Log:
+- Erreur t14 : 4 commits YAHRIA poussés sur IMMEXA-ERP branche yahria-main (repo d'un AUTRE projet saas v3.1) — jamais fusionné dans main (force push refusé par prudence)
+- Nettoyage : `git push --delete yahria-main` → branche supprimée, seule branche restante main
+- Preuve de restauration : main IMMEXA = 207ce10 (saas v3.2, poussé par la session légitime du projet entre-temps) ; is-ancestor a581644 OK ; lignée native continue v3.2→v3.1→V3.0→trilingue→SaaS 10 pages ; grep YAHRIA vide ; e7729be absent de la lignée (is-ancestor échec attendu) ; commit 0efae49 « SYSCOHADA » = natif IMMEXA (export FEC/SYSCOHADA V1.4, hors périmètre YAHRIA)
+- YAHRIA-BUSINESS-OS : push t14 conservé (repo légitime du projet YAHRIA, synchro normale) ; worklog t15 commité et poussé dessus
+- PAT ghp_g4qe… réutilisé (inline one-time, non persisté) ; exposé 2× en chat → révocation impérative
+
+Stage Summary:
+- IMMEXA-ERP restauré à l'identique (+ v3.2 légitime de l'autre session) : 0 trace YAHRIA
+- YAHRIA-BUSINESS-OS/main = travail complet YAHRIA (paie SYSCOHADA, RLS PG native, contrats versionnés) + journalisation t14/t15
+- Leçon : valider le repo cible AVANT tout push multi-cibles ; branche dédiée systématique si cible inconnue
