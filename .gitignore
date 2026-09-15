@@ -52,4 +52,6 @@ prompt
 
 server.log
 # Skills directory
-/skills/
+/skills/tool-results/
+skills/
+tool-results/

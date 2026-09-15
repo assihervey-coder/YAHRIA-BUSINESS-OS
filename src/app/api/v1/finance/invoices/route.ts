@@ -4,6 +4,7 @@ import { withAuth } from '@/lib/yahria/auth'
 import { audit } from '@/lib/yahria/audit'
 import { postEntry } from '@/lib/yahria/ledger'
 import { ref } from '@/lib/yahria/core'
+import { evaluateSectorInvoice } from '@/lib/yahria/sectors/registry'
 
 export async function GET(req: NextRequest) {
   return withAuth(req, 'finance.read', async (s) => {
@@ -37,6 +38,13 @@ export async function POST(req: NextRequest) {
   const count = await db.invoice.count({ where: { orgId } })
   const number = `FAC-2026-${String(count + 1).padStart(3, '0')}`
 
+  // Hook sectoriel v2 (INV-012/013) : constats consultatifs — jamais bloquants
+  const org = await db.organization.findUnique({ where: { id: orgId } })
+  const sectorFindings = evaluateSectorInvoice(org?.sectorCode ?? 'enterprise', {
+    countryCode: org?.countryCode ?? '', amount: total, vatRate: subtotal > 0 ? vatAmount / subtotal : 0,
+    currency: 'XOF', customerSegment: customer.segment ?? null,
+  })
+
   const invoice = await db.invoice.create({
     data: {
       orgId, number, customerId: body.customerId,
@@ -68,9 +76,10 @@ export async function POST(req: NextRequest) {
   await audit({
     orgId, actorType: 'HUMAN', actorId: s.userId, actorName: s.name, action: 'INVOICE_CREATED',
     resourceType: 'INVOICE', resourceId: invoice.id,
-    summary: `Facture ${number} — ${customer.name} — ${total.toLocaleString('fr-FR')} FCFA (${invoice.status}) — par ${s.name}`,
+    summary: `Facture ${number} — ${customer.name} — ${total.toLocaleString('fr-FR')} FCFA (${invoice.status}) — par ${s.name}${sectorFindings.length ? ` — ${sectorFindings.length} constat(s) sectoriel(s)` : ''}`,
+    meta: sectorFindings.length ? { sectorFindings, sectorCode: org?.sectorCode ?? 'enterprise' } : undefined,
   })
 
-  return NextResponse.json({ item: invoice }, { status: 201 })
+  return NextResponse.json({ item: invoice, sectorFindings }, { status: 201 })
   })
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // YAHRIA BUSINESS OS V1 — Tests INV-008 Evidence : rotation de clé + re-scellement
 // Scénario : les preuves datent d'une clé EVIDENCE_SIGNING_KEY antérieure (purge .env
 // du push GitHub). ① État initial : 0/N signatures valides, contenu intouché.

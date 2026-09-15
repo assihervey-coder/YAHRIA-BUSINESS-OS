@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // YAHRIA — TESTS DE CHARGE : exports SYSCOHADA
 // Phase A (volumique) : org dédiée « Charge Lab » (sans utilisateur → invisible en démo),
 //   ~11 000 écritures / ~30 000 lignes, pipeline export mesuré au niveau lib.

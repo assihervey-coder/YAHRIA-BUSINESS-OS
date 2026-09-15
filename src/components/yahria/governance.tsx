@@ -20,6 +20,8 @@ interface AuditRow { id: string; ts: string; traceId: string; actorType: string;
 interface EvidenceRow { id: string; ref: string; kind: string; title: string; hash: string; signature: string; prevHash: string; seq: number; algo: string; createdAt: string; payload: Record<string, unknown> }
 interface ChainInfo { total: number; valid: number; invalid: number; chainIntact: boolean; brokenAtSeq: number | null; algo: string; brokenRefs: string[]; hashFails: number; sigFails: number; linkFails: number; checkedAt: string }
 interface RlsInfo { mode: string; tenantCount: number; orgCount: number; scope: { tenantId: string; orgId: string; role: string }; enforcement: string[] }
+interface RlsPostgresInfo { script: string; rlsTables: number; policies: { name: string; table: string }[]; policyCount: number; roleApp: string; contextSetting: string; proof: { ranAt: string; pass: number; fail: number; engine: string } | null }
+interface SectorContractInfo { contractId: string; version: string; supportedVersions: readonly string[]; publishedAt: string; changelog: readonly { version: string; date: string; note: string }[]; isolation: string; registry: { total: number; versionsOk: boolean; byContractVersion: Record<string, number>; refused: { code: string; contractVersion: string }[]; hooksCoverage: Record<string, number> } }
 interface PermsInfo { role: string; canManagePolicies: boolean; canRebuildGraph: boolean; canTestIsolation: boolean }
 interface ProofCheck { label: string; ok: boolean; detail: string }
 interface ConstructionProof { id: string; name: string; mode: string; status: string; proof: string; checks: ProofCheck[]; checkedAt: string }
@@ -28,7 +30,7 @@ interface ConstructionInfo { allPass: boolean; proofs: ConstructionProof[]; cont
 
 export function GovernanceView() {
   const { toast } = useToast()
-  const [data, setData] = useState<{ policies: Policy[]; invariants: Invariant[]; audit: AuditRow[]; evidence: EvidenceRow[]; evidenceChain: ChainInfo; rls: RlsInfo; permissions: PermsInfo; construction: ConstructionInfo; stats: { auditCount: number; evidenceCount: number; policyCount: number } } | null>(null)
+  const [data, setData] = useState<{ policies: Policy[]; invariants: Invariant[]; audit: AuditRow[]; evidence: EvidenceRow[]; evidenceChain: ChainInfo; rls: RlsInfo; rlsPostgres?: RlsPostgresInfo | null; sectorContract?: SectorContractInfo; permissions: PermsInfo; construction: ConstructionInfo; stats: { auditCount: number; evidenceCount: number; policyCount: number } } | null>(null)
   const [testing, setTesting] = useState(false)
   const [runningProofs, setRunningProofs] = useState(false)
   const [resealing, setResealing] = useState(false)
@@ -314,7 +316,30 @@ export function GovernanceView() {
                 <ul className="list-disc pl-4 space-y-1">
                   {data.rls.enforcement.map((r) => <li key={r}>{r}</li>)}
                 </ul>
-                <p className="pt-1 border-t border-border/60">Chemin production : politiques <span className="font-mono">CREATE POLICY</span> PostgreSQL fournies (<span className="font-mono">prisma/rls-postgres.sql</span>) — la garantie passe alors au niveau base.</p>
+                <p className="pt-1 border-t border-border/60">Chemin production : politiques <span className="font-mono">CREATE POLICY</span> PostgreSQL — voir la carte ci-contre.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-sky-500/40">
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Lock className="h-4 w-4 text-sky-400" /> RLS PostgreSQL NATIVE — prouvée</CardTitle></CardHeader>
+              <CardContent className="space-y-2 text-xs text-muted-foreground leading-relaxed">
+                {data.rlsPostgres ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      {data.rlsPostgres.proof
+                        ? <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/40 text-[10px]">PREUVE {data.rlsPostgres.proof.pass}/{data.rlsPostgres.proof.pass + data.rlsPostgres.proof.fail}</Badge>
+                        : <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/40 text-[10px]">PREUVE EN ATTENTE</Badge>}
+                      <span className="font-mono text-foreground">{data.rlsPostgres.script}</span>
+                    </div>
+                    <p>{data.rlsPostgres.rlsTables} tables sous RLS FORCÉE · {data.rlsPostgres.policyCount} politiques <span className="font-mono">CREATE POLICY</span> (USING + WITH CHECK).</p>
+                    <p>Rôle applicatif : <span className="font-mono text-foreground">{data.rlsPostgres.roleApp}</span> — contexte par transaction : <span className="font-mono text-foreground">{data.rlsPostgres.contextSetting}</span>.</p>
+                    {data.rlsPostgres.proof && (
+                      <p>Matrice d&apos;attaques rejouée sur <span className="text-foreground">{data.rlsPostgres.proof.engine}</span> (Postgres réel) le {new Date(data.rlsPostgres.proof.ranAt).toLocaleString('fr-FR')} — lecture inter-tenant = 0 ligne, écriture inter-tenant = refus, portée enfant LedgerLine incluse.</p>
+                    )}
+                  </>
+                ) : (
+                  <p>Script <span className="font-mono">prisma/rls-postgres.sql</span> introuvable.</p>
+                )}
               </CardContent>
             </Card>
 
@@ -382,6 +407,40 @@ export function GovernanceView() {
               )}
             </CardContent>
           </Card>
+
+          {data.sectorContract && (
+            <Card className="border-primary/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2"><Braces className="h-4 w-4 text-primary" /> Contrat sectoriel versionné — {data.sectorContract.contractId} v{data.sectorContract.version} (INV-012/013)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs text-muted-foreground leading-relaxed">
+                <div className="flex flex-wrap items-center gap-2">
+                  {data.sectorContract.supportedVersions.map((v) => (
+                    <Badge key={v} variant="outline" className={`text-[10px] ${v === data.sectorContract?.version ? 'border-emerald-500/50 text-emerald-400' : 'text-muted-foreground'}`}>
+                      v{v}{v === data.sectorContract?.version ? ' — courante' : ' — supportée'}
+                    </Badge>
+                  ))}
+                  <Badge variant="outline" className="text-[10px]">{data.sectorContract.registry.total} extensions</Badge>
+                  {Object.entries(data.sectorContract.registry.byContractVersion).map(([v, n]) => (
+                    <Badge key={v} variant="outline" className="text-[10px] text-muted-foreground">{n} × contrat v{v}</Badge>
+                  ))}
+                  <Badge variant="outline" className="text-[10px] text-sky-400">hooks v2 : invoice ×{data.sectorContract.registry.hooksCoverage.evaluateInvoice ?? 0} · payroll ×{data.sectorContract.registry.hooksCoverage.evaluatePayroll ?? 0}</Badge>
+                </div>
+                <p>{data.sectorContract.isolation}</p>
+                <details className="group">
+                  <summary className="cursor-pointer hover:text-foreground flex items-center gap-1"><ScrollText className="h-3 w-3" />Changelog & migrations ({data.sectorContract.changelog.length} releases)</summary>
+                  <div className="mt-2 space-y-2">
+                    {data.sectorContract.changelog.map((c) => (
+                      <div key={c.version} className="rounded-md border border-border/60 p-2 space-y-0.5">
+                        <p className="text-foreground font-medium text-[11px]">v{c.version} — {c.date}</p>
+                        <p>{c.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* ── EVIDENCE ── */}

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Captures d'écran de contrôle visuel du site vitrine
 const { chromium } = require('playwright')
 const BASE = 'http://localhost:3000'

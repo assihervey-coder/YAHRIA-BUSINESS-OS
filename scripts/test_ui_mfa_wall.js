@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // YAHRIA BUSINESS OS V1 — Vérification navigateur ITERATION 5 (Playwright)
 // ① Crash cockpit corrigé : login rôle non enrôlé → mur MFA SÉCURITÉ rendu, zéro TypeError
 // ② Mur structurel : les autres vues (Money…) restent inaccessibles tant que la 2FA n'est pas enrôlée

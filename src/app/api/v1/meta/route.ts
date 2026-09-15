@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { withAuth } from '@/lib/yahria/auth'
 import { jparse } from '@/lib/yahria/core'
-import { registryIntegrity, getSector } from '@/lib/yahria/sectors/registry'
-import { PACK_MANIFEST_SPEC, API_CONTRACT } from '@/lib/yahria/contracts'
+import { registryIntegrity, getSector, negotiateContract } from '@/lib/yahria/sectors/registry'
+import { SECTOR_CONTRACT_VERSIONS, SUPPORTED_CONTRACT_VERSIONS } from '@/lib/yahria/sectors/contract'
+import { PACK_MANIFEST_SPEC, API_CONTRACT, PAYROLL_CONTRACT } from '@/lib/yahria/contracts'
 
 export async function GET(req: NextRequest) {
   return withAuth(req, null, async (s) => {
@@ -15,7 +16,15 @@ export async function GET(req: NextRequest) {
     ])
     const reg = registryIntegrity()
     return {
-      contract: { apiVersion: API_CONTRACT.version, packManifest: PACK_MANIFEST_SPEC.version, sectorContract: reg.contractVersion },
+      contract: { apiVersion: API_CONTRACT.version, packManifest: PACK_MANIFEST_SPEC.version, sectorContract: reg.contractVersion, payrollContract: PAYROLL_CONTRACT.version },
+      sectorContract: {
+        version: reg.contractVersion,
+        supportedVersions: SUPPORTED_CONTRACT_VERSIONS,
+        releases: Object.values(SECTOR_CONTRACT_VERSIONS),
+        negotiation: negotiateContract(reg.contractVersion),
+        registry: reg,
+      },
+      payrollContract: PAYROLL_CONTRACT,
       org: org && {
         id: org.id, name: org.name, legalName: org.legalName, city: org.city, countryCode: org.countryCode,
         currencyCode: org.currencyCode, sectorCode: org.sectorCode, taxId: org.taxId, rccm: org.rccm,
@@ -42,7 +51,7 @@ export async function GET(req: NextRequest) {
           registry: { registered: !!ext, extensionVersion: ext?.version ?? null, contractVersion: ext?.contractVersion ?? null },
         }
       }),
-      sectorRegistry: { total: reg.total, contractVersion: reg.contractVersion, versionsOk: reg.versionsOk },
+      sectorRegistry: { total: reg.total, contractVersion: reg.contractVersion, versionsOk: reg.versionsOk, byContractVersion: reg.byContractVersion, refused: reg.refused, hooksCoverage: reg.hooksCoverage },
     }
   })
 }

@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusBadge, SectionTitle, LoadError, fcfa, fmtDate, fmt } from './ui'
 import { apiJson, ApiFail } from '@/lib/yahria/client-api'
 import { useToast } from '@/hooks/use-toast'
-import { Plus, Send, Ban, BellRing, CheckCircle2, Scale, FileDown, FileSpreadsheet } from 'lucide-react'
+import { Plus, Send, Ban, BellRing, CheckCircle2, Scale, FileDown, FileSpreadsheet, Users, Percent, Landmark } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface InvLine { description: string; quantity: number; unitPrice: number; vatRate: number; lineTotal: number }
@@ -25,6 +25,162 @@ interface Expense { id: string; reference: string; category: string; description
 interface LedgerLine { accountCode: string; accountName: string; debit: number; credit: number }
 interface JournalEntry { id: string; entryDate: string; reference: string; description: string; source: string; lines: LedgerLine[] }
 interface JournalData { chartOfAccounts: { code: string; name: string; class: number; type: string }[]; entries: JournalEntry[]; ledger: { code: string; name: string; debit: number; credit: number }[]; integrity: { totalDebit: number; totalCredit: number; balanced: boolean } }
+
+// ── Paie SYSCOHADA (journal PAIE) ────────────────────────────────────────
+interface PayslipRow { id: string; employeeName: string; employeeCode: string; position: string; contractType: string; accountCode: string; gross: number; cnssEmployee: number; cnssEmployer: number; tax: number; net: number }
+interface PayRunRow { id: string; reference: string; period: string; status: string; headcount: number; grossTotal: number; cnssEmployeeTotal: number; cnssEmployerTotal: number; taxTotal: number; netTotal: number; currency: string; countryPackCode: string; payslips: PayslipRow[] }
+interface PayrollRulesRow { countryCode: string; packCode: string; packVersion: string; socialLabel: string; socialEmployerRate: number; socialEmployeeRate: number; taxLabel: string; scheduleLabel: string; minWage: number; note: string }
+interface EmployeeRow { id: string; code: string; name: string; position: string; department: string; contractType: string; grossSalary: number; currency: string }
+interface PayrollData { rules: PayrollRulesRow; runs: PayRunRow[]; employees: EmployeeRow[] }
+
+function PayrollPanel({ data, onDone }: { data: PayrollData; onDone: () => void }) {
+  const { toast } = useToast()
+  const [busy, setBusy] = useState(false)
+  const [open, setOpen] = useState(false)
+  const [period, setPeriod] = useState(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)
+  const [detailRun, setDetailRun] = useState<PayRunRow | null>(null)
+  const { rules, runs, employees } = data
+  const pct = (r: number) => `${(r * 100).toFixed(1).replace(/\.0$/, '')} %`
+  const cumul = runs.reduce((a, r) => ({ gross: a.gross + r.grossTotal, social: a.social + r.cnssEmployeeTotal + r.cnssEmployerTotal, tax: a.tax + r.taxTotal, net: a.net + r.netTotal }), { gross: 0, social: 0, tax: 0, net: 0 })
+  const alreadyClosed = runs.some((r) => r.period === period)
+
+  async function close() {
+    setBusy(true)
+    const res = await fetch('/api/v1/finance/payroll', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ period }) })
+    const d = await res.json()
+    setBusy(false)
+    setOpen(false)
+    if (res.ok) {
+      toast({ title: `Paie clôturée — journal PAIE`, description: `${d.item.headcount} bulletins · net ${fcfa(d.item.net)} — écritures 661x / 6641 / 4311 / 4321 / 4221 postées.` })
+      onDone()
+    } else toast({ title: 'Clôture refusée', description: d.error, variant: 'destructive' })
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="p-3"><p className="text-xs text-muted-foreground">Personnel actif</p><p className="text-lg font-bold tabular-nums">{employees.length} <Users className="inline h-4 w-4 text-primary" /></p><p className="text-[11px] text-muted-foreground">{fcfa(employees.reduce((s, e) => s + e.grossSalary, 0))} brut / mois</p></Card>
+        <Card className="p-3"><p className="text-xs text-muted-foreground">Masse brute versée (cumul)</p><p className="text-lg font-bold tabular-nums">{fcfa(cumul.gross)}</p><p className="text-[11px] text-muted-foreground">{runs.length} clôture(s)</p></Card>
+        <Card className="p-3"><p className="text-xs text-muted-foreground">Charges sociales (cumul)</p><p className="text-lg font-bold tabular-nums text-amber-300">{fcfa(cumul.social)}</p><p className="text-[11px] text-muted-foreground">{rules.socialLabel} {pct(rules.socialEmployeeRate)} / {pct(rules.socialEmployerRate)}</p></Card>
+        <Card className="p-3"><p className="text-xs text-muted-foreground">{rules.taxLabel} retenu (cumul)</p><p className="text-lg font-bold tabular-nums text-sky-300">{fcfa(cumul.tax)}</p><p className="text-[11px] text-muted-foreground">barème progressif mensuel</p></Card>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Landmark className="h-4 w-4 text-primary" /> Journal de paie — SYSCOHADA
+            <StatusBadge status={rules.packCode} />
+            <span className="ml-auto"><Button size="sm" onClick={() => setOpen(true)} disabled={busy}><Plus className="h-4 w-4 mr-1" /> Clôturer une période</Button></span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Constatation par salarié : <span className="font-mono">D 661x</span> (brut) + <span className="font-mono">D 6641</span> ({rules.socialLabel} patronale {pct(rules.socialEmployerRate)}) / <span className="font-mono">C 4311</span> ({rules.socialLabel}) + <span className="font-mono">C 4321</span> ({rules.taxLabel} retenu) + <span className="font-mono">C 4221</span> (net) — puis paiement <span className="font-mono">D 4221 / C 5211</span>. Paramètres issus du Country Pack {rules.packCode} v{rules.packVersion} (INV-011), figés à la clôture. Correction = contre-passation (INV-007).
+          </p>
+          {runs.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center">Aucune clôture de paie — lancez la première pour poster les écritures au journal PAIE.</p>
+          ) : (
+            <div className="rounded-lg border overflow-hidden max-h-[26rem] overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-card z-10">
+                  <TableRow>
+                    <TableHead>Période</TableHead><TableHead>Réf.</TableHead><TableHead>Effectif</TableHead>
+                    <TableHead>Brut</TableHead><TableHead>{rules.socialLabel}</TableHead><TableHead>{rules.taxLabel}</TableHead><TableHead>Net payé</TableHead><TableHead>Statut</TableHead><TableHead className="w-24" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {runs.map((r) => (
+                    <TableRow key={r.id} className="cursor-pointer" onClick={() => setDetailRun(r)}>
+                      <TableCell className="text-sm font-medium capitalize">{r.period}</TableCell>
+                      <TableCell className="font-mono text-xs">{r.reference}</TableCell>
+                      <TableCell className="text-sm tabular-nums">{r.headcount}</TableCell>
+                      <TableCell className="text-sm tabular-nums">{fcfa(r.grossTotal)}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-muted-foreground">{fcfa(r.cnssEmployeeTotal + r.cnssEmployerTotal)}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-muted-foreground">{fcfa(r.taxTotal)}</TableCell>
+                      <TableCell className="text-sm tabular-nums font-semibold">{fcfa(r.netTotal)}</TableCell>
+                      <TableCell><StatusBadge status={r.status} /></TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}><Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setDetailRun(r)}>{r.payslips.length} bulletins</Button></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm font-medium flex items-center gap-2"><Percent className="h-4 w-4 text-primary" /> Paramètres de paie — pack {rules.packCode} v{rules.packVersion}</CardTitle></CardHeader>
+        <CardContent className="grid md:grid-cols-2 gap-3 text-sm">
+          <div className="rounded-md border p-3 space-y-1">
+            <p className="text-xs text-muted-foreground">Cotes sociales — {rules.socialLabel}</p>
+            <p>Part salariale : <span className="font-semibold tabular-nums">{pct(rules.socialEmployeeRate)}</span> · part patronale : <span className="font-semibold tabular-nums">{pct(rules.socialEmployerRate)}</span></p>
+            <p className="text-xs text-muted-foreground">Salaire minimum pack : {fcfa(rules.minWage)} / mois</p>
+          </div>
+          <div className="rounded-md border p-3 space-y-1">
+            <p className="text-xs text-muted-foreground">Impôt sur salaires — {rules.taxLabel}</p>
+            <p>{rules.scheduleLabel}</p>
+            <p className="text-xs text-muted-foreground">Base imposable : brut − part salariale ({rules.socialLabel})</p>
+          </div>
+          <p className="md:col-span-2 text-[11px] text-muted-foreground leading-relaxed">{rules.note}</p>
+        </CardContent>
+      </Card>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Clôturer la paie</DialogTitle>
+            <DialogDescription>
+              {employees.length} salarié(s) actif(s) — bulletins calculés puis écritures double-partie postées au journal PAIE. La clôture est immuable (INV-007).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2 py-1">
+            <Label>Période (YYYY-MM)</Label>
+            <Input type="month" value={period} onChange={(e) => setPeriod(e.target.value)} />
+            {alreadyClosed && <p className="text-xs text-amber-300">⚠ La période {period} est déjà clôturée — le serveur refusera (contre-passation requise).</p>}
+          </div>
+          <DialogFooter><Button onClick={close} disabled={busy || !/\d{4}-\d{2}/.test(period)}>{busy ? 'Clôture…' : 'Clôturer et poster'}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!detailRun} onOpenChange={(o) => !o && setDetailRun(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          {detailRun && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">Paie {detailRun.period} <StatusBadge status={detailRun.status} /></DialogTitle>
+                <DialogDescription>{detailRun.reference} · pack {detailRun.countryPackCode} · {detailRun.headcount} bulletins · brut {fcfa(detailRun.grossTotal)} · net {fcfa(detailRun.netTotal)}</DialogDescription>
+              </DialogHeader>
+              <div className="rounded-lg border overflow-hidden max-h-96 overflow-y-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-card z-10">
+                    <TableRow>
+                      <TableHead>Matricule</TableHead><TableHead>Salarié</TableHead><TableHead>Compte</TableHead>
+                      <TableHead>Brut</TableHead><TableHead>{rules.socialLabel} sal.</TableHead><TableHead>{rules.taxLabel}</TableHead><TableHead>Net</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {detailRun.payslips.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-mono text-xs">{p.employeeCode}</TableCell>
+                        <TableCell className="text-sm max-w-[160px] truncate">{p.employeeName}<span className="text-muted-foreground text-xs"> · {p.position}</span></TableCell>
+                        <TableCell className="font-mono text-xs">{p.accountCode}</TableCell>
+                        <TableCell className="text-sm tabular-nums">{fcfa(p.gross)}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-muted-foreground">{fcfa(p.cnssEmployee)}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-muted-foreground">{fcfa(p.tax)}</TableCell>
+                        <TableCell className="text-sm tabular-nums font-semibold">{fcfa(p.net)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
 
 function NewInvoiceDialog({ onDone }: { onDone: () => void }) {
   const { toast } = useToast()
@@ -211,6 +367,7 @@ export function FinanceView() {
   const [invoices, setInvoices] = useState<Invoice[] | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [journal, setJournal] = useState<JournalData | null>(null)
+  const [payroll, setPayroll] = useState<PayrollData | null>(null)
   const [detail, setDetail] = useState<Invoice | null>(null)
   const [tab, setTab] = useState('invoices')
   const [error, setError] = useState<ApiFail | null>(null)
@@ -221,6 +378,7 @@ export function FinanceView() {
     apiJson<{ items?: Invoice[] }>('/api/v1/finance/invoices').then((d) => { setInvoices(d.items ?? []); setError(null) }).catch(fail)
     apiJson<{ items?: Expense[] }>('/api/v1/finance/expenses').then((d) => setExpenses(d.items ?? [])).catch(fail)
     apiJson<JournalData>('/api/v1/finance/journal').then(setJournal).catch(fail)
+    apiJson<PayrollData>('/api/v1/finance/payroll').then(setPayroll).catch(fail)
   }, [])
   useEffect(load, [load])
 
@@ -260,6 +418,7 @@ export function FinanceView() {
         <TabsList className="flex-wrap">
           <TabsTrigger value="invoices">Factures</TabsTrigger>
           <TabsTrigger value="expenses">Dépenses</TabsTrigger>
+          <TabsTrigger value="payroll">Paie</TabsTrigger>
           <TabsTrigger value="accounting">Comptabilité</TabsTrigger>
           <TabsTrigger value="export">Export SYSCOHADA</TabsTrigger>
         </TabsList>
@@ -339,6 +498,10 @@ export function FinanceView() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="payroll" className="mt-4">
+          {error ? <LoadError error={error} onRetry={load} /> : !payroll ? <Skeleton className="h-72" /> : <PayrollPanel data={payroll} onDone={load} />}
         </TabsContent>
 
         <TabsContent value="export" className="mt-4">

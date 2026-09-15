@@ -334,3 +334,24 @@ Stage Summary:
 - Bénin 🇧🇯 : pack v1.1.0 complet (IFU, TVA 18 %, rails BJ), comptabilité 2026 équilibrée et exportable
 - Charge : pipeline export validé jusqu'à 11k écritures — p95 HTTP 1,16 s sans erreur
 - Rappel : PAT GitHub partagé en chat → à révoquer après usage
+
+---
+Task ID: 13
+Agent: Super Z (main)
+Task: Paie SYSCOHADA (journal PAIE) + RLS PostgreSQL native prouvée + Contrat sectoriel versionné
+
+Work Log:
+- Sécurité d'abord : .env écrasé par l'init environnement (DATABASE_URL→custom.db vide, clé evidence + mode démo disparus) → restauré (DATABASE_URL=prisma/db/yahria.db, EVIDENCE_SIGNING_KEY documentée, YAHRIA_DEMO_2FA=assist) — risque de rupture au redémarrage serveur neutralisé
+- Paie SYSCOHADA : modèles PayRun/Payslip (schéma + RLS db.ts ORG_MODELS + gardes FK payslip→payRun/employee) ; moteur src/lib/yahria/payroll.ts (cotes sociales DÉRIVÉES du Country Pack national — INV-011 : CNSS 15,4/3,6 BJ, CNPS 12,5/6,3 CI, IPRES/CSS SN ; barèmes IFS/ITS/IR progressifs mensuels configurables, figés dans rulesJson à la clôture ; mapping comptes 6611/6612/6613/6615) ; API /api/v1/finance/payroll (GET règles+runs+personnel, POST clôture transactionnelle : bulletin + écriture constatation 661x+6641/4311+4321+4221 par salarié, paiement agrégé D 4221/C 5211, ré-clôture refusée INV-PAIE, audit PAYROLL_RUN_POSTED, hooks sectoriels v2) ; onglet Paie dans Finance (masse salariale, clôture, bulletins en dialog)
+- RLS PostgreSQL NATIVE : prisma/rls-postgres.sql enrichi (rôle yahria_app NOSUPERUSER/NOBYPASSRLS, FORCE RLS sur 23 tables dont PayRun/Payslip, policy LedgerLine enfant via EXISTS sur JournalEntry, Policy globale/org) ; harnais scripts/test_rls_postgres.ts sur PGlite (Postgres réel WASM) : script appliqué TEL QUEL — a révélé et corrigé un bug latent (%I_isolation → syntax error, jamais exécuté avant) ; 37/37 (rôle durci, table noir sans contexte, lectures/écritures inter-tenant refusées, portée enfant, paie cloisonnée, tenants, superuser-vs-app preuve l'enforcement) → scripts/out_rls_postgres/results.json
+- Contrat sectoriel versionné : contract.ts v2 (SECTOR_CONTRACT_VERSIONS 1.0.0/2.0.0 — hooks payment/invoice/payroll, changelog + migrations, SUPPORTED, isContractVersionAccepted) ; registre à NÉGOCIATION (refus explicite version inconnue, coexistence v1×10 + v2×3 : construction/education/microfinance migrées avec hooks facture/paie) ; dispatchers evaluateSectorInvoice/evaluateSectorPayroll (confinement, pureté) ; intégration routes factures + paie ; contrats publics v2.0.0 + YBOS-PAY 1.0.0 (5 contrats) ; invariants INV-012/013 renforcés (coexistence, négociation, hooks v2) ; meta + gouvernance exposent changelog/négociation ; vitrine /secteurs reflète les versions réelles
+- Découverte majeure : perte de contexte AsyncLocalStorage sous BUN (chaînes profondes → ctx=NULL, faux « attaque aboutie » 3.4) — la couche RLS est SAIN sous Node/tsx : 28/28 ; harnais documentés « npx tsx requis, pas Bun » ; 5 lignes sonde 999 résiduelles réparées via client raw (INV-007 bloque delete par construction — échappement de réparation documenté), ΣD=ΣC=2 594 918 490 restauré
+- Suites vertes : paie 39/39 (bun) puis 37/37 (tsx, idempotent) · RLS PG native 37/37 · contrat versionné 35/35 · RLS deep 28/28 · iter4 32/32 · iter5 22/22 · inv008 27/27 · construction 9/9 · preuves 6/6 · UI iter6 12/12 (passerelle 2FA → Paie → cartes Gouvernance) · tsc 0 erreur · eslint clean
+- Harnais shell construction patché : enrôlement 2FA démo (assist) avant sondes + désenrôlement final (le mur MFA vague 3 l'avait fait décrocher) ; en-têtes eslint-disable sur 7 scripts legacy (require volontaire)
+- État démo : clôture de paie CI 2026-07 conservée (6 bulletins, brut 4,25 M, net 3 756 470 XOF, 7 écritures PAIE équilibrées D=C=8 537 720) · 0 enrôlement 2FA · 17 preuves valides · DB scannée (aucun pattern secret)
+
+Stage Summary:
+- Paie : journal PAIE SYSCOHADA bout en bout — cotes par pack national (INV-011), clôture immuable, export balance/GL/journaux intègrent les écritures
+- RLS Postgres native : chemin production PROUVÉ sur Postgres réel (37 attaques refusées) + carte Gouvernance ; bug latent du SQL corrigé
+- Contrats : sectoriel v2.0.0 versionné avec coexistence v1/v2 par construction + nouveau contrat public YBOS-PAY
+- Suites : commit local ; push en attente d'un PAT frais (l'ancien ghp_Ur3i… doit être révoqué — exposé 2× en chat)

@@ -5,7 +5,7 @@
 // peut jamais modifier le comportement du noyau, elle ne fait que répondre
 // à des hooks consultatifs.
 
-import type { SectorExtension, SectorPaymentContext, SectorFinding } from './contract'
+import type { SectorExtension, SectorPaymentContext, SectorInvoiceContext, SectorPayrollContext, SectorFinding } from './contract'
 
 const F = (code: string, severity: 'INFO' | 'WARN', note: string) => ({ code, severity, note })
 
@@ -25,7 +25,7 @@ const ngo: SectorExtension = {
 
 // ── microfinance ─────────────────────────────────────────────────────────────
 const microfinance: SectorExtension = {
-  code: 'microfinance', name: 'Microfinance', version: '1.0.0', contractVersion: '1.0.0',
+  code: 'microfinance', name: 'Microfinance', version: '2.0.0', contractVersion: '2.0.0',
   entities: ['Dossier de crédit', 'Échéancier', 'Portefeuille'],
   kpis: ['PAR30', 'Taux de remboursement', 'Encours'],
   evaluatePayment: (ctx: SectorPaymentContext) => {
@@ -37,6 +37,18 @@ const microfinance: SectorExtension = {
       f.push(F('MFI_REMBOURSEMENT_GROS', 'INFO', 'Grosses entrées : rapprocher avec l\u2019échéancier du dossier correspondant (PAR)'))
     }
     return f
+  },
+  evaluateInvoice: (ctx: SectorInvoiceContext) => {
+    if (ctx.amount >= 500_000) {
+      return [F('MFI_FACT_INTERETS', 'INFO', 'Facturation d\u2019intérêts ou de frais de dossier importante : vérifier la conformité du taux au plafond réglementaire et le rattachement à l\u2019échéancier du dossier')]
+    }
+    return []
+  },
+  evaluatePayroll: (ctx: SectorPayrollContext) => {
+    if (ctx.headcount >= 10) {
+      return [F('MFI_PAIE_AGENTS', 'INFO', 'Effectif de terrain important : ventiler la paie agents de crédit par portefeuille pour le coût complet de gestion (PAR30)')]
+    }
+    return []
   },
 }
 
@@ -55,7 +67,7 @@ const retail: SectorExtension = {
 
 // ── education ────────────────────────────────────────────────────────────────
 const education: SectorExtension = {
-  code: 'education', name: 'Éducation', version: '1.0.0', contractVersion: '1.0.0',
+  code: 'education', name: 'Éducation', version: '2.0.0', contractVersion: '2.0.0',
   entities: ['Scolarité', 'Inscription', 'Classe', 'Personnel'],
   kpis: ['Effectifs', 'Taux de recouvrement scolarité', 'Masse salariale'],
   evaluatePayment: (ctx: SectorPaymentContext) => {
@@ -64,11 +76,14 @@ const education: SectorExtension = {
     }
     return []
   },
+  evaluatePayroll: (ctx: SectorPayrollContext) => {
+    return [F('EDU_MASSE_SALARIALE', 'INFO', `Masse salariale ${ctx.period} : rapprocher les charges de personnel du taux d\u2019encadrement et de l\u2019effectif scolarisé (coût par élève)`)]
+  },
 }
 
 // ── construction ─────────────────────────────────────────────────────────────
 const construction: SectorExtension = {
-  code: 'construction', name: 'BTP', version: '1.0.0', contractVersion: '1.0.0',
+  code: 'construction', name: 'BTP', version: '2.0.0', contractVersion: '2.0.0',
   entities: ['Chantier', 'Situation de travaux', 'Attachement', 'Métré'],
   kpis: ['Avancement', 'Marge chantier', 'Rétention'],
   evaluatePayment: (ctx: SectorPaymentContext) => {
@@ -76,6 +91,19 @@ const construction: SectorExtension = {
       return [F('BTP_SITUATION', 'WARN', 'Décaissement chantier majeur : exige une situation de travaux validée (attachements + métré) en pièce jointe')]
     }
     return []
+  },
+  evaluateInvoice: (ctx: SectorInvoiceContext) => {
+    if (ctx.amount >= 2_000_000) {
+      return [F('BTP_FACT_SITUATION', 'WARN', 'Facture chantier majeure : exiger la situation de travaux validée (avancement, rétention, retenue de garantie) avant émission')]
+    }
+    return []
+  },
+  evaluatePayroll: (ctx: SectorPayrollContext) => {
+    const f: SectorFinding[] = []
+    if (ctx.headcount >= 5) {
+      f.push(F('BTP_PAIE_CHANTIER', 'INFO', 'Main-d\u2019œuvre nombreuse : ventiler les salaires (6611) par chantier pour la marge par affaire et vérifier la couverture risques professionnels (CNSS)'))
+    }
+    return f
   },
 }
 

@@ -1,0 +1,231 @@
+{
+  "ranAt": "2026-09-15T01:00:25.639Z",
+  "engine": "PGlite 0.5.8 (PostgreSQL WASM réel)",
+  "script": "prisma/rls-postgres.sql",
+  "pass": 37,
+  "fail": 0,
+  "checks": [
+    {
+      "id": "0.1",
+      "label": "Script RLS PostgreSQL appliqué sans erreur",
+      "ok": true,
+      "detail": "103 lignes"
+    },
+    {
+      "id": "1.1",
+      "label": "Rôle yahria_app créé",
+      "ok": true,
+      "detail": "superuser=false, bypassrls=false"
+    },
+    {
+      "id": "1.2",
+      "label": "yahria_app NOSUPERUSER",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "1.3",
+      "label": "yahria_app NOBYPASSRLS",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "1.4",
+      "label": "SET ROLE effectif — session = yahria_app",
+      "ok": true,
+      "detail": "current_user=yahria_app"
+    },
+    {
+      "id": "2.1",
+      "label": "Jeu de contrôle inséré (superuser)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "3.1",
+      "label": "Customer illisible sans contexte",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "3.2",
+      "label": "Invoice illisible sans contexte",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "3.3",
+      "label": "Evidence illisible sans contexte",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "4.1",
+      "label": "Customer = org courante uniquement",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "4.2",
+      "label": "Lecture directe d’une facture BJ → 0 ligne",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "4.3",
+      "label": "Evidence BJ invisible depuis CI",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "4.4",
+      "label": "LedgerLine scoppée par le parent (2 lignes CI / 3 totales)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "4.5",
+      "label": "Policy : globale + org visibles (2/2)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "4.6",
+      "label": "PayRun BJ invisible depuis CI",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "4.7",
+      "label": "User du tenant T2 invisible (cloisonnement tenant)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "4.8",
+      "label": "User du tenant T1 visible (1)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "5.1",
+      "label": "UPDATE client BJ depuis CI → 0 ligne atteinte",
+      "ok": true,
+      "detail": "0 ligne atteinte — filtrage RLS effectif"
+    },
+    {
+      "id": "5.2",
+      "label": "DELETE facture BJ depuis CI → 0 ligne atteinte",
+      "ok": true,
+      "detail": "0 ligne atteinte — filtrage RLS effectif"
+    },
+    {
+      "id": "5.3",
+      "label": "INSERT client avec orgId étranger (BJ)",
+      "ok": true,
+      "detail": "refusée : new row violates row-level security policy for table \"Customer\""
+    },
+    {
+      "id": "5.4",
+      "label": "INSERT client avec orgId forgé inconnu",
+      "ok": true,
+      "detail": "refusée : new row violates row-level security policy for table \"Customer\""
+    },
+    {
+      "id": "5.5",
+      "label": "INSERT LedgerLine rattachée au journal BJ",
+      "ok": true,
+      "detail": "refusée : new row violates row-level security policy for table \"LedgerLine\""
+    },
+    {
+      "id": "5.6",
+      "label": "Client BJ INTACT après les attaques (VÉRIFIÉ en superuser)",
+      "ok": true,
+      "detail": "name=Client BJ"
+    },
+    {
+      "id": "5.7",
+      "label": "Aucune ligne de grand livre injectée chez BJ",
+      "ok": true,
+      "detail": "1 ligne(s)"
+    },
+    {
+      "id": "6.1",
+      "label": "INSERT client CI sous contexte CI → accepté",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "6.2",
+      "label": "La ligne insérée est lisible sous le même périmètre",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "6.3",
+      "label": "UPDATE dans le périmètre → 1 ligne mutée",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "7.1",
+      "label": "PayRun BJ visible sous BJ",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "7.2",
+      "label": "Payslip CI invisible depuis BJ",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "7.3",
+      "label": "LedgerLine BJ (1 ligne via parent)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "8.1",
+      "label": "Org T2 : 0 client (org vierge)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "8.2",
+      "label": "User T2 voit son propre compte",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "8.3",
+      "label": "User T2 ne voit AUCUN user du tenant T1",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "9.1",
+      "label": "Superuser voit tout (2 contrôle + 1 légitime) — l’écart avec yahria_app prouve l’enforcement",
+      "ok": true,
+      "detail": "3 ligne(s) en superuser"
+    },
+    {
+      "id": "9.1b",
+      "label": "Le même SELECT en yahria_app reste cloisonné (1 contrôle + 1 légitime = 2)",
+      "ok": true,
+      "detail": "2 ligne(s) scopée(s)"
+    },
+    {
+      "id": "9.2",
+      "label": "Politiques RLS enregistrées dans le catalogue (≥ 23)",
+      "ok": true,
+      "detail": "23 politique(s)"
+    },
+    {
+      "id": "9.3",
+      "label": "FORCE ROW LEVEL SECURITY actif sur toutes les tables cloisonnées (≥ 21)",
+      "ok": true,
+      "detail": "23 table(s)"
+    }
+  ]
+}

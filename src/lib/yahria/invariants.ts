@@ -14,7 +14,8 @@ import path from 'node:path'
 import { db, dbUnscoped, runWithRls } from '@/lib/db'
 import { checkPackIsolation } from './packs'
 import { isSemver, contractsOverview } from './contracts'
-import { registryIntegrity } from './sectors/registry'
+import { registryIntegrity, negotiateContract } from './sectors/registry'
+import { SECTOR_CONTRACT_VERSIONS } from './sectors/contract'
 
 export interface ProofCheck {
   label: string
@@ -302,8 +303,19 @@ async function probeInv012(): Promise<ConstructionProof> {
     const reg = registryIntegrity()
     checks.push({
       label: 'Registre cohérent et versionné',
-      ok: reg.versionsOk && reg.total >= 13,
-      detail: `${reg.total} extensions enregistrées sous le contrat ${reg.contractVersion} — versions d\u2019extension alignées`,
+      ok: reg.versionsOk && reg.total >= 13 && reg.refused.length === 0,
+      detail: `${reg.total} extensions enregistrées sous le contrat ${reg.contractVersion} — versions acceptées, 0 refus — répartition : ${Object.entries(reg.byContractVersion).map(([v, n]) => `v${v}×${n}`).join(', ')}`,
+    })
+    checks.push({
+      label: 'Coexistence versionnée v1 + v2 servie par le registre',
+      ok: (reg.byContractVersion['1.0.0'] ?? 0) >= 1 && (reg.byContractVersion['2.0.0'] ?? 0) >= 1,
+      detail: `${reg.byContractVersion['1.0.0'] ?? 0} extension(s) sous contrat v1 (evaluatePayment) et ${reg.byContractVersion['2.0.0'] ?? 0} sous contrat v2 (payment + facture + paie) — migration progressive sans big-bang`,
+    })
+    const negOk = negotiateContract('2.0.0').accepted && !negotiateContract('9.9.9').accepted
+    checks.push({
+      label: 'Négociation de contrat (version inconnue refusée explicitement)',
+      ok: negOk,
+      detail: negOk ? 'négocier(2.0.0) acceptée · négocier(9.9.9) refusée — le registre ne sert jamais une version non supportée' : 'négociation défaillante',
     })
     checks.push({
       label: 'Hooks purs (aucun effet de bord possible)',
@@ -349,10 +361,17 @@ async function probeInv013(): Promise<ConstructionProof> {
     detail: packs.length ? packs.map((p) => `${p.code} v${p.version}`).join(' · ') : 'Aucun pack en base',
   })
   const reg = registryIntegrity()
+  const sectorVersions = Object.values(SECTOR_CONTRACT_VERSIONS)
+  const changelogMonotone = sectorVersions.every((r) => isSemver(r.version))
   checks.push({
-    label: 'Contrat sectoriel versionné',
-    ok: isSemver(reg.contractVersion),
-    detail: `Registre sectoriel sous contrat ${reg.contractVersion} (${reg.total} extensions)`,
+    label: 'Contrat sectoriel versionné (versions publiées + changelog)',
+    ok: isSemver(reg.contractVersion) && changelogMonotone && sectorVersions.length >= 2,
+    detail: `Contrat sectoriel ${reg.contractVersion} — ${sectorVersions.length} releases publiées (${sectorVersions.map((r) => `v${r.version} : ${r.hooks.length} hook(s)`).join(' · ')}) ; registre : ${reg.total} extensions`,
+  })
+  checks.push({
+    label: 'Coexistence v1/v2 + hooks v2 couverts',
+    ok: (reg.byContractVersion['1.0.0'] ?? 0) >= 1 && (reg.hooksCoverage.evaluateInvoice ?? 0) >= 1 && (reg.hooksCoverage.evaluatePayroll ?? 0) >= 1,
+    detail: `hooks v2 implémentés : evaluateInvoice×${reg.hooksCoverage.evaluateInvoice ?? 0}, evaluatePayroll×${reg.hooksCoverage.evaluatePayroll ?? 0} — les extensions v1 restent servies`,
   })
   const passed = checks.every((c) => c.ok)
   return {

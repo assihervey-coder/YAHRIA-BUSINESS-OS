@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // YAHRIA BUSINESS OS V1 — Vérification navigateur PARCOURS « 2FA AVANT PLATEFORME » (Playwright)
 // Parcours exigé : validation du login → validation 2FA (TOTP ou activation) → SEULEMENT
 // ENSUITE connexion à la plateforme /app. Aucune navigation vers /app avant 2FA validée.

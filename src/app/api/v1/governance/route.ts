@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
 import { db, dbUnscoped } from '@/lib/db'
 import { withAuth, can } from '@/lib/yahria/auth'
 import { jparse } from '@/lib/yahria/core'
@@ -6,7 +8,38 @@ import { rebuildGraphProjection } from '@/lib/yahria/graph'
 import { audit, verifyEvidenceChain, resealEvidenceChain } from '@/lib/yahria/audit'
 import { checkPackIsolation } from '@/lib/yahria/packs'
 import { runConstructionProofs } from '@/lib/yahria/invariants'
-import { API_CONTRACT, EVIDENCE_LEDGER_SPEC, PACK_MANIFEST_SPEC, SECTOR_CONTRACT, contractsOverview } from '@/lib/yahria/contracts'
+import { API_CONTRACT, EVIDENCE_LEDGER_SPEC, PACK_MANIFEST_SPEC, SECTOR_CONTRACT, PAYROLL_CONTRACT, contractsOverview } from '@/lib/yahria/contracts'
+import { registryIntegrity } from '@/lib/yahria/sectors/registry'
+
+/**
+ * Catalogue RLS PostgreSQL native : compte les politiques du script de production
+ * et joint la dernière preuve d'exécution (harnais PGlite — Postgres WASM réel)
+ * si disponible. Le chemin de lecture est encapsulé : jamais bloquant.
+ */
+async function rlsPostgresStatus() {
+  try {
+    const sql = await fs.readFile(path.join(process.cwd(), 'prisma', 'rls-postgres.sql'), 'utf8')
+    const policies = [...sql.matchAll(/CREATE POLICY\s+"?([A-Za-z0-9_]+)"?\s+ON\s+"?([A-Za-z0-9_]+)"?/g)].map((m) => ({ name: m[1], table: m[2] }))
+    const enabled = [...sql.matchAll(/ALTER TABLE\s+"?([A-Za-z0-9_]+)"?\s+ENABLE ROW LEVEL SECURITY/g)].map((m) => m[1])
+    let proof: { ranAt: string; pass: number; fail: number; engine: string } | null = null
+    try {
+      const raw = await fs.readFile(path.join(process.cwd(), 'scripts', 'out_rls_postgres', 'results.json'), 'utf8')
+      const j = JSON.parse(raw) as { ranAt?: string; pass?: number; fail?: number; engine?: string }
+      proof = { ranAt: j.ranAt ?? '', pass: j.pass ?? 0, fail: j.fail ?? 0, engine: j.engine ?? 'PGlite (Postgres WASM)' }
+    } catch { /* preuve pas encore exécutée */ }
+    return {
+      script: 'prisma/rls-postgres.sql',
+      rlsTables: enabled.length,
+      policies,
+      policyCount: policies.length,
+      roleApp: 'yahria_app (NOSUPERUSER, NOBYPASSRLS)',
+      contextSetting: "set_config('app.org_id' / 'app.tenant_id') par transaction",
+      proof,
+    }
+  } catch {
+    return null
+  }
+}
 
 // 15 invariants (spec §16) — V1 acceptance panel with live checks where computable
 const INVARIANTS = [
@@ -119,7 +152,7 @@ export async function GET(req: NextRequest) {
         allPass: construction.allPass,
         proofs: construction.proofs,
         contracts: contractsOverview(),
-        contractMeta: { api: API_CONTRACT, evidenceLedger: EVIDENCE_LEDGER_SPEC, packManifest: PACK_MANIFEST_SPEC, sector: SECTOR_CONTRACT },
+        contractMeta: { api: API_CONTRACT, evidenceLedger: EVIDENCE_LEDGER_SPEC, packManifest: PACK_MANIFEST_SPEC, sector: SECTOR_CONTRACT, payroll: PAYROLL_CONTRACT },
       },
       rls: {
         mode: 'RLS applicatif (SQLite) — politiques Postgres fournies pour production',
@@ -127,6 +160,8 @@ export async function GET(req: NextRequest) {
         scope: { tenantId: s.tenantId, orgId, role: s.role },
         enforcement: ['Lecture : filtre orgId injecté dans chaque requête', 'Écriture : orgId forcé côté serveur', 'update/delete : pré-vérification du périmètre (RLS_VIOLATION sinon)'],
       },
+      rlsPostgres: await rlsPostgresStatus(),
+      sectorContract: { ...SECTOR_CONTRACT, registry: registryIntegrity() },
       permissions: { role: s.role, canManagePolicies: can(s.role, 'policies.manage'), canRebuildGraph: can(s.role, 'graph.rebuild'), canTestIsolation: can(s.role, 'governance.admin') },
       stats: {
         auditCount: auditRecords.length,

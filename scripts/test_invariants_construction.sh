@@ -14,9 +14,13 @@ C=$(rg -i '^x-contract-id:' /tmp/h401.txt | tr -d '\r' | cut -d' ' -f2)
 [ "$C" = "YBOS-API" ] && ok "X-Contract-Id: $C" || bad "X-Contract-Id absent ($C)"
 
 echo ""
-echo "════ 2. LOGIN + SONDES DE CONSTRUCTION ════"
+echo "════ 2. LOGIN + ENRÔLEMENT 2FA DÉMO (assist) + SONDES DE CONSTRUCTION ════"
 curl -s -c /tmp/c_owner.txt -X POST $BASE/api/v1/auth/login -H 'Content-Type: application/json' \
   -d '{"email":"akone@ivoire-distribution.ci","password":"Demo2026!"}' > /dev/null
+# Mur MFA (vague 3 = tous rôles) : enrôlement TOTP via le mode démo assist, retiré en fin de suite
+curl -s -b /tmp/c_owner.txt -X POST $BASE/api/v1/auth/2fa/setup > /tmp/setup.json
+CODE=$(curl -s -b /tmp/c_owner.txt -X POST $BASE/api/v1/auth/2fa/demo-code | J "print(d['code'])")
+curl -s -b /tmp/c_owner.txt -X POST $BASE/api/v1/auth/2fa/enable -H 'Content-Type: application/json' -d "{\"code\":\"$CODE\"}" | J "print('2FA démo enrôlée:', d.get('ok', d.get('mfaRequired', '?')))"
 curl -s -b /tmp/c_owner.txt -X POST $BASE/api/v1/governance -H 'Content-Type: application/json' \
   -d '{"action":"RUN_INVARIANT_PROOFS"}' > /tmp/proofs.json
 J "print('allPass:', d['allPass']); [print(' ', p['id'], '→', p['status'], '|', len(p['checks']), 'checks —', p['proof'][:88]+'…') for p in d['proofs']]" < /tmp/proofs.json
@@ -73,6 +77,18 @@ curl -s -b /tmp/c_owner.txt $BASE/api/v1/governance | J "
 a=[x for x in d['audit'] if x['action']=='SECTOR_FINDINGS']
 print('audit SECTOR_FINDINGS:', len(a), 'entrée(s) —', (a[0]['summary'][:80] if a else 'aucune'))
 exit(0 if len(a)>=0 else 1)" && ok "journal d'audit accessible (INV-014)" || bad "audit indisponible"
+
+echo ""
+echo "════ 6. NETTOYAGE — base démo neutre (désenrôlement) ════"
+curl -s -b /tmp/c_owner.txt -X POST $BASE/api/v1/auth/2fa/disable > /dev/null
+node_modules/.bin/tsx -e "
+import { dbUnscoped } from './src/lib/db'
+async function main() {
+  const r = await dbUnscoped.user.updateMany({ where: { totpEnabledAt: { not: null } }, data: { totpSecret: null, totpEnabledAt: null, recoveryCodes: null } })
+  console.log('désenrôlement:', r.count, 'utilisateur(s) — base démo neutre')
+}
+main()
+" 2>&1 | grep -vE "^prisma:query"
 
 echo ""
 echo "════ RÉSULTAT: $PASS PASS / $FAIL FAIL ════"

@@ -56,6 +56,7 @@ const ORG_MODELS = new Set([
   'organization', 'customer', 'supplier', 'employee', 'product', 'paymentaccount',
   'payment', 'reconciliation', 'invoice', 'expense', 'account', 'journalentry',
   'graphnode', 'graphedge', 'agent', 'agentrun', 'approval', 'auditrecord', 'evidence',
+  'payrun', 'payslip',
 ])
 // Modèles porteurs d'un tenantId (sans orgId) — cloisonnement par tenant
 const TENANT_MODELS = new Set(['user'])
@@ -81,6 +82,7 @@ const FK_ORG_GUARDS: Record<string, Record<string, string>> = {
   payment: { invoiceId: 'invoice', expenseId: 'expense', paymentAccountId: 'paymentAccount' },
   reconciliation: { paymentId: 'payment' },
   ledgerline: { entryId: 'journalEntry' },
+  payslip: { payRunId: 'payRun', employeeId: 'employee' },
 }
 
 async function assertForeignKeysInScope(m: string, data: any, ctx: RlsContext): Promise<void> {

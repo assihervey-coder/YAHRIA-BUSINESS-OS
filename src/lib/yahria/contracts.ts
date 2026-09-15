@@ -34,11 +34,28 @@ export const PACK_MANIFEST_SPEC = {
   fields: ['code', 'name', 'currency', 'vatRate', 'mobileMoney', 'banks', 'payroll', 'compliance', 'invoicing', 'version'],
 } as const
 
-/** Contrat public du registre sectoriel (INV-012). */
+/** Contrat public du registre sectoriel VERSIONNÉ (INV-012 / INV-013). */
 export const SECTOR_CONTRACT = {
   contractId: 'YBOS-SECTOR',
-  version: '1.0.0',
+  version: '2.0.0',
+  supportedVersions: ['1.0.0', '2.0.0'],
+  publishedAt: '2026-09-15',
+  changelog: [
+    { version: '2.0.0', date: '2026-09-15', note: 'Hooks facturation (evaluateInvoice) et paie (evaluatePayroll) + négociation de version au registre — compatible v1, migration progressive' },
+    { version: '1.0.0', date: '2026-09-01', note: 'Contrat initial : hook evaluatePayment, champs descriptifs, isolation structurelle registre → contrat → extensions' },
+  ],
   isolation: 'Les extensions sectorielles sont chargées exclusivement via le registre (sectors/registry) ; le Core n\u2019importe jamais une extension concrète.',
+} as const
+
+/** Contrat public du module de paie SYSCOHADA (journal PAIE). */
+export const PAYROLL_CONTRACT = {
+  contractId: 'YBOS-PAY',
+  version: '1.0.0',
+  schema: 'SYSCOHADA-révisé',
+  publishedAt: '2026-09-15',
+  changelog: [
+    { version: '1.0.0', date: '2026-09-15', note: 'Clôture de paie périodique : bulletins, cotes sociales du Country Pack (INV-011), barème fiscal configuré, écritures PAIE 661x/6641/4311/4321/4221/5211' },
+  ],
 } as const
 
 const SEMVER_RE = /^\d+\.\d+\.\d+$/
@@ -53,6 +70,7 @@ export function contractsOverview() {
     { contractId: API_CONTRACT.contractId, name: API_CONTRACT.name, version: API_CONTRACT.version, semver: isSemver(API_CONTRACT.version), scope: 'Routes HTTP /api/v1' },
     { contractId: EVIDENCE_LEDGER_SPEC.contractId, name: 'Ledger de preuves signées', version: EVIDENCE_LEDGER_SPEC.version, semver: isSemver(EVIDENCE_LEDGER_SPEC.version), scope: 'Evidence (INV-008)' },
     { contractId: PACK_MANIFEST_SPEC.contractId, name: 'Manifest Country Pack', version: PACK_MANIFEST_SPEC.version, semver: isSemver(PACK_MANIFEST_SPEC.version), scope: 'Packs nationaux (INV-011)' },
-    { contractId: SECTOR_CONTRACT.contractId, name: 'Registre sectoriel', version: SECTOR_CONTRACT.version, semver: isSemver(SECTOR_CONTRACT.version), scope: 'Extensions sectorielles (INV-012)' },
+    { contractId: SECTOR_CONTRACT.contractId, name: 'Registre sectoriel', version: SECTOR_CONTRACT.version, semver: isSemver(SECTOR_CONTRACT.version), scope: 'Extensions sectorielles versionnées — coexistence v1+v2 (INV-012)' },
+    { contractId: PAYROLL_CONTRACT.contractId, name: 'Paie SYSCOHADA (journal PAIE)', version: PAYROLL_CONTRACT.version, semver: isSemver(PAYROLL_CONTRACT.version), scope: 'Clôture de paie + écritures OHADA' },
   ]
 }

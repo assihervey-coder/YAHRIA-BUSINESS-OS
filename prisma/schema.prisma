@@ -42,6 +42,8 @@ model Organization {
   customers  Customer[]
   suppliers  Supplier[]
   employees  Employee[]
+  payruns    PayRun[]
+  payslips   Payslip[]
   products   Product[]
   accounts   PaymentAccount[]
   payments   Payment[]
@@ -154,6 +156,7 @@ model Employee {
   currency     String   @default("XOF")
   status       String   @default("ACTIVE")
   hiredAt      DateTime @default(now())
+  payslips     Payslip[]
 }
 
 model Product {
@@ -328,6 +331,61 @@ model LedgerLine {
   accountName String
   debit       Float        @default(0)
   credit      Float        @default(0)
+}
+
+// ── Paie SYSCOHADA (journal PAIE) ───────────────────────────────────────────
+// Clôture de paie périodique : un PayRun par organisation et par période
+// (YYYY-MM). Chaque bulletin (Payslip) produit une écriture double-partie
+// dans le journal PAIE : D 661x (brut) + D 6641 (charges patronales)
+// / C 4311 (CNSS) + C 4321 (impôt retenu) + C 4221 (net à payer),
+// puis une écriture de paiement D 4221 / C 5211. Écritures APPEND-ONLY
+// (INV-007) : une correction de paie = contre-passation, jamais une
+// modification. Les paramètres (cotes sociales, barème) sont figés dans
+// rulesJson au moment du calcul (reproductibilité d'audit).
+model PayRun {
+  id                String   @id @default(cuid())
+  orgId             String
+  org               Organization @relation(fields: [orgId], references: [id])
+  reference         String   @unique // PAIE-2026-08
+  period            String // YYYY-MM
+  status            String   @default("POSTED") // POSTED (final — contre-passation pour corriger)
+  headcount         Int      @default(0)
+  grossTotal        Float    @default(0)
+  cnssEmployeeTotal Float    @default(0)
+  cnssEmployerTotal Float    @default(0)
+  taxTotal          Float    @default(0) // IFS (BJ) / ITS (CI) / IR (SN) retenu à la source
+  netTotal          Float    @default(0)
+  currency          String   @default("XOF")
+  countryPackCode   String   // pack national utilisé (CI | SN | BJ) — INV-011
+  rulesJson         String   @default("{}") // snapshot paramètres (cotes, barème, mapping comptes)
+  postedAt          DateTime @default(now())
+  createdAt         DateTime @default(now())
+  payslips          Payslip[]
+
+  @@unique([orgId, period])
+}
+
+model Payslip {
+  id           String   @id @default(cuid())
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id])
+  payRunId     String
+  payRun       PayRun   @relation(fields: [payRunId], references: [id], onDelete: Cascade)
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  employeeCode String
+  employeeName String
+  position     String
+  contractType String // CDI | CDD | STAGE | CONSULTANT
+  accountCode  String // 6611 | 6612 | 6613 | 6615 — compte de charge SYSCOHADA
+  gross        Float
+  cnssEmployee Float    @default(0)
+  cnssEmployer Float    @default(0)
+  tax          Float    @default(0)
+  net          Float
+  linesJson    String   @default("[]") // détail du calcul (bulletin de paie)
+  entryId      String?  // écriture PAIE de constatation (source=PAYROLL)
+  createdAt    DateTime @default(now())
 }
 
 // ─────────────────────────────── 03_BUSINESS_GRAPH ───────────────────────────────

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // YAHRIA BUSINESS OS V1 — Vérification navigateur « Export SYSCOHADA » (Playwright)
 // Parcours : vitrine → /login → passerelle 2FA (enrôlement assisté démo) → /app
 // → Finance (02 — OHADA SYSCOHADA) → onglet Export SYSCOHADA → téléchargements

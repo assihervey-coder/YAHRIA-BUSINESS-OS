@@ -10,20 +10,21 @@ export const metadata: Metadata = {
 }
 
 // Les 13 extensions du registre sectoriel réel (src/lib/yahria/sectors/extensions.ts)
+// contractVersion reflète le contrat sectoriel implémenté — coexistence v1 + v2 (INV-013).
 const SECTEURS = [
-  { code: 'construction', nom: 'BTP & Construction', detail: 'Situations de travaux, rétention de garantie, sous-traitance et attachements — vérifiés à chaque paiement.' },
-  { code: 'retail', nom: 'Commerce de détail', detail: 'Rotation des stocks, saisonnalité des encaissements et contrôle des écarts de caisse.' },
-  { code: 'ecommerce', nom: 'E-commerce', detail: 'Réconciliation passerelles de paiement, litiges, remboursements et ventes à l\u2019international.' },
-  { code: 'restaurant', nom: 'Restauration', detail: 'Cash quotidien, ratios matière et traçabilité des approvisionnements frais.' },
-  { code: 'healthcare', nom: 'Santé', detail: 'Conformité réglementaire, circuit patients-factures et traçabilité des actes.' },
-  { code: 'education', nom: 'Éducation', detail: 'Scolarité échelonnée, bourses et rapprochement effectifs / encaissements.' },
-  { code: 'microfinance', nom: 'Microfinance', detail: 'Portefeuille de crédits, impayés, provisionnement et discipline de remboursement.' },
-  { code: 'money_transfer', nom: 'Transfert d\u2019argent', detail: 'Plafonds, détection de structuration et conformité LBC-FT sur les flux.' },
-  { code: 'industry', nom: 'Industrie', detail: 'Coûts de production, encours ateliers et marge par ligne de fabrication.' },
-  { code: 'travel', nom: 'Voyages', detail: 'Acomptes fournisseurs, devises et réconciliation billetterie.' },
-  { code: 'toll', nom: 'Péage', detail: 'Flux véhicules à fort volume, réconciliation journalière et audits de trafic.' },
-  { code: 'ngo', nom: 'ONG', detail: 'Financements par projet, traçabilité des dons et reporting bailleurs.' },
-  { code: 'enterprise', nom: 'Entreprise générale', detail: 'Le socle transversal : achats, ventes, trésorerie et reporting standard.' },
+  { code: 'construction', nom: 'BTP & Construction', version: 'v2.0.0', detail: 'Situations de travaux, rétention de garantie, sous-traitance et attachements — vérifiés à chaque paiement ET facture chantier ; paie ventilée par chantier (6611).' },
+  { code: 'retail', nom: 'Commerce de détail', version: 'v1.0.0', detail: 'Rotation des stocks, saisonnalité des encaissements et contrôle des écarts de caisse.' },
+  { code: 'ecommerce', nom: 'E-commerce', version: 'v1.0.0', detail: 'Réconciliation passerelles de paiement, litiges, remboursements et ventes à l\u2019international.' },
+  { code: 'restaurant', nom: 'Restauration', version: 'v1.0.0', detail: 'Cash quotidien, ratios matière et traçabilité des approvisionnements frais.' },
+  { code: 'healthcare', nom: 'Santé', version: 'v1.0.0', detail: 'Conformité réglementaire, circuit patients-factures et traçabilité des actes.' },
+  { code: 'education', nom: 'Éducation', version: 'v2.0.0', detail: 'Scolarité échelonnée, bourses et rapprochement effectifs / encaissements ; masse salariale rapprochée du taux d\u2019encadrement.' },
+  { code: 'microfinance', nom: 'Microfinance', version: 'v2.0.0', detail: 'Portefeuille de crédits, impayés, provisionnement et discipline de remboursement ; conformité des taux facturés au plafond réglementaire.' },
+  { code: 'money_transfer', nom: 'Transfert d\u2019argent', version: 'v1.0.0', detail: 'Plafonds, détection de structuration et conformité LBC-FT sur les flux.' },
+  { code: 'industry', nom: 'Industrie', version: 'v1.0.0', detail: 'Coûts de production, encours ateliers et marge par ligne de fabrication.' },
+  { code: 'travel', nom: 'Voyages', version: 'v1.0.0', detail: 'Acomptes fournisseurs, devises et réconciliation billetterie.' },
+  { code: 'toll', nom: 'Péage', version: 'v1.0.0', detail: 'Flux véhicules à fort volume, réconciliation journalière et audits de trafic.' },
+  { code: 'ngo', nom: 'ONG', version: 'v1.0.0', detail: 'Financements par projet, traçabilité des dons et reporting bailleurs.' },
+  { code: 'enterprise', nom: 'Entreprise générale', version: 'v1.0.0', detail: 'Le socle transversal : achats, ventes, trésorerie et reporting standard.' },
 ]
 
 export default function SecteursPage() {
@@ -37,9 +38,10 @@ export default function SecteursPage() {
           </h1>
           <p className="mt-4 text-sm text-muted-foreground max-w-2xl leading-relaxed">
             Chaque secteur est une extension auto-contenue et versionnée : elle enrichit la
-            vérification des paiements de ses constats propres, sans jamais modifier le cœur
-            de la plateforme. INV-012 garantit par construction cette frontière — le Core
-            n&apos;importe aucune extension, l&apos;extension n&apos;importe que son contrat.
+            vérification des paiements, des factures et de la paie de ses constats propres,
+            sans jamais modifier le cœur de la plateforme. Le contrat sectoriel est
+            versionné (v1 + v2 coexistantes, migration progressive — INV-013) et la
+            frontière avec le Core est garantie par construction (INV-012).
           </p>
         </div>
       </section>
@@ -54,7 +56,7 @@ export default function SecteursPage() {
                   <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" aria-label="Extension active" />
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground leading-relaxed">{s.detail}</p>
-                <p className="mt-3 font-mono text-[10px] text-muted-foreground/70">sectorCode: {s.code} · v1.0.0</p>
+                <p className="mt-3 font-mono text-[10px] text-muted-foreground/70">sectorCode: {s.code} · contrat {s.version}</p>
               </div>
             ))}
           </div>
@@ -75,7 +77,7 @@ export default function SecteursPage() {
           <ol className="space-y-3 text-sm">
             {[
               'Le paiement arrive : policy générale vérifiée (rôle, plafonds, rails autorisés).',
-              'L\u2019extension sectorielle évalue le contexte et attache ses constats (findings).',
+              'L\u2019extension sectorielle évalue le contexte — paiement (v1), facturation et paie (v2) — et attache ses constats (findings).',
               'La décision est rendue : ALLOW, REVIEW (constats consultatifs) ou DENY (rail interdit).',
               'Une Evidence signée scelle décision + constats, chaînée à l\u2019historique de l\u2019organisation.',
             ].map((t, i) => (

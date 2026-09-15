@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // YAHRIA BUSINESS OS V1 — Vérification navigateur SITE VITRINE (Playwright)
 // ① Les 10 pages publiques rendent leur contenu (dont /annonces et /contacts)
 // ② Navigation header/footer + CTA « Accéder à la plateforme » → /login
